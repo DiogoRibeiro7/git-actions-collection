@@ -4,9 +4,9 @@ on:
   workflow_call:
     inputs:
       groups:
-        description: >-
-          JSON mapping top-level folders to reusable workflow paths.
-          Example: {"pkg-a": ".github/workflows/python-lint.yml", "web-app": ".github/workflows/node-ci.yml"}
+        description: >
+          JSON mapping top-level folders to a "kind" string the runner understands.
+          Example: {"pkg-a":"python","web-app":"node","infra":"terraform"}
         required: true
         type: string
 
@@ -32,19 +32,12 @@ jobs:
           base_ref="${{ github.event.before }}"
           head_ref="${{ github.sha }}"
           if [ -z "${base_ref}" ] || [ "${base_ref}" = "0000000000000000000000000000000000000000" ]; then
-            # first commit / new repository
             base_ref="$(git rev-list --max-parents=0 HEAD)"
           fi
-          echo "Base: $base_ref"
-          echo "Head: $head_ref"
           changed_paths="$(
             git diff --name-only "$base_ref" "$head_ref" \
-              | awk -F/ '{print $1}' \
-              | sort -u
+              | awk -F/ 'NF>0{print $1}' | sort -u
           )"
-          echo "Changed (top-level):"
-          printf '%s\n' $changed_paths || true
-          # export as space-separated single line
           echo "changed_paths=${changed_paths}" >> "$GITHUB_OUTPUT"
 
       - name: Build matrix
@@ -56,14 +49,14 @@ jobs:
         run: |
           python <<'PY'
           import json, os
-          groups = json.loads(os.environ["GROUPS_JSON"])  # dict: top -> workflow path
+          groups = json.loads(os.environ["GROUPS_JSON"])  # {"top":"kind"}
           changed = os.environ.get("CHANGED_TOP","").split()
           include = []
           for top in changed:
-              if top in groups:
-                  include.append({"name": top, "workflow": groups[top]})
+              kind = groups.get(top)
+              if kind:
+                  include.append({"top": top, "kind": kind, "path": top})
           matrix = {"include": include}
-          # write outputs for GitHub
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as fh:
               fh.write(f"matrix={json.dumps(matrix, separators=(',',':'))}\n")
               fh.write(f"count={len(include)}\n")
@@ -72,10 +65,13 @@ jobs:
   run:
     needs: detect
     if: ${{ needs.detect.outputs.count != '0' }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.detect.outputs.matrix) }}
-    runs-on: ubuntu-latest
     steps:
-      - name: Run workflow for changed group
-        uses: ./${{ matrix.workflow }} # actionlint: allow=expression
+      - name: Run per-path CI
+        uses: ./.github/workflows/ci-monorepo-runner.yml
+        with:
+          kind: ${{ matrix.kind }}
+          working-directory: ${{ matrix.path }}
