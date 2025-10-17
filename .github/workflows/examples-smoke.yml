@@ -1,4 +1,5 @@
-name: examples-smoke
+# .github/workflows/examples-smoke.yml
+name: Examples Smoke & Lint
 
 on:
   push:
@@ -8,6 +9,7 @@ jobs:
   smoke:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         include:
           - example: python-package
@@ -30,99 +32,159 @@ jobs:
             type: k8s
           - example: helm-chart
             type: helm
+
     steps:
+      # Pin to a specific commit for reproducibility (update occasionally)
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+
+      # ---------- Common tooling ----------
+      - name: Install actionlint
+        run: |
+          set -euo pipefail
+          url=$(curl -s https://api.github.com/repos/rhysd/actionlint/releases/latest \
+            | grep -oP '(?<=browser_download_url": ")[^"]*linux_amd64\.tar\.gz')
+          curl -sSL "$url" | tar -xz
+          sudo mv actionlint /usr/local/bin/
+          actionlint -version
 
       - name: Lint example workflows
         run: |
-          if [ -d "examples/${{ matrix.example }}/.github/workflows" ]; then
-            find "examples/${{ matrix.example }}/.github/workflows" -name '*.yml' -o -name '*.yaml' | xargs -r ./actionlint -ignore 'context "matrix" is not allowed here'
+          set -euo pipefail
+          dir="examples/${{ matrix.example }}/.github/workflows"
+          if [ -d "$dir" ]; then
+            # Lint each file individually so xargs doesn't fail if none exist
+            find "$dir" -type f \( -name '*.yml' -o -name '*.yaml' \) \
+              -print0 | xargs -0 -r -n1 actionlint -ignore 'context "matrix" is not allowed here'
           fi
 
+      # ---------- Language/toolchain setup (only when needed) ----------
+      - name: Setup Python
+        if: matrix.type == 'python' || matrix.type == 'monorepo'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Setup Node.js
+        if: matrix.type == 'node' || matrix.type == 'monorepo'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Java
+        if: matrix.type == 'java'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Setup Go
+        if: matrix.type == 'go'
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22.x'
+
+      - name: Setup Rust
+        if: matrix.type == 'rust'
+        uses: dtolnay/rust-toolchain@1d0fa839ab7bb8288b370fd8eeb8ba8a6b2dbb20 # @stable
+
+      - name: Setup Terraform
+        if: matrix.type == 'terraform' || matrix.type == 'monorepo'
+        uses: hashicorp/setup-terraform@123e94d82ab16b6487c14496a76a25d52c6b39b3
+        with:
+          terraform_version: 1.8.7
+
+      - name: Install Helm
+        if: matrix.type == 'helm'
+        run: curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+      - name: Install kubeconform
+        if: matrix.type == 'k8s'
+        run: |
+          set -euo pipefail
+          curl -L https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz \
+            | tar -xz
+          sudo mv kubeconform /usr/local/bin/
+          kubeconform -version
+
+      # ---------- Per-type checks ----------
       - name: Python tests
         if: matrix.type == 'python'
         run: |
-          cd examples/${{ matrix.example }}
+          set -euo pipefail
+          cd "examples/${{ matrix.example }}"
           python -m pip install -q pytest
           pytest -q
 
       - name: Node check
         if: matrix.type == 'node'
         run: |
-          cd examples/${{ matrix.example }}
+          set -euo pipefail
+          cd "examples/${{ matrix.example }}"
           corepack enable
-          yarn --version
           yarn -v
+          node -v
 
       - name: Java tests
         if: matrix.type == 'java'
         run: |
-          cd examples/${{ matrix.example }}
-          mvn -q test
+          set -euo pipefail
+          cd "examples/${{ matrix.example }}"
+          mvn -q -B -DskipTests=false test
 
       - name: Rust check
         if: matrix.type == 'rust'
         run: |
-          cd examples/${{ matrix.example }}
+          set -euo pipefail
+          cd "examples/${{ matrix.example }}"
           cargo check
 
       - name: Go test
         if: matrix.type == 'go'
         run: |
-          cd examples/${{ matrix.example }}
+          set -euo pipefail
+          cd "examples/${{ matrix.example }}"
           go test ./...
-
-      - name: Install Terraform
-        if: matrix.type == 'terraform' || matrix.type == 'monorepo'
-        run: |
-          if ! command -v terraform >/dev/null; then
-            sudo apt-get update && sudo apt-get install -y terraform
-          fi
 
       - name: Terraform init
         if: matrix.type == 'terraform'
         run: |
-          terraform -v
-          terraform -chdir=examples/${{ matrix.example }} init -backend=false
+          set -euo pipefail
+          terraform -version
+          terraform -chdir="examples/${{ matrix.example }}" init -backend=false
 
       - name: Ensure Docker
         if: matrix.type == 'docker'
         run: |
-          if ! command -v docker >/dev/null; then
-            sudo apt-get update && sudo apt-get install -y docker.io
-          fi
+          set -euo pipefail
           docker --version
 
       - name: Docker build
         if: matrix.type == 'docker'
         run: |
-          cd examples/${{ matrix.example }}
+          set -euo pipefail
+          cd "examples/${{ matrix.example }}"
           docker build .
 
       - name: Monorepo lanes
         if: matrix.type == 'monorepo'
         run: |
-          cd examples/monorepo/pkg-a && ruff check .
+          set -euo pipefail
+          cd examples/monorepo/pkg-a && python -m pip install -q ruff && ruff check .
           cd ../web-app && corepack enable && yarn -v
           cd ../infra && terraform init -backend=false
-
-      - name: Install kubeconform
-        if: matrix.type == 'k8s'
-        run: |
-          curl -L https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz \
-            | tar -xz
-          sudo mv kubeconform /usr/local/bin/
 
       - name: Kubernetes manifests lint
         if: matrix.type == 'k8s'
         run: |
-          cd examples/${{ matrix.example }}
+          set -euo pipefail
+          cd "examples/${{ matrix.example }}"
           kubeconform -summary *.yaml
 
       - name: Helm lint and template
         if: matrix.type == 'helm'
         run: |
-          cd examples/${{ matrix.example }}
+          set -euo pipefail
+          cd "examples/${{ matrix.example }}"
           helm lint .
           helm template . --dry-run
 
@@ -130,11 +192,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+      - name: Install ripgrep
+        run: sudo apt-get update && sudo apt-get install -y ripgrep
       - name: Ensure workflows use collection
         run: |
-          missing=$(rg -L 'uses: DiogoRibeiro7/gh-actions-collection/' -g '*.yml' -g '*.yaml' examples/*/.github/workflows || true)
+          set -euo pipefail
+          missing=$(rg -L 'uses:\s*DiogoRibeiro7/gh-actions-collection/' -g '*.yml' -g '*.yaml' examples/*/.github/workflows || true)
           if [ -n "$missing" ]; then
-            echo "Missing references in:\n$missing"
+            echo -e "Missing references in:\n$missing"
             exit 1
           fi
-
