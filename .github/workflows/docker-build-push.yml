@@ -70,7 +70,7 @@ jobs:
           aws-region: ${{ inputs.aws-region }}
       - name: Login to Amazon ECR
         if: inputs.aws-role != ''
-        uses: aws-actions/amazon-ecr-login@2fc7aceee09e9e4a7105c0d060c656fad0b4f63d
+        uses: aws-actions/amazon-ecr-login@062b18b96a7aff071d4dc91bc00c4c1a7945b076
       - name: Login to GHCR (fallback to custom registry creds)
         if: inputs.aws-role == ''
         uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1
