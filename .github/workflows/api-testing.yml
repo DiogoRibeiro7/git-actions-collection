@@ -105,7 +105,7 @@ jobs:
     steps:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
       - name: Run k6 load test
-        uses: grafana/k6-action@55845c6c2e400af4356c84e5b514aeabb1bfdbd4
+        uses: grafana/k6-action@e4714b734f2b0afaabeb7b4a69142745548ab9ec
         with:
           filename: ${{ inputs.load-script }}
         env:
