@@ -1,0 +1,35 @@
+name: "Markdown Lint"
+description: "Run markdownlint-cli on markdown files"
+inputs:
+  paths:
+    description: "Paths to lint"
+    required: false
+    default: "."
+  config-file:
+    description: "Path to configuration file"
+    required: false
+    default: ""
+  node-version:
+    description: "Node version to use"
+    required: false
+    default: "20"
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      with:
+        node-version: ${{ inputs.node-version }}
+    - name: Install markdownlint-cli
+      shell: bash
+      run: |
+        set -euo pipefail
+        npm install -g markdownlint-cli@0.42.0
+    - name: Run markdownlint
+      shell: bash
+      run: |
+        set -euo pipefail
+        if [ -n "${{ inputs.config-file }}" ]; then
+          markdownlint -c "${{ inputs.config-file }}" "${{ inputs.paths }}"
+        else
+          markdownlint "${{ inputs.paths }}"
+        fi

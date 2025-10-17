@@ -1,0 +1,90 @@
+name: "R Testthat"
+description: "Run testthat or devtools::test() for R projects"
+author: "Diogo Ribeiro <dfr@esmad.ipp.pt>"
+inputs:
+  r-version:
+    description: "R version to install"
+    required: false
+    default: "release"
+  cran-mirror:
+    description: "CRAN mirror to use for package installation"
+    required: false
+    default: "https://cloud.r-project.org"
+  use-public-rspm:
+    description: "Leverage the public RStudio Package Manager binaries"
+    required: false
+    default: "true"
+  test-directory:
+    description: "Directory containing standalone testthat tests"
+    required: false
+    default: "tests/testthat"
+  install-dependencies:
+    description: "Install package dependencies declared in DESCRIPTION"
+    required: false
+    default: "true"
+  additional-packages:
+    description: "Additional CRAN packages to install before running tests"
+    required: false
+    default: ""
+  working-directory:
+    description: "Directory from which to execute tests"
+    required: false
+    default: "."
+  use-devtools:
+    description: "Use devtools::test() when a DESCRIPTION file is present"
+    required: false
+    default: "true"
+runs:
+  using: "composite"
+  steps:
+    - id: package-inputs
+      name: Resolve package list
+      shell: bash
+      run: |
+        pkgs="remotes,testthat"
+        if [ "${{ inputs.use-devtools }}" = "true" ]; then
+          pkgs="$pkgs,devtools"
+        fi
+        extras="${{ inputs.additional-packages }}"
+        if [ -n "$extras" ]; then
+          pkgs="$pkgs,$extras"
+        fi
+        echo "packages=$pkgs" >> "$GITHUB_OUTPUT"
+    - name: Setup R for testing
+      uses: ./.github/actions/setup-r
+      with:
+        r-version: ${{ inputs.r-version }}
+        cran-mirror: ${{ inputs.cran-mirror }}
+        use-public-rspm: ${{ inputs.use-public-rspm }}
+        packages: ${{ steps.package-inputs.outputs.packages }}
+        working-directory: ${{ inputs.working-directory }}
+    - name: Run testthat suite
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        Rscript - <<'RSCRIPT'
+        options(error = function(e) { message(conditionMessage(e)); quit(status = 1) })
+        suppressPackageStartupMessages(library(testthat))
+
+        install_deps <- identical(tolower("${{ inputs.install-dependencies }}"), "true")
+        use_devtools <- identical(tolower("${{ inputs.use-devtools }}"), "true")
+        test_dir <- "${{ inputs.test-directory }}"
+
+        if (install_deps && file.exists("DESCRIPTION")) {
+          message("Installing package dependencies via remotes::install_deps().")
+          remotes::install_deps(dependencies = TRUE)
+        }
+
+        if (file.exists("DESCRIPTION") && use_devtools) {
+          message("Running devtools::test() for package tests.")
+          if (!requireNamespace("devtools", quietly = TRUE)) {
+            stop("devtools package is required when use-devtools is true and DESCRIPTION exists.")
+          }
+          devtools::test()
+        } else if (dir.exists(test_dir)) {
+          message(sprintf("Running testthat::test_dir() on %s", test_dir))
+          testthat::test_dir(test_dir, reporter = "summary")
+        } else {
+          message(sprintf("No tests found in '%s' and no DESCRIPTION file detected. Skipping.", test_dir))
+        }
+        RSCRIPT

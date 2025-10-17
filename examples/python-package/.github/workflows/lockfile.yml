@@ -1,0 +1,11 @@
+name: lockfile
+
+on:
+  pull_request:
+    paths:
+      - "pyproject.toml"
+      - "poetry.lock"
+
+jobs:
+  check:
+    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/lockfile-consistency.yml@main

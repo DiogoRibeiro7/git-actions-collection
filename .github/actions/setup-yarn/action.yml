@@ -1,0 +1,42 @@
+name: "Setup Yarn (Corepack) with cache"
+description: "Enable Corepack and install dependencies with cache"
+inputs:
+  node-version:
+    description: "Node version"
+    required: false
+    default: "20"
+  working-directory:
+    description: "Project directory"
+    required: false
+    default: "."
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Enable Corepack
+      shell: bash
+      run: corepack enable
+
+    - name: Cache Yarn
+      uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809
+      with:
+        path: |
+          ${{ inputs.working-directory }}/.yarn/cache
+          ${{ inputs.working-directory }}/.yarn/patches
+          ${{ inputs.working-directory }}/.yarn/unplugged
+          ${{ inputs.working-directory }}/.yarn/build-state.yml
+          ${{ inputs.working-directory }}/.pnp.cjs
+        key: yarn-${{ runner.os }}-${{ hashFiles(format('{0}/yarn.lock', inputs.working-directory)) }}
+
+    - name: Install deps
+      working-directory: ${{ inputs.working-directory }}
+      shell: bash
+      run: |
+        if [ -f yarn.lock ]; then
+          yarn install --immutable
+        else
+          echo "No yarn.lock found"
+        fi

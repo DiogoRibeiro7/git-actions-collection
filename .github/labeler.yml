@@ -1,0 +1,14 @@
+docker:
+  - examples/docker-app/**
+infra:
+  - examples/infra/**
+monorepo:
+  - examples/monorepo/**
+npm:
+  - examples/npm-package/**
+python:
+  - examples/python-package/**
+k8s:
+  - examples/k8s-manifests/**
+helm:
+  - examples/helm-chart/**

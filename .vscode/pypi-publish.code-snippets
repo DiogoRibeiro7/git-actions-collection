@@ -1,0 +1,17 @@
+{
+  "Publish to PyPI using reusable workflow": {
+    "prefix": "pypi-publish",
+    "body": [
+      "name: Publish to PyPI",
+      "on:",
+      "  release:",
+      "    types: [published]",
+      "jobs:",
+      "  publish:",
+      "    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/publish-to-pypi.yml@main",
+      "    with:",
+      "      python-version: '3.12'"
+    ],
+    "description": "Reusable workflow for publishing Python packages to PyPI using trusted publishing"
+  }
+}

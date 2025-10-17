@@ -1,0 +1,60 @@
+name: Publish to npm
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: 'Node version'
+        required: false
+        type: string
+        default: '20'
+      working-directory:
+        description: 'Directory where package.json lives'
+        required: false
+        type: string
+        default: '.'
+      tag:
+        description: 'npm dist-tag to publish under'
+        required: false
+        type: string
+        default: 'latest'
+    secrets:
+      NPM_TOKEN:
+        required: true
+permissions:
+  contents: read
+  id-token: write  # for provenance
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ inputs.node-version }}
+          registry-url: 'https://registry.npmjs.org'
+      - name: Enable Corepack and install deps
+        run: |
+          corepack enable
+          if [ -f yarn.lock ]; then
+            yarn install --immutable
+          elif [ -f package-lock.json ]; then
+            npm ci
+          else
+            echo "No lockfile found; running npm i"
+            npm i
+          fi
+      - name: Build (if script exists)
+        run: |
+          if npm run | grep -q '^  build'; then
+            npm run build
+          else
+            echo "No build script, skipping"
+          fi
+      - name: Publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          npm publish --provenance --tag ${{ inputs.tag }}

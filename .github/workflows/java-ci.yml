@@ -1,0 +1,29 @@
+name: Java CI
+
+on:
+  workflow_call:
+    inputs:
+      build-tool:
+        description: Build system (maven or gradle)
+        required: false
+        type: string
+        default: maven
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+      - name: Set up JDK
+        uses: actions/setup-java@387ac29b308b003ca37ba93a6cab5eb57c8f5f93
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Maven Test
+        if: ${{ inputs.build-tool == 'maven' }}
+        run: mvn -B test
+      - name: Gradle Test
+        if: ${{ inputs.build-tool == 'gradle' }}
+        run: ./gradlew test

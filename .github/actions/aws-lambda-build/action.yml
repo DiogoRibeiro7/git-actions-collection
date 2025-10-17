@@ -1,0 +1,42 @@
+name: "AWS Lambda Build (Python)"
+description: "Package a Python Lambda with slim vendor directory"
+inputs:
+  src:
+    description: "Lambda source folder"
+    required: false
+    default: "lambda/"
+  output-zip:
+    description: "Output zip path"
+    required: false
+    default: "artifact/lambda.zip"
+  python-version:
+    description: "Python version for build"
+    required: false
+    default: "3.12"
+  pip-version:
+    description: "pip release to install (set to 'latest' to track upstream)"
+    required: false
+    default: "24.3.1"
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+      with:
+        python-version: ${{ inputs.python-version }}
+    - name: Build lambda package
+      shell: bash
+      run: |
+        set -euo pipefail
+        pip_version="${{ inputs.pip-version }}"
+        if [ "$pip_version" = "latest" ]; then
+          python -m pip install --upgrade pip
+        else
+          python -m pip install --upgrade "pip==$pip_version"
+        fi
+        mkdir -p artifact build/python
+        rsync -av --exclude '__pycache__' --exclude '*.pyc' "${{ inputs.src }}/" build/
+        if [ -f "${{ inputs.src }}/requirements.txt" ]; then
+          pip install -r "${{ inputs.src }}/requirements.txt" -t build/
+        fi
+        (cd build && zip -r ../${{ inputs.output-zip }} .)
+        echo "Created ${{ inputs.output-zip }}"

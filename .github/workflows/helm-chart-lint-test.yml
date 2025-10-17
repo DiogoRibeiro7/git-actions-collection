@@ -1,0 +1,49 @@
+name: Helm Chart Lint & Test
+on:
+  workflow_call:
+    inputs:
+      chart-path:
+        description: 'Path to the Helm chart'
+        required: false
+        type: string
+        default: '.'
+      publish:
+        description: 'Package and publish the chart'
+        required: false
+        type: boolean
+        default: false
+      oci-registry:
+        description: 'OCI registry to push (if publish is true)'
+        required: false
+        type: string
+        default: ''
+permissions:
+  contents: read
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+      - name: Install Helm
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+      - name: Helm lint
+        run: helm lint ${{ inputs.chart-path }}
+      - name: Helm template dry-run
+        run: helm template ${{ inputs.chart-path }} --dry-run
+      - name: Package chart
+        if: ${{ inputs.publish }}
+        run: helm package ${{ inputs.chart-path }}
+      - name: Publish to OCI registry
+        if: ${{ inputs.publish && inputs.oci-registry != '' }}
+        run: |
+          export HELM_EXPERIMENTAL_OCI=1
+          helm registry login ${{ inputs.oci-registry }} -u ${{ github.actor }} -p ${{ github.token }}
+          helm push *.tgz oci://${{ inputs.oci-registry }}
+      - name: Publish to GitHub Pages
+        if: ${{ inputs.publish && inputs.oci-registry == '' }}
+        uses: helm/chart-releaser-action@419f3267f205afd4639d2eb12a64e911088a5d3d
+        env:
+          CR_TOKEN: ${{ github.token }}
+        with:
+          charts_dir: ${{ inputs.chart-path }}

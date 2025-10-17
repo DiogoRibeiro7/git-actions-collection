@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "demo"
+version = "0.1.0"
+description = "Demo package for reusable workflow example"
+authors = ["Diogo Ribeiro <dfr@esmad.ipp.pt>"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+[[tool.poetry.packages]]
+include = "demo"
+from = "src"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

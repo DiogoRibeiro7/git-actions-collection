@@ -1,0 +1,140 @@
+name: examples-smoke
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - example: python-package
+            type: python
+          - example: npm-package
+            type: node
+          - example: java-app
+            type: java
+          - example: rust-crate
+            type: rust
+          - example: go-module
+            type: go
+          - example: infra
+            type: terraform
+          - example: docker-app
+            type: docker
+          - example: monorepo
+            type: monorepo
+          - example: k8s-manifests
+            type: k8s
+          - example: helm-chart
+            type: helm
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+
+      - name: Lint example workflows
+        run: |
+          if [ -d "examples/${{ matrix.example }}/.github/workflows" ]; then
+            find "examples/${{ matrix.example }}/.github/workflows" -name '*.yml' -o -name '*.yaml' | xargs -r ./actionlint -ignore 'context "matrix" is not allowed here'
+          fi
+
+      - name: Python tests
+        if: matrix.type == 'python'
+        run: |
+          cd examples/${{ matrix.example }}
+          python -m pip install -q pytest
+          pytest -q
+
+      - name: Node check
+        if: matrix.type == 'node'
+        run: |
+          cd examples/${{ matrix.example }}
+          corepack enable
+          yarn --version
+          yarn -v
+
+      - name: Java tests
+        if: matrix.type == 'java'
+        run: |
+          cd examples/${{ matrix.example }}
+          mvn -q test
+
+      - name: Rust check
+        if: matrix.type == 'rust'
+        run: |
+          cd examples/${{ matrix.example }}
+          cargo check
+
+      - name: Go test
+        if: matrix.type == 'go'
+        run: |
+          cd examples/${{ matrix.example }}
+          go test ./...
+
+      - name: Install Terraform
+        if: matrix.type == 'terraform' || matrix.type == 'monorepo'
+        run: |
+          if ! command -v terraform >/dev/null; then
+            sudo apt-get update && sudo apt-get install -y terraform
+          fi
+
+      - name: Terraform init
+        if: matrix.type == 'terraform'
+        run: |
+          terraform -v
+          terraform -chdir=examples/${{ matrix.example }} init -backend=false
+
+      - name: Ensure Docker
+        if: matrix.type == 'docker'
+        run: |
+          if ! command -v docker >/dev/null; then
+            sudo apt-get update && sudo apt-get install -y docker.io
+          fi
+          docker --version
+
+      - name: Docker build
+        if: matrix.type == 'docker'
+        run: |
+          cd examples/${{ matrix.example }}
+          docker build .
+
+      - name: Monorepo lanes
+        if: matrix.type == 'monorepo'
+        run: |
+          cd examples/monorepo/pkg-a && ruff check .
+          cd ../web-app && corepack enable && yarn -v
+          cd ../infra && terraform init -backend=false
+
+      - name: Install kubeconform
+        if: matrix.type == 'k8s'
+        run: |
+          curl -L https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz \
+            | tar -xz
+          sudo mv kubeconform /usr/local/bin/
+
+      - name: Kubernetes manifests lint
+        if: matrix.type == 'k8s'
+        run: |
+          cd examples/${{ matrix.example }}
+          kubeconform -summary *.yaml
+
+      - name: Helm lint and template
+        if: matrix.type == 'helm'
+        run: |
+          cd examples/${{ matrix.example }}
+          helm lint .
+          helm template . --dry-run
+
+  references:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+      - name: Ensure workflows use collection
+        run: |
+          missing=$(rg -L 'uses: DiogoRibeiro7/gh-actions-collection/' -g '*.yml' -g '*.yaml' examples/*/.github/workflows || true)
+          if [ -n "$missing" ]; then
+            echo "Missing references in:\n$missing"
+            exit 1
+          fi
+

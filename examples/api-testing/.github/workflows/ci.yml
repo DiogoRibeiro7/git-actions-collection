@@ -1,0 +1,17 @@
+name: Example API Tests
+on: [push]
+
+jobs:
+  build:
+    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/node-ci.yml@main
+    with:
+      node-version: '20'
+  api-tests:
+    needs: build
+    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/api-testing.yml@main
+    with:
+      openapi-spec: openapi.yaml
+      contract-path: postman-collection.json
+      base-url: https://httpbin.org
+      load-script: k6-script.js
+      run-zap: false

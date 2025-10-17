@@ -1,0 +1,80 @@
+name: "Check Imports vs pyproject"
+description: "Compare imported modules to pyproject dependencies"
+inputs:
+  paths:
+    description: "Paths to scan for Python files"
+    required: false
+    default: "src tests"
+  fail-on:
+    description: "missing | unused | both | none"
+    required: false
+    default: "missing"
+  format:
+    description: "text | json"
+    required: false
+    default: "text"
+  update-pyproject:
+    description: "If true, add missing packages to pyproject.toml"
+    required: false
+    default: "false"
+  create-pr:
+    description: "Create a pull request with pyproject changes"
+    required: false
+    default: "false"
+  pr-branch:
+    description: "Branch name for the PR when create-pr is true"
+    required: false
+    default: "deps/check-imports"
+  python-version:
+    description: "Python version to run the checker"
+    required: false
+    default: "3.12"
+  pip-version:
+    description: "pip release to install (set to 'latest' to track upstream)"
+    required: false
+    default: "24.3.1"
+  smart-update:
+    description: "Use smart dependency updater on pyproject.toml"
+    required: false
+    default: "false"
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+      with:
+        python-version: ${{ inputs.python-version }}
+        cache: pip
+    - id: check
+      shell: bash
+      run: |
+        set -euo pipefail
+        pip_version="${{ inputs.pip-version }}"
+        if [ "$pip_version" = "latest" ]; then
+          python -m pip install --upgrade pip
+        else
+          python -m pip install --upgrade "pip==$pip_version"
+        fi
+        pip install tomlkit==0.13.3
+        python scripts/check_imports_vs_pyproject.py --paths ${{ inputs.paths }} --fail-on none --format json > result.json
+        missing=$(python -c "import json; print(' '.join(json.load(open(\"result.json\"))['missing']))")
+        echo "missing=$missing" >> "$GITHUB_OUTPUT"
+        if [ "${{ inputs.update-pyproject }}" != "true" ]; then
+          python scripts/check_imports_vs_pyproject.py --paths ${{ inputs.paths }} --fail-on ${{ inputs.fail-on }} --format ${{ inputs.format }}
+        fi
+    - if: inputs.update-pyproject == 'true' && steps.check.outputs.missing != ''
+      name: Update pyproject
+      shell: bash
+      run: |
+        set -euo pipefail
+        python scripts/check_imports_vs_pyproject.py --paths ${{ inputs.paths }} --fail-on none --format text --update
+        if [ "${{ inputs.smart-update }}" = 'true' ]; then
+          python scripts/smart_dependency_update.py --manifests pyproject.toml --apply
+        fi
+    - if: inputs.update-pyproject == 'true' && inputs.create-pr == 'true' && steps.check.outputs.missing != ''
+      uses: peter-evans/create-pull-request@4e1beaa7521e8b457b572c090b25bd3db56bf1c5
+      with:
+        commit-message: "chore: add missing deps"
+        title: "chore: add missing deps"
+        body: "Added: ${{ steps.check.outputs.missing }}"
+        branch: ${{ inputs.pr-branch }}
+        add-paths: pyproject.toml

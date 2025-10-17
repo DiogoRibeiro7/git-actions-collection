@@ -1,0 +1,24 @@
+name: Django CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  lint:
+    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/python-lint.yml@main
+
+  test:
+    needs: lint
+    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/python-test-matrix.yml@main
+    with:
+      python-versions: '["3.11","3.12"]'
+      test-command: python manage.py test
+
+  docker:
+    needs: test
+    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/docker-build-push.yml@main
+    with:
+      image: ghcr.io/${{ github.repository }}
+    secrets: inherit

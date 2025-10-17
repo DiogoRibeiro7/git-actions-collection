@@ -1,0 +1,182 @@
+name: AWS Lambda Deploy
+
+on:
+  workflow_call:
+    inputs:
+      aws-role:
+        description: "ARN of IAM role for deployment via OIDC"
+        required: true
+        type: string
+      aws-region:
+        description: "AWS region"
+        required: false
+        default: us-east-1
+        type: string
+      functions:
+        description: "JSON array of function configs"
+        required: true
+        type: string
+      pip-version:
+        description: "pip release to install for Python runtimes (set to 'latest' to track upstream)"
+        required: false
+        default: '24.3.1'
+        type: string
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        function: ${{ fromJSON(inputs.functions) }}
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+        with:
+          fetch-depth: 2
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@49f33fe638c0cba4fb16037a27915a7ab7740259
+        with:
+          role-to-assume: ${{ inputs.aws-role }}
+          aws-region: ${{ inputs.aws-region }}
+      - name: Detect changes
+        id: changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          path="${{ matrix.function.path }}"
+          if git diff --quiet HEAD^ -- "$path"; then
+            echo "changed=false" >>"$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >>"$GITHUB_OUTPUT"
+          fi
+      - name: Setup Python
+        if: steps.changed.outputs.changed == 'true' && startsWith(matrix.function.runtime, 'python')
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: ${{ matrix.function.python-version || '3.12' }}
+      - name: Build Python package
+        if: steps.changed.outputs.changed == 'true' && startsWith(matrix.function.runtime, 'python')
+        uses: ./.github/actions/aws-lambda-build
+        with:
+          src: ${{ matrix.function.path }}
+          output-zip: package.zip
+          python-version: ${{ matrix.function.python-version || '3.12' }}
+          pip-version: ${{ matrix.function.pip-version || inputs.pip-version }}
+      - name: Setup Node.js
+        if: steps.changed.outputs.changed == 'true' && startsWith(matrix.function.runtime, 'nodejs')
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ matrix.function.node-version || '20' }}
+      - name: Build Node.js package
+        if: steps.changed.outputs.changed == 'true' && startsWith(matrix.function.runtime, 'nodejs')
+        working-directory: ${{ matrix.function.path }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --omit=dev
+          zip -r ../package.zip .
+      - name: Setup .NET
+        if: steps.changed.outputs.changed == 'true' && startsWith(matrix.function.runtime, 'dotnet')
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
+        with:
+          dotnet-version: ${{ matrix.function.dotnet-version || '8.0.x' }}
+      - name: Build .NET package
+        if: steps.changed.outputs.changed == 'true' && startsWith(matrix.function.runtime, 'dotnet')
+        working-directory: ${{ matrix.function.path }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet publish -c Release -o build
+          (cd build && zip -r ../package.zip .)
+      - name: Setup Go
+        if: steps.changed.outputs.changed == 'true' && startsWith(matrix.function.runtime, 'go')
+        uses: actions/setup-go@cd79172de4b40d9ee5ec82a31b9a9e0b4c8b1468
+        with:
+          go-version: ${{ matrix.function.go-version || '1.22' }}
+      - name: Build Go package
+        if: steps.changed.outputs.changed == 'true' && startsWith(matrix.function.runtime, 'go')
+        working-directory: ${{ matrix.function.path }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          go build -o bootstrap
+          zip -j package.zip bootstrap
+      - name: Setup Java
+        if: steps.changed.outputs.changed == 'true' && startsWith(matrix.function.runtime, 'java')
+        uses: actions/setup-java@c0d6852c49d049a2771a6fb61f873dd15e852992
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.function.java-version || '21' }}
+      - name: Build Java package
+        if: steps.changed.outputs.changed == 'true' && startsWith(matrix.function.runtime, 'java')
+        working-directory: ${{ matrix.function.path }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mvn -q package
+          zip -r ../package.zip target
+      - name: Update function configuration
+        if: steps.changed.outputs.changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          fn="${{ matrix.function.name }}"
+          cmd=(aws lambda update-function-configuration --function-name "$fn")
+          runtime='${{ matrix.function.runtime }}'
+          [ -n "$runtime" ] && cmd+=(--runtime "$runtime")
+          handler='${{ matrix.function.handler || '' }}'
+          [ -n "$handler" ] && cmd+=(--handler "$handler")
+          env='${{ matrix.function.env || '' }}'
+          [ -n "$env" ] && cmd+=(--environment "Variables=$env")
+          layers='${{ matrix.function.layers || '' }}'
+          [ -n "$layers" ] && cmd+=(--layers "$layers")
+          subnets='${{ matrix.function.subnet-ids || '' }}'
+          sgs='${{ matrix.function.security-group-ids || '' }}'
+          if [ -n "$subnets" ] && [ -n "$sgs" ]; then
+            cmd+=(--vpc-config "SubnetIds=$subnets,SecurityGroupIds=$sgs")
+          fi
+          aws "${cmd[@]}"
+      - name: Capture current alias
+        if: steps.changed.outputs.changed == 'true' && matrix.function.alias != ''
+        id: current
+        shell: bash
+        run: |
+          set -euo pipefail
+          prev=$(aws lambda get-alias --function-name "${{ matrix.function.name }}" --name "${{ matrix.function.alias }}" --query FunctionVersion --output text || echo '')
+          echo "previous=$prev" >>"$GITHUB_OUTPUT"
+      - name: Deploy function code
+        if: steps.changed.outputs.changed == 'true'
+        id: deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          fn="${{ matrix.function.name }}"
+          pkg="package.zip"
+          type='${{ matrix.function.package-type || 'zip' }}'
+          if [ "$type" = "image" ]; then
+            image='${{ matrix.function.image }}'
+            docker build -t "$image" "${{ matrix.function.path }}"
+            docker push "$image"
+            aws lambda update-function-code --function-name "$fn" --image-uri "$image"
+          else
+            size=$(stat -c%s "$pkg")
+            if [ "$size" -gt 52428800 ] && [ -n "${{ matrix.function.s3-bucket || '' }}" ]; then
+              key="$fn-$(date +%s).zip"
+              aws s3 cp "$pkg" "s3://${{ matrix.function.s3-bucket }}/$key"
+              aws lambda update-function-code --function-name "$fn" --s3-bucket "${{ matrix.function.s3-bucket }}" --s3-key "$key"
+            else
+              aws lambda update-function-code --function-name "$fn" --zip-file "fileb://$pkg"
+            fi
+          fi
+          version=$(aws lambda publish-version --function-name "$fn" --output text --query Version)
+          echo "version=$version" >>"$GITHUB_OUTPUT"
+          if [ -n "${{ matrix.function.alias || '' }}" ]; then
+            aws lambda update-alias --function-name "$fn" --name "${{ matrix.function.alias }}" --function-version "$version"
+          fi
+      - name: Rollback on failure
+        if: failure() && steps.current.outputs.previous != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          aws lambda update-alias --function-name "${{ matrix.function.name }}" --name "${{ matrix.function.alias }}" --function-version "${{ steps.current.outputs.previous }}"

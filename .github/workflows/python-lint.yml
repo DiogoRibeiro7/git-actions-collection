@@ -1,0 +1,32 @@
+name: Python Lint
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: 'Python version to use'
+        required: false
+        type: string
+        default: '3.12'
+      enable-mypy:
+        description: 'Run mypy as well'
+        required: false
+        type: boolean
+        default: false
+      pip-version:
+        description: "pip release to install (set to 'latest' to track upstream)"
+        required: false
+        type: string
+        default: '24.3.1'
+permissions:
+  contents: read
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+      - name: Lint & Type Check
+        uses: ./.github/actions/python-lint
+        with:
+          python-version: ${{ inputs.python-version }}
+          enable-mypy: ${{ inputs.enable-mypy }}
+          pip-version: ${{ inputs.pip-version }}

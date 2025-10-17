@@ -1,0 +1,44 @@
+name: Infra Lint
+on:
+  workflow_call:
+    inputs:
+        paths:
+          description: 'Paths to check'
+          required: false
+          type: string
+          default: '.'
+permissions:
+  contents: read
+  security-events: write
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+      - name: Terraform lint
+        run: |
+          curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+          tflint --init
+          tflint ${{ inputs.paths }} || true
+      - name: CloudFormation lint
+        run: |
+          pip install cfn-lint
+          cfn-lint -I ${{ inputs.paths }} || true
+      - name: Checkov (optional)
+        if: ${{ false }} # enable by editing to true
+        uses: bridgecrewio/checkov-action@7e3930d7acb8482fd506c495250290b269e2e640
+        with:
+          directory: ${{ inputs.paths }}
+          soft_fail: true
+      - name: tfsec (optional)
+        if: ${{ false }} # enable by editing to true
+        uses: aquasecurity/tfsec-action@b466648d6e39e7c75324f25d83891162a721f2d6
+        with:
+          working_directory: ${{ inputs.paths }}
+          soft_fail: true
+      - name: KICS (optional)
+        if: ${{ false }} # enable by editing to true
+        uses: checkmarx/kics-github-action@76268ae575f4851bf64f7229f496a511c08f9de4
+        with:
+          path: ${{ inputs.paths }}
+          fail_on: high

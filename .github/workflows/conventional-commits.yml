@@ -1,0 +1,24 @@
+name: Conventional Commits
+on:
+  workflow_call: {}
+permissions:
+  contents: read
+  pull-requests: read
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+        with:
+          fetch-depth: 0
+      - name: Conventional commits check (PR only)
+        if: github.event_name == 'pull_request'
+        uses: webiny/action-conventional-commits@4ae80bc67b0b2e72a4d091a7b18eb4ecc7db68c8
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Conventional commits check (push to main/develop)
+        if: github.event_name == 'push'
+        run: |
+          npx commitlint --version >/dev/null 2>&1 || npm i -g @commitlint/{config-conventional,cli}
+          range="$(git rev-parse HEAD^)..HEAD"
+          git log --format=%s $range | npx commitlint

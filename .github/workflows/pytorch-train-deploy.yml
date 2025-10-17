@@ -1,0 +1,81 @@
+name: PyTorch Train and Deploy
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        type: string
+        default: '3.10'
+      train-script:
+        type: string
+        default: 'train.py'
+      benchmark-script:
+        type: string
+        default: 'benchmark.py'
+      model-artifact:
+        type: string
+        default: 'model.pt'
+      deploy:
+        type: boolean
+        default: false
+      mlflow-uri:
+        type: string
+        default: ''
+    secrets:
+      hf-token:
+        required: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    container:
+      image: pytorch/pytorch:2.1.2-cuda11.8-cudnn8-runtime
+      options: --gpus all
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: ${{ inputs.python-version }}
+      - name: Cache dependencies
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809
+        with:
+          path: |
+            ~/.cache/pip
+            data/
+          key: ${{ runner.os }}-pytorch-${{ hashFiles('**/requirements.txt') }}
+      - name: Install dependencies
+        run: |
+          set -euo pipefail
+          pip install -r requirements.txt mlflow torch torchvision torchaudio
+      - name: Train model
+        run: |
+          set -euo pipefail
+          python "${{ inputs.train-script }}"
+      - name: Track experiment with MLflow
+        if: inputs.mlflow-uri != ''
+        env:
+          MLFLOW_TRACKING_URI: ${{ inputs.mlflow-uri }}
+        run: |
+          set -euo pipefail
+          python -c "import mlflow, pathlib; mlflow.log_artifact(str(pathlib.Path('${{ inputs.model-artifact }}').resolve()))"
+      - name: Benchmark model
+        run: |
+          set -euo pipefail
+          python "${{ inputs.benchmark-script }}"
+      - name: Upload model artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: trained-model
+          path: ${{ inputs.model-artifact }}
+      - name: Deploy model
+        if: inputs.deploy
+        env:
+          HF_TOKEN: ${{ secrets.hf-token }}
+        run: |
+          set -euo pipefail
+          echo "Deploying model with commit ${GITHUB_SHA}"
+

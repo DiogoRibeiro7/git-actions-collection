@@ -1,0 +1,88 @@
+name: Artifact Management
+
+on:
+  workflow_call:
+    inputs:
+      retention-days:
+        description: 'Delete artifacts older than this many days'
+        required: false
+        default: 30
+        type: number
+      keep-latest:
+        description: 'Number of most recent artifacts to keep'
+        required: false
+        default: 5
+        type: number
+      max-size-mb:
+        description: 'Delete artifacts larger than this size (MB)'
+        required: false
+        default: 500
+        type: number
+      package-name:
+        description: 'Optional GitHub Packages name for cleanup (e.g., ghcr.io/org/app)'
+        required: false
+        default: ''
+        type: string
+      registry:
+        description: 'Package type for cleanup (container, npm, maven, etc.)'
+        required: false
+        default: container
+        type: string
+    secrets:
+      GH_TOKEN:
+        required: true
+permissions:
+  contents: read
+  actions: write
+  packages: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+      - name: Purge old workflow artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          RETENTION_DAYS: ${{ inputs.retention-days }}
+          KEEP: ${{ inputs.keep-latest }}
+          MAX_SIZE_MB: ${{ inputs.max-size-mb }}
+        run: |
+          set -euo pipefail
+          repo="${{ github.repository }}"
+          now=$(date -u +%s)
+          kept=0
+          gh api "repos/$repo/actions/artifacts" --paginate --jq '.artifacts[] | select(.expired==false) | "\(.id)|\(.created_at)|\(.size_in_bytes)|\(.workflow_run.id)"' |
+          while IFS='|' read -r id created size run_id; do
+            if [ "$kept" -lt "$KEEP" ]; then
+              kept=$((kept+1))
+              continue
+            fi
+            age=$(( (now - $(date -d "$created" -u +%s)) / 86400 ))
+            size_mb=$(( size / 1024 / 1024 ))
+            if [ "$age" -lt "$RETENTION_DAYS" ] && [ "$size_mb" -lt "$MAX_SIZE_MB" ]; then
+              continue
+            fi
+            pr=$(gh api "repos/$repo/actions/runs/$run_id" --jq '.pull_requests[].number // empty')
+            if [ -n "$pr" ]; then
+              state=$(gh api "repos/$repo/pulls/$pr" --jq '.state')
+              if [ "$state" = "open" ]; then
+                continue
+              fi
+            fi
+            event=$(gh api "repos/$repo/actions/runs/$run_id" --jq '.event')
+            if [ "$event" = "release" ]; then
+              continue
+            fi
+            echo "Deleting artifact $id (age ${age}d size ${size_mb}MB)"
+            gh api "repos/$repo/actions/artifacts/$id" -X DELETE >/dev/null
+          done
+        shell: bash
+      - name: Cleanup package versions
+        if: inputs.package-name != ''
+        uses: actions/delete-package-versions@25ad4af5be03aef10e0b3376b248688b7a44c40b
+        with:
+          package-name: ${{ inputs.package-name }}
+          package-type: ${{ inputs.registry }}
+          min-versions-to-keep: 10
+          delete-only-untagged-versions: true

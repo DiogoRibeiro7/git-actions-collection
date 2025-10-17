@@ -1,0 +1,16 @@
+name: Terraform Plan
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  plan:
+    uses: your-org/gh-actions-collection/.github/workflows/terraform-plan-comment.yml@main
+    with:
+      working-directory: .

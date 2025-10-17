@@ -1,0 +1,14 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  lint:
+    uses: your-org/gh-actions-collection/.github/workflows/python-lint.yml@main
+
+  test:
+    needs: lint
+    uses: your-org/gh-actions-collection/.github/workflows/coverage-report.yml@main

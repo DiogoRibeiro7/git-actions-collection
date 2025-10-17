@@ -1,0 +1,14 @@
+name: Dependency Review
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/dependency-review-action@c6c4c1745020c2dd28bf84835cf10d0e8c8a450f

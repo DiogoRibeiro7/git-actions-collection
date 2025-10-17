@@ -1,0 +1,19 @@
+name: PR Template Enforcer
+description: Fail if a pull request description is empty or missing required sections
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        body="${{ github.event.pull_request.body }}"
+        if [ -z "$(echo "$body" | tr -d '[:space:]')" ]; then
+          echo "::error::Pull request description is empty";
+          exit 1;
+        fi
+        for section in "## Summary" "## Testing"; do
+          if ! echo "$body" | grep -q "$section"; then
+            echo "::error::Missing '$section' section in PR description";
+            exit 1;
+          fi
+        done
+        echo "PR description contains required sections"

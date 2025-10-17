@@ -1,0 +1,8 @@
+name: PR Policy
+
+on:
+  pull_request:
+
+jobs:
+  policy:
+    uses: your-org/gh-actions-collection/.github/workflows/pr-policy.yml@main

@@ -1,0 +1,56 @@
+name: "Smart Dependency Update"
+description: "Batch update dependencies with conflict detection and Dependabot integration"
+inputs:
+  manifests:
+    description: "Space-separated list of manifest files"
+    required: true
+  apply:
+    description: "If true, apply updates to manifests"
+    required: false
+    default: "false"
+  batch-size:
+    description: "Max number of packages to update"
+    required: false
+    default: "50"
+  dependabot:
+    description: "Fetch Dependabot alerts"
+    required: false
+    default: "false"
+  repo:
+    description: "owner/repo for Dependabot API"
+    required: false
+  github-token:
+    description: "GitHub token for Dependabot API"
+    required: false
+  pip-version:
+    description: "pip release to install (set to 'latest' to track upstream)"
+    required: false
+    default: "24.3.1"
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+      with:
+        python-version: "3.x"
+        cache: pip
+    - id: run
+      shell: bash
+      run: |
+        set -euo pipefail
+        pip_version="${{ inputs.pip-version }}"
+        if [ "$pip_version" = "latest" ]; then
+          python -m pip install --upgrade pip
+        else
+          python -m pip install --upgrade "pip==$pip_version"
+        fi
+        pip install tomlkit==0.13.3 packaging==24.2 requests==2.32.3
+        report=$(python scripts/smart_dependency_update.py --manifests ${{ inputs.manifests }} \
+          ${{ inputs.apply == 'true' && '--apply' || '' }} --batch-size ${{ inputs['batch-size'] }} \
+          ${{ inputs.dependabot == 'true' && '--dependabot' || '' }} ${{ inputs.repo && '--repo ' || '' }}${{ inputs.repo }})
+        echo "report=$report" >> "$GITHUB_OUTPUT"
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+outputs:
+  report:
+    description: "JSON report of updates and conflicts"
+    value: ${{ steps.run.outputs.report }}

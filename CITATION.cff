@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: If you use this repository, please cite it.
+title: GitHub Actions Collection
+authors:
+  - given-names: Diogo
+    family-names: Ribeiro
+    email: dfr@esmad.ipp.pt
+    affiliation: ESMAD - Instituto Politécnico do Porto
+    orcid: "https://orcid.org/0009-0001-2022-7072"
+repository-code: https://github.com/DiogoRibeiro7/gh-actions-collection

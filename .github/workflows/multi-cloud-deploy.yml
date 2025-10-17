@@ -1,0 +1,164 @@
+name: Multi-Cloud Deploy
+
+on:
+  workflow_call:
+    inputs:
+      tool:
+        description: 'Infrastructure tool: terraform, pulumi, or bicep'
+        required: true
+        type: string
+      working-directory:
+        description: 'Directory containing infrastructure code'
+        required: false
+        default: '.'
+        type: string
+      environment:
+        description: 'GitHub environment name'
+        required: true
+        type: string
+      aws-role-arn:
+        description: 'AWS role to assume via OIDC'
+        required: false
+        type: string
+      aws-region:
+        description: 'AWS region'
+        required: false
+        type: string
+      azure-client-id:
+        description: 'Azure AD application client ID'
+        required: false
+        type: string
+      azure-tenant-id:
+        description: 'Azure AD tenant ID'
+        required: false
+        type: string
+      azure-subscription-id:
+        description: 'Azure subscription ID'
+        required: false
+        type: string
+      gcp-workload-identity-provider:
+        description: 'GCP workload identity provider'
+        required: false
+        type: string
+      gcp-service-account:
+        description: 'GCP service account email'
+        required: false
+        type: string
+      env-file:
+        description: 'Optional environment variable file'
+        required: false
+        type: string
+      backend-config:
+        description: 'Backend config for Terraform state'
+        required: false
+        type: string
+      pulumi-backend:
+        description: 'Pulumi backend (e.g., s3://bucket)'
+        required: false
+        type: string
+    secrets:
+      azure-credentials:
+        description: 'JSON credentials for Azure deployments when not using OIDC'
+        required: false
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+jobs:
+  lint:
+    uses: ./.github/workflows/infra-lint.yml
+    with:
+      paths: ${{ inputs.working-directory }}
+
+  deploy:
+    needs: lint
+    strategy:
+      matrix:
+        cloud: [aws, azure, gcp]
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+      - name: Load env file
+        if: inputs.env-file != ''
+        run: |
+          set -euo pipefail
+          [ -f "${{ inputs.env-file }}" ] && export $(grep -v '^#' "${{ inputs.env-file }}" | xargs -d '\n')
+      - name: Authenticate to AWS
+        if: matrix.cloud == 'aws' && inputs.aws-role-arn != ''
+        uses: aws-actions/configure-aws-credentials@0e2d98a6e9f655567f3267b90042b6b4c1a7d8c1
+        with:
+          role-to-assume: ${{ inputs.aws-role-arn }}
+          aws-region: ${{ inputs.aws-region }}
+      - name: Authenticate to Azure
+        if: matrix.cloud == 'azure' && inputs.azure-client-id != ''
+        uses: azure/login@5c4f00c76d4206f7d11e6a8d196d45ab0dc63c4d
+        with:
+          client-id: ${{ inputs.azure-client-id }}
+          tenant-id: ${{ inputs.azure-tenant-id }}
+          subscription-id: ${{ inputs.azure-subscription-id }}
+      - name: Authenticate to GCP
+        if: matrix.cloud == 'gcp' && inputs.gcp-workload-identity-provider != ''
+        uses: google-github-actions/auth@b72a49811adcd8b8c0a6a0a9d0f8c57d4b14e5b4
+        with:
+          workload_identity_provider: ${{ inputs.gcp-workload-identity-provider }}
+          service_account: ${{ inputs.gcp-service-account }}
+      - name: Select cloud
+        run: echo "Deploying to ${matrix.cloud} with tool ${INPUT_TOOL}"
+        env:
+          INPUT_TOOL: ${{ inputs.tool }}
+      - name: Install dependencies
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.tool }}" = "terraform" ]; then
+            curl -sSL https://releases.hashicorp.com/terraform/1.7.5/terraform_1.7.5_linux_amd64.zip -o terraform.zip
+            unzip -q terraform.zip
+            mv terraform /usr/local/bin/terraform
+            curl -sSL https://github.com/infracost/infracost/releases/latest/download/infracost-linux-amd64.tar.gz | tar -xz -C /tmp
+            mv /tmp/infracost-linux-amd64/infracost /usr/local/bin/infracost
+          elif [ "${{ inputs.tool }}" = "pulumi" ]; then
+            curl -fsSL https://get.pulumi.com | sh
+            export PATH=$HOME/.pulumi/bin:$PATH
+          else
+            curl -sL https://aka.ms/bicep/install -o bicep.sh
+            bash bicep.sh
+          fi
+      - name: State setup
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.tool }}" = "terraform" ] && [ "${{ inputs.backend-config }}" != "" ]; then
+            terraform init -backend-config="${{ inputs.backend-config }}"
+          elif [ "${{ inputs.tool }}" = "pulumi" ] && [ "${{ inputs.pulumi-backend }}" != "" ]; then
+            pulumi login "${{ inputs.pulumi-backend }}"
+          fi
+      - name: Drift detection
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.tool }}" = "terraform" ]; then
+            terraform plan -lock=true -out tfplan
+          elif [ "${{ inputs.tool }}" = "pulumi" ]; then
+            pulumi preview --non-interactive
+          else
+            az deployment group what-if --template-file main.bicep || true
+          fi
+      - name: Cost estimation
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.tool }}" = "terraform" ]; then
+            infracost breakdown --path . || true
+          fi
+      - name: Apply changes
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.tool }}" = "terraform" ]; then
+            terraform apply -auto-approve tfplan
+          elif [ "${{ inputs.tool }}" = "pulumi" ]; then
+            pulumi up --yes --non-interactive
+          else
+            az deployment group create --template-file main.bicep --parameters @parameters.json
+          fi

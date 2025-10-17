@@ -1,0 +1,22 @@
+name: Rust CI
+
+on:
+  workflow_call:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Format check
+        run: cargo fmt --all --check
+      - name: Cargo check
+        run: cargo check --all --locked
+      - name: Clippy
+        run: cargo clippy --all -- -D warnings

@@ -1,0 +1,21 @@
+name: Deploy with APM
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+      - name: Fake deploy
+        run: echo 'deploying'
+      - name: APM notify
+        uses: DiogoRibeiro7/gh-actions-collection/.github/actions/apm-integration@main
+        with:
+          provider: datadog
+          api-key: ${{ secrets.DD_API_KEY }}
+          environment: demo

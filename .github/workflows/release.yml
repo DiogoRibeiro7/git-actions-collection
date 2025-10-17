@@ -1,0 +1,29 @@
+name: Semantic Release
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: 'Node version for semantic-release'
+        required: false
+        type: string
+        default: '20'
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ inputs.node-version }}
+      - name: Install semantic-release
+        run: npm i -D semantic-release @semantic-release/git @semantic-release/changelog @semantic-release/github conventional-changelog-conventionalcommits
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release

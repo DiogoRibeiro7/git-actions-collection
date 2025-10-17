@@ -1,0 +1,59 @@
+name: Canary Release
+
+on:
+  workflow_call:
+    inputs:
+      project-type:
+        description: 'Project type: python, npm, or docker'
+        required: true
+        type: string
+      working-directory:
+        description: 'Directory containing project files'
+        required: false
+        type: string
+        default: '.'
+      build-backend:
+        description: 'Python build backend'
+        required: false
+        type: string
+        default: 'poetry'
+      image:
+        description: 'Docker image name'
+        required: false
+        type: string
+        default: ''
+    secrets:
+      NPM_TOKEN:
+        required: false
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+jobs:
+  python:
+    if: inputs.project-type == 'python' && (github.ref == 'refs/heads/develop' || contains(github.ref_name, '-rc'))
+    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/pypi-publish.yml@main
+    with:
+      build-backend: ${{ inputs.build-backend }}
+      environment: testpypi
+      pre-release: true
+      working-directory: ${{ inputs.working-directory }}
+
+  npm:
+    if: inputs.project-type == 'npm' && (github.ref == 'refs/heads/develop' || contains(github.ref_name, '-rc'))
+    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/npm-publish.yml@main
+    with:
+      working-directory: ${{ inputs.working-directory }}
+      tag: next
+    secrets:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  docker:
+    if: inputs.project-type == 'docker' && (github.ref == 'refs/heads/develop' || contains(github.ref_name, '-rc'))
+    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/docker-build-push.yml@main
+    with:
+      image: ${{ inputs.image != '' && inputs.image || format('ghcr.io/{0}', github.repository) }}
+      context: ${{ inputs.working-directory }}
+      tags: rc
+      platforms: linux/amd64,linux/arm64

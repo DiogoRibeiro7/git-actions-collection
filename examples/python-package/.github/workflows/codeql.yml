@@ -1,0 +1,14 @@
+name: codeql
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  analyze:
+    uses: your-org/gh-actions-collection/.github/workflows/codeql-analysis.yml@main

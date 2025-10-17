@@ -1,0 +1,36 @@
+name: Lockfile Consistency
+
+on:
+  workflow_call:
+    inputs:
+      pip-version:
+        description: "pip release to install when validating Python lockfiles (set to 'latest' to track upstream)"
+        required: false
+        type: string
+        default: '24.3.1'
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+      - name: Check Poetry lock
+        if: hashFiles('pyproject.toml') != '' && hashFiles('poetry.lock') != ''
+        run: |
+          set -euo pipefail
+          pip_version="${{ inputs.pip-version }}"
+          if [ "$pip_version" = "latest" ]; then
+            python -m pip install --upgrade pip
+          else
+            python -m pip install --upgrade "pip==$pip_version"
+          fi
+          pip install poetry
+          poetry lock --check
+      - name: Check Yarn lock
+        if: hashFiles('package.json') != '' && hashFiles('yarn.lock') != ''
+        run: |
+          corepack enable
+          yarn install --immutable

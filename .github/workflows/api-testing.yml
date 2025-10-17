@@ -1,0 +1,129 @@
+name: API Testing
+
+on:
+  workflow_call:
+    inputs:
+      openapi-spec:
+        description: Path to OpenAPI/Swagger specification
+        required: true
+        type: string
+      contract-type:
+        description: 'Contract test tool: postman or pact'
+        required: false
+        default: postman
+        type: string
+      contract-path:
+        description: Path to Postman collection or Pact file
+        required: true
+        type: string
+      base-url:
+        description: Base URL of API under test
+        required: true
+        type: string
+      load-script:
+        description: Optional k6 script for load testing
+        required: false
+        type: string
+      run-zap:
+        description: Run OWASP ZAP API scan
+        required: false
+        default: false
+        type: boolean
+      graphql-schema:
+        description: Optional GraphQL schema for validation
+        required: false
+        type: string
+      auth-command:
+        description: Optional shell command to retrieve auth token
+        required: false
+        type: string
+    secrets:
+      zap-token:
+        description: Optional ZAP API key
+        required: false
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install tooling
+        run: |
+          set -euo pipefail
+          npm install -g @redocly/cli@1.19.1 newman@6.1.0 graphql-schema-linter@3.2.0
+        shell: bash
+      - name: Validate OpenAPI spec
+        run: |
+          set -euo pipefail
+          redocly lint "${{ inputs.openapi-spec }}"
+        shell: bash
+      - name: Validate GraphQL schema
+        if: inputs.graphql-schema != ''
+        run: |
+          set -euo pipefail
+          graphql-schema-linter "${{ inputs.graphql-schema }}"
+        shell: bash
+      - name: Retrieve auth token
+        if: inputs.auth-command != ''
+        id: auth
+        run: |
+          set -euo pipefail
+          token=$(${{ inputs.auth-command }})
+          echo "token=$token" >> "$GITHUB_OUTPUT"
+        shell: bash
+      - name: Run Postman tests
+        if: inputs.contract-type == 'postman'
+        env:
+          TOKEN: ${{ steps.auth.outputs.token }}
+        run: |
+          set -euo pipefail
+          if [ -n "${TOKEN:-}" ]; then
+            newman run "${{ inputs.contract-path }}" --env-var baseUrl="${{ inputs.base-url }}" --env-var authToken="$TOKEN"
+          else
+            newman run "${{ inputs.contract-path }}" --env-var baseUrl="${{ inputs.base-url }}"
+          fi
+        shell: bash
+      - name: Run Pact tests
+        if: inputs.contract-type == 'pact'
+        env:
+          BASE_URL: ${{ inputs.base-url }}
+        run: |
+          set -euo pipefail
+          docker run --rm -v "$PWD:/pacts" pactfoundation/pact-cli:1.88.86 verify "${{ inputs.contract-path }}" --provider-base-url="$BASE_URL"
+        shell: bash
+
+  load:
+    if: inputs.load-script != ''
+    runs-on: ubuntu-latest
+    needs: contract
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+      - name: Run k6 load test
+        uses: grafana/k6-action@55845c6c2e400af4356c84e5b514aeabb1bfdbd4
+        with:
+          filename: ${{ inputs.load-script }}
+        env:
+          BASE_URL: ${{ inputs.base-url }}
+
+  zap:
+    if: inputs.run-zap
+    runs-on: ubuntu-latest
+    needs: contract
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+      - name: OWASP ZAP API scan
+        uses: zaproxy/action-api-scan@411cbe8fc59d9966a77d61b50daf6c49b6763605
+        with:
+          api-url: ${{ inputs.base-url }}
+          format: openapi
+          target: ${{ inputs.openapi-spec }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ZAP_API_KEY: ${{ secrets.zap-token }}

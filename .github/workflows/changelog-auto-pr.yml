@@ -1,0 +1,35 @@
+name: Changelog Auto PR
+on:
+  workflow_call:
+    inputs:
+      commit-message:
+        required: false
+        type: string
+        default: 'chore: update changelog'
+      branch:
+        required: false
+        type: string
+        default: 'chore/update-changelog'
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+        with:
+          fetch-depth: 0
+      - name: Install git-cliff
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git-cliff
+      - name: Generate changelog
+        run: git cliff --output CHANGELOG.md
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@c5a7806660adbe173f04e3e038b0ccdcd758773c
+        with:
+          commit-message: ${{ inputs.commit-message }}
+          title: ${{ inputs.commit-message }}
+          body: 'Update changelog'
+          branch: ${{ inputs.branch }}

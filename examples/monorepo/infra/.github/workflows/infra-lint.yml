@@ -1,0 +1,8 @@
+name: Infra Lint
+
+on:
+  workflow_call:
+
+jobs:
+  lint:
+    uses: your-org/gh-actions-collection/.github/workflows/infra-lint.yml@main

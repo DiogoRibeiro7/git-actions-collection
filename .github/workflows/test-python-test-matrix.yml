@@ -1,0 +1,39 @@
+name: Test Python Test Matrix Workflow
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/test-python-test-matrix.yml'
+      - 'tests/python-test-matrix/**'
+
+jobs:
+  success:
+    uses: ./.github/workflows/python-test-matrix.yml
+    with:
+      python-versions: '["3.11"]'
+      os-matrix: '["ubuntu-latest"]'
+      test-command: 'pytest -q tests/python-test-matrix/test_success.py'
+
+  matrix-combo:
+    uses: ./.github/workflows/python-test-matrix.yml
+    with:
+      python-versions: '["3.10","3.11"]'
+      os-matrix: '["ubuntu-latest"]'
+      test-command: 'pytest -q tests/python-test-matrix/test_success.py'
+
+  failure:
+    uses: ./.github/workflows/python-test-matrix.yml
+    with:
+      python-versions: '["3.11"]'
+      os-matrix: '["ubuntu-latest"]'
+      test-command: 'pytest -q tests/python-test-matrix/test_failure.py'
+
+  verify-failure-result:
+    needs: failure
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          if [ "${{needs.failure.result}}" != 'failure' ]; then
+            echo 'failure job did not fail as expected'; exit 1; fi

@@ -1,0 +1,42 @@
+name: Node CI
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: Node.js version
+        required: false
+        type: string
+        default: '20'
+      os-matrix:
+        description: JSON array of OS labels
+        required: false
+        type: string
+        default: '["ubuntu-latest","windows-latest","macos-latest"]'
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJson(inputs.os-matrix) }}
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: yarn
+      - name: Enable Corepack
+        run: corepack enable
+      - name: Install dependencies
+        run: yarn install --immutable
+      - name: Run lint
+        run: yarn lint
+      - name: Run tests
+        run: yarn test

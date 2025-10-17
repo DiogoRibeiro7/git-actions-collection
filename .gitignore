@@ -1,0 +1,10 @@
+__pycache__/
+.pytest_cache/
+.venv/
+node_modules/
+dist/
+*.pyc
+*.pyo
+*.env
+examples/npm-package/.yarn/
+examples/python-package/poetry.lock

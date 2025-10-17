@@ -1,0 +1,15 @@
+name: Multi-Cloud Deploy Example
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/multi-cloud-deploy.yml@main
+    with:
+      tool: terraform
+      environment: dev
+      aws-role-arn: arn:aws:iam::123456789012:role/GithubDeploy
+      aws-region: us-east-1
+      backend-config: bucket=my-terraform-state,key=dev.tfstate,region=us-east-1

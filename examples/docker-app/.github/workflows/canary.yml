@@ -1,0 +1,14 @@
+name: Canary Release
+
+on:
+  push:
+    branches: [ develop ]
+    tags: [ "*-rc*" ]
+
+jobs:
+  release:
+    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/canary-release.yml@main
+    with:
+      project-type: docker
+      image: ghcr.io/${{ github.repository }}
+      working-directory: .

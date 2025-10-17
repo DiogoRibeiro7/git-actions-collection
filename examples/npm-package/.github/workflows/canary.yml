@@ -1,0 +1,15 @@
+name: Canary Release
+
+on:
+  push:
+    branches: [ develop ]
+    tags: [ "*-rc*" ]
+
+jobs:
+  release:
+    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/canary-release.yml@main
+    with:
+      project-type: npm
+      working-directory: .
+    secrets:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

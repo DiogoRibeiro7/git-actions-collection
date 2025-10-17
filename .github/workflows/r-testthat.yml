@@ -1,0 +1,39 @@
+name: R Tests (testthat)
+
+on:
+  push:
+    paths:
+      - '**/*.R'
+      - '**/tests/testthat/**'
+      - '**/DESCRIPTION'
+      - '.github/actions/r-testthat/**'
+      - '.github/actions/setup-r/**'
+      - '.github/workflows/r-testthat.yml'
+  pull_request:
+    paths:
+      - '**/*.R'
+      - '**/tests/testthat/**'
+      - '**/DESCRIPTION'
+      - '.github/actions/r-testthat/**'
+      - '.github/actions/setup-r/**'
+      - '.github/workflows/r-testthat.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Run testthat suite
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Execute R tests
+        uses: ./.github/actions/r-testthat
+        with:
+          test-directory: tests/testthat
+          install-dependencies: true
+          use-devtools: true

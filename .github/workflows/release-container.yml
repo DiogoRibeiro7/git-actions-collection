@@ -1,0 +1,52 @@
+name: Release Container
+
+on:
+  push:
+    tags: [ 'v*' ]  # trigger when creating a tag that starts with v (e.g., v1.2.3)
+  workflow_dispatch: {}  # optional: allow manual trigger
+  workflow_call: {}
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    # Reuse the workflow from your actions repository
+    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/publish-docker-on-tag.yml@main
+    with:
+      # Suggestion: use the GHCR image name based on this repository
+      # (you can replace with 'ghcr.io/DiogoRibeiro7/your-image' if you prefer a fixed name)
+      image: ghcr.io/${{ github.repository }}
+
+      # Build paths
+      context: .
+      dockerfile: Dockerfile
+
+      # Multi-architecture
+      platforms: linux/amd64,linux/arm64
+
+      # Target stage (for multi-stage Dockerfiles)
+      target: prod
+
+      # Build args in multiline format (KEY=VAL per line)
+      build-args: |
+        NODE_ENV=production
+        API_URL=https://api.example.com
+
+      # Automatically add OCI labels (title, version, source, revision)
+      labels: true
+
+      # Registry to log in (GHCR by default)
+      registry: ghcr.io
+
+    # Optional: only needed if you use custom credentials
+    # For GHCR, the GITHUB_TOKEN works by default in the reusable workflow
+    secrets:
+      REGISTRY_USERNAME: ${{ secrets.GHCR_USERNAME }}
+      REGISTRY_PASSWORD: ${{ secrets.GHCR_TOKEN }}

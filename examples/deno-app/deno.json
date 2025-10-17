@@ -1,0 +1,10 @@
+{
+  "tasks": {
+    "lint": "deno lint",
+    "test": "deno test"
+  },
+  "fmt": {
+    "useTabs": false,
+    "lineWidth": 80
+  }
+}

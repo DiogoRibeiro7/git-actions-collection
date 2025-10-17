@@ -1,0 +1,40 @@
+name: R Lint
+
+on:
+  push:
+    paths:
+      - '**/*.R'
+      - '**/*.Rmd'
+      - '**/.lintr'
+      - '.lintr'
+      - '.github/actions/r-lint/**'
+      - '.github/actions/setup-r/**'
+      - '.github/workflows/r-lint.yml'
+  pull_request:
+    paths:
+      - '**/*.R'
+      - '**/*.Rmd'
+      - '**/.lintr'
+      - '.lintr'
+      - '.github/actions/r-lint/**'
+      - '.github/actions/setup-r/**'
+      - '.github/workflows/r-lint.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Run lintr
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Run R lintr checks
+        uses: ./.github/actions/r-lint
+        with:
+          targets: |
+            R
+            scripts
+            tests

@@ -1,0 +1,56 @@
+name: Publish to PyPI
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: 'Python version to build with'
+        required: false
+        type: string
+        default: '3.12'
+      pip-version:
+        description: "pip release to install (set to 'latest' to track upstream)"
+        required: false
+        type: string
+        default: '24.3.1'
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: ${{ inputs.python-version }}
+      - name: Install build tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          pip_version="${{ inputs.pip-version }}"
+          if [ "$pip_version" = "latest" ]; then
+            python -m pip install --upgrade pip
+          else
+            python -m pip install --upgrade "pip==$pip_version"
+          fi
+          python -m pip install --upgrade build==1.2.2.post1 twine==5.1.1
+      - name: Build package
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m build
+      - name: Validate distribution metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          twine check --strict dist/*
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc
+        with:
+          print-hash: true
+      - name: Upload dist artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: dist
+          path: dist/*

@@ -1,0 +1,16 @@
+name: Secret Scan
+description: Scan repository for leaked secrets using gitleaks
+inputs:
+  args:
+    description: Arguments passed to gitleaks
+    required: false
+    default: '--no-git -v'
+runs:
+  using: composite
+  steps:
+    - name: Run gitleaks
+      uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7
+      env:
+        GITLEAKS_VERSION: 8.28.0
+      with:
+        args: ${{ inputs.args }}

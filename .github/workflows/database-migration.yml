@@ -1,0 +1,129 @@
+name: Database Migration
+
+on:
+  workflow_call:
+    inputs:
+      tool:
+        description: "Migration tool: flyway, liquibase, alembic"
+        required: true
+        type: string
+      migration-dir:
+        description: "Path to migration directory"
+        required: true
+        type: string
+      environments:
+        description: "JSON array of environment names, e.g. ['dev','staging']"
+        required: true
+        type: string
+      dry-run:
+        description: "Validate migrations without applying"
+        type: boolean
+        default: false
+        required: false
+      pip-version:
+        description: "pip release to install when using Alembic (set to 'latest' to track upstream)"
+        required: false
+        type: string
+        default: '24.3.1'
+    secrets:
+      flyway-license-key:
+        description: "Optional Flyway license key"
+        required: false
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: ${{ fromJson(inputs.environments) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: ${{ secrets[format('{0}_DATABASE_URL', matrix.environment)] }}
+      DB_USER: ${{ secrets[format('{0}_DB_USER', matrix.environment)] }}
+      DB_PASSWORD: ${{ secrets[format('{0}_DB_PASSWORD', matrix.environment)] }}
+      FLYWAY_LICENSE_KEY: ${{ secrets.flyway-license-key }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+
+      - name: Setup Flyway
+        if: inputs.tool == 'flyway'
+        run: |
+          set -euo pipefail
+          curl -sSL https://repo1.maven.org/maven2/org/flywaydb/flyway-commandline/9.22.3/flyway-commandline-9.22.3-linux-x64.tar.gz | tar xz
+          sudo mv flyway-9.22.3/flyway /usr/local/bin
+
+      - name: Setup Liquibase
+        if: inputs.tool == 'liquibase'
+        run: |
+          set -euo pipefail
+          curl -sSL https://github.com/liquibase/liquibase/releases/download/v4.27.0/liquibase-4.27.0.tar.gz | tar xz
+          sudo mv liquibase /usr/local/bin
+
+      - name: Setup Alembic
+        if: inputs.tool == 'alembic'
+        run: |
+          set -euo pipefail
+          pip_version="${{ inputs.pip-version }}"
+          if [ "$pip_version" = "latest" ]; then
+            python -m pip install --upgrade pip
+          else
+            python -m pip install --upgrade "pip==$pip_version"
+          fi
+          pip install alembic
+
+      - name: Dry run
+        if: inputs.dry-run == true
+        run: |
+          set -euo pipefail
+          case "${{ inputs.tool }}" in
+            flyway) flyway -url="$DATABASE_URL" -user="$DB_USER" -password="$DB_PASSWORD" -locations=filesystem:${{ inputs.migration-dir }} migrate -dryRunOutput=flyway.sql ;;
+            liquibase) liquibase --url="$DATABASE_URL" --username="$DB_USER" --password="$DB_PASSWORD" --changelog-file=${{ inputs.migration-dir }}/changelog.xml updateSQL ;;
+            alembic) cd ${{ inputs.migration-dir }} && alembic upgrade head --sql ;;
+          esac
+
+      - name: Apply migrations
+        id: migrate
+        run: |
+          set -euo pipefail
+          case "${{ inputs.tool }}" in
+            flyway) flyway -url="$DATABASE_URL" -user="$DB_USER" -password="$DB_PASSWORD" -locations=filesystem:${{ inputs.migration-dir }} migrate ;;
+            liquibase) liquibase --url="$DATABASE_URL" --username="$DB_USER" --password="$DB_PASSWORD" --changelog-file=${{ inputs.migration-dir }}/changelog.xml update ;;
+            alembic) cd ${{ inputs.migration-dir }} && alembic upgrade head ;;
+          esac
+
+      - name: Migration history
+        if: always()
+        run: |
+          set -euo pipefail
+          case "${{ inputs.tool }}" in
+            flyway) flyway -url="$DATABASE_URL" -user="$DB_USER" -password="$DB_PASSWORD" info ;;
+            liquibase) liquibase --url="$DATABASE_URL" --username="$DB_USER" --password="$DB_PASSWORD" history ;;
+            alembic) cd ${{ inputs.migration-dir }} && alembic history ;;
+          esac
+        continue-on-error: true
+
+      - name: Upload migration logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: migration-logs-${{ matrix.environment }}
+          path: |
+            flyway.sql
+            liquibase.log
+            alembic.log
+          if-no-files-found: ignore
+
+      - name: Rollback
+        if: failure() && steps.migrate.outcome == 'failure'
+        timeout-minutes: 2
+        run: |
+          set -euo pipefail
+          case "${{ inputs.tool }}" in
+            flyway) flyway -url="$DATABASE_URL" -user="$DB_USER" -password="$DB_PASSWORD" -locations=filesystem:${{ inputs.migration-dir }} undo ;;
+            liquibase) liquibase --url="$DATABASE_URL" --username="$DB_USER" --password="$DB_PASSWORD" --changelog-file=${{ inputs.migration-dir }}/changelog.xml rollbackCount 1 ;;
+            alembic) cd ${{ inputs.migration-dir }} && alembic downgrade -1 ;;
+          esac

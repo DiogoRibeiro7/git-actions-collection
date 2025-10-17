@@ -1,0 +1,11 @@
+name: Monorepo CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  matrix:
+    uses: your-org/gh-actions-collection/.github/workflows/ci-monorepo-matrix.yml@main
+    with:
+      groups: '{"pkg-a": ".github/workflows/python-lint.yml","web-app": ".github/workflows/node-ci.yml","infra": ".github/workflows/infra-lint.yml"}'

@@ -1,0 +1,55 @@
+name: Ruby CI
+
+on:
+  workflow_call:
+    inputs:
+      ruby-versions:
+        description: 'JSON array of Ruby versions'
+        type: string
+        default: '["3.1","3.2"]'
+      test-command:
+        description: 'Command to run tests'
+        type: string
+        default: 'bundle exec rake test'
+      run-tests:
+        description: 'Run tests'
+        type: boolean
+        default: true
+    secrets:
+      rubygems-token:
+        description: 'Token for private gem sources'
+        required: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        ruby: ${{ fromJSON(inputs.ruby-versions) }}
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@efbf473cab83af4468e8606cc33eca9281bb213f
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+        env:
+          BUNDLE_RUBYGEMS__PKG__DEV: ${{ secrets.rubygems-token }}
+      - name: Validate inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f Gemfile ]; then
+            echo 'Gemfile not found' >&2
+            exit 1
+          fi
+          cmd="${{ inputs.test-command }}"
+          if [ -z "$cmd" ]; then
+            echo 'test-command cannot be empty' >&2
+            exit 1
+          fi
+      - name: Run tests
+        if: inputs.run-tests == true
+        run: ${{ inputs.test-command }}

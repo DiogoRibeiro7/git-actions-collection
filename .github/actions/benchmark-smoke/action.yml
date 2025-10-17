@@ -1,0 +1,47 @@
+name: Benchmark Smoke
+description: Run pytest-benchmark and upload results as artifact
+inputs:
+  python-version:
+    description: Python version to use
+    required: false
+    default: '3.11'
+  working-directory:
+    description: Directory with tests
+    required: false
+    default: '.'
+  pytest-args:
+    description: Extra arguments for pytest
+    required: false
+    default: ''
+  pip-version:
+    description: "pip release to install (set to 'latest' to track upstream)"
+    required: false
+    default: '24.3.1'
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+      with:
+        python-version: ${{ inputs.python-version }}
+    - name: Install dependencies
+      run: |
+        set -euo pipefail
+        pip_version="${{ inputs.pip-version }}"
+        if [ "$pip_version" = "latest" ]; then
+          python -m pip install --upgrade pip
+        else
+          python -m pip install --upgrade "pip==$pip_version"
+        fi
+        pip install pytest==8.4.1 pytest-benchmark==5.1.0
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+    - name: Run benchmark
+      run: |
+        pytest ${{ inputs.pytest-args }} --benchmark-only --benchmark-json=benchmark.json
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+    - name: Upload results
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: benchmark
+        path: ${{ inputs.working-directory }}/benchmark.json

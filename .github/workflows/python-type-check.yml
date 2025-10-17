@@ -1,0 +1,31 @@
+name: Python Type Check
+
+on:
+  push:
+    paths:
+      - '**/*.py'
+      - '.github/actions/python-type-check/**'
+      - '.github/workflows/python-type-check.yml'
+  pull_request:
+    paths:
+      - '**/*.py'
+      - '.github/actions/python-type-check/**'
+      - '.github/workflows/python-type-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mypy:
+    name: Run mypy static analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Type check project sources
+        uses: ./.github/actions/python-type-check
+        with:
+          python-version: '3.11'
+          working-directory: examples/python-package
+          mypy-args: src

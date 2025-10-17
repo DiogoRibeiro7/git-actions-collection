@@ -1,0 +1,103 @@
+name: Vercel Next.js Deploy
+
+on:
+  workflow_call:
+    inputs:
+      vercel-org-id:
+        description: Vercel organization or team ID
+        required: true
+        type: string
+      vercel-project-id:
+        description: Vercel project ID
+        required: true
+        type: string
+      node-version:
+        description: Node.js version
+        required: false
+        type: string
+        default: '20'
+      working-directory:
+        description: Path to Next.js app
+        required: false
+        type: string
+        default: '.'
+      prod:
+        description: Deploy to production
+        required: false
+        type: boolean
+        default: true
+    secrets:
+      vercel-token:
+        required: true
+    outputs:
+      deployment-url:
+        description: URL of the deployed application
+        value: ${{ jobs.deploy.outputs.url }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+
+      - name: Validate inputs
+        run: |
+          set -euo pipefail
+          if [[ -z "${{ inputs.vercel-org-id }}" || -z "${{ inputs.vercel-project-id }}" ]]; then
+            echo "vercel-org-id and vercel-project-id are required" >&2
+            exit 1
+          fi
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: yarn
+
+      - name: Install dependencies
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          set -euo pipefail
+          corepack enable
+          yarn install --immutable
+
+      - name: Build
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          set -euo pipefail
+          yarn build
+
+      - name: Deploy to Vercel
+        id: deploy
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.vercel-token }}
+          VERCEL_ORG_ID: ${{ inputs.vercel-org-id }}
+          VERCEL_PROJECT_ID: ${{ inputs.vercel-project-id }}
+        run: |
+          set -euo pipefail
+          if [[ "${{ inputs.prod }}" == "true" ]]; then
+            prod_flag="--prod"
+          else
+            prod_flag=""
+          fi
+          for attempt in 1 2 3; do
+            url=$(npx --yes vercel@33 deploy --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID" --project "$VERCEL_PROJECT_ID" $prod_flag --confirm 2>&1) && break
+            status=$?
+            echo "$url"
+            if [[ $attempt -eq 3 ]]; then
+              exit $status
+            fi
+            echo "Rate limit hit, retrying in $((attempt * 10))s" >&2
+            sleep $((attempt * 10))
+          done
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+    outputs:
+      url: ${{ steps.deploy.outputs.url }}

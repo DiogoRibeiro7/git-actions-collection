@@ -1,0 +1,54 @@
+name: "Setup Poetry (with cache)"
+description: "Install Poetry, configure cache, and prepare the environment"
+inputs:
+  python-version:
+    description: "Python version"
+    required: false
+    default: "3.12"
+  install-deps:
+    description: "Run 'poetry install'"
+    required: false
+    default: "true"
+  pip-version:
+    description: "pip release to install (set to 'latest' to track upstream)"
+    required: false
+    default: "24.3.1"
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+      with:
+        python-version: ${{ inputs.python-version }}
+        cache: "pip"
+
+    - name: Install Poetry
+      shell: bash
+      run: |
+        set -euo pipefail
+        pip_version="${{ inputs.pip-version }}"
+        if [ "$pip_version" = "latest" ]; then
+          python -m pip install --upgrade pip
+        else
+          python -m pip install --upgrade "pip==$pip_version"
+        fi
+        pip install poetry==2.1.4
+
+    - name: Configure Poetry cache
+      shell: bash
+      run: |
+        echo "POETRY_CACHE_DIR=$HOME/.cache/pypoetry" >> $GITHUB_ENV
+
+    - name: Cache Poetry virtualenvs
+      uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809
+      with:
+        path: |
+          ~/.cache/pypoetry
+          ~/.cache/pip
+        key: poetry-${{ runner.os }}-${{ inputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+
+    - name: Install dependencies
+      if: ${{ inputs.install-deps == 'true' }}
+      shell: bash
+      run: |
+        poetry --version
+        poetry install --no-interaction --no-root

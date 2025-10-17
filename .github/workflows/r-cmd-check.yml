@@ -1,0 +1,44 @@
+name: R Package Check
+
+on:
+  push:
+    paths:
+      - '**/*.R'
+      - '**/DESCRIPTION'
+      - '**/NAMESPACE'
+      - '.github/actions/setup-r/**'
+      - '.github/workflows/r-cmd-check.yml'
+  pull_request:
+    paths:
+      - '**/*.R'
+      - '**/DESCRIPTION'
+      - '**/NAMESPACE'
+      - '.github/actions/setup-r/**'
+      - '.github/workflows/r-cmd-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Run R CMD check
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup R
+        uses: ./.github/actions/setup-r
+        with:
+          r-version: 'release'
+          packages: remotes,rcmdcheck
+      - name: Install package dependencies
+        shell: bash
+        run: |
+          Rscript -e "if (file.exists('DESCRIPTION')) remotes::install_deps(dependencies = TRUE)"
+      - name: Run R CMD check
+        shell: bash
+        run: |
+          Rscript -e "if (file.exists('DESCRIPTION')) rcmdcheck::rcmdcheck(args = c('--no-manual'), error_on = 'error') else message('No DESCRIPTION file found, skipping package checks.')"

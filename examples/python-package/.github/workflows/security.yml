@@ -1,0 +1,17 @@
+name: Security
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  scan:
+    uses: your-org/gh-actions-collection/.github/workflows/security-scan.yml@main
+    with:
+      paths: '.'
+      skip-trivy: true

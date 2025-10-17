@@ -1,0 +1,17 @@
+name: Database Migration Example
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  migrate:
+    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/database-migration.yml@main
+    with:
+      tool: flyway
+      migration-dir: migrations
+      environments: '["dev"]'
+    secrets:
+      DEV_DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
+      DEV_DB_USER: ${{ secrets.DEV_DB_USER }}
+      DEV_DB_PASSWORD: ${{ secrets.DEV_DB_PASSWORD }}

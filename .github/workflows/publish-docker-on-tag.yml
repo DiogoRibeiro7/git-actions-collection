@@ -1,0 +1,161 @@
+name: Publish Docker (Reusable + Tag Trigger)
+
+on:
+  # Trigger when tagging v*
+  push:
+    tags:
+      - 'v*'
+  # Allows invocation by other repositories/workflows
+  workflow_call:
+    inputs:
+      image:
+        description: 'Full image name (e.g., ghcr.io/org/app)'
+        required: false
+        type: string
+        default: ''
+      context:
+        description: 'Build context'
+        required: false
+        type: string
+        default: '.'
+      dockerfile:
+        description: 'Dockerfile path'
+        required: false
+        type: string
+        default: 'Dockerfile'
+      platforms:
+        description: 'Target platforms'
+        required: false
+        type: string
+        default: 'linux/amd64,linux/arm64'
+      build-args:
+        description: 'Build args as multiline (KEY=VAL per line)'
+        required: false
+        type: string
+        default: ''
+      target:
+        description: 'Dockerfile build target'
+        required: false
+        type: string
+        default: ''
+      labels:
+        description: 'Apply OCI labels (true/false)'
+        required: false
+        type: boolean
+        default: true
+      registry:
+        description: 'Registry to log in to (e.g., ghcr.io or docker.io)'
+        required: false
+        type: string
+        default: 'ghcr.io'
+    secrets:
+      REGISTRY_USERNAME:
+        required: false
+      REGISTRY_PASSWORD:
+        required: false
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    env:
+      # Repository name (lowercased in shell when needed)
+      REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435
+
+      - name: Determine image name
+        id: img
+        shell: bash
+        run: |
+          if [ -n "${{ inputs.image }}" ]; then
+            IMAGE="${{ inputs.image }}"
+            IMAGE="${IMAGE,,}"
+          else
+            # Default: GHCR with lowercase repo path
+            IMAGE="ghcr.io/${REPO,,}"
+          fi
+          echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to registry
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1
+        with:
+            registry: ${{ inputs.registry }}
+            username: ${{ secrets.REGISTRY_USERNAME || github.actor }}
+            password: ${{ secrets.REGISTRY_PASSWORD || secrets.GITHUB_TOKEN }}
+
+      - name: Extract version and set tags
+        id: meta_version
+        shell: bash
+        run: |
+          # If running on a tag use the tag ref; otherwise use short SHA
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/}"
+          else
+            VERSION="sha-${GITHUB_SHA::7}"
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Generate labels and tags (docker/metadata-action)
+        id: meta
+        if: ${{ inputs.labels }}
+        uses: docker/metadata-action@c1e51972afc2121e065aed6d45c65596fe445f3f
+        with:
+          images: ${{ steps.img.outputs.image }}
+          tags: |
+            type=raw,value=${{ steps.meta_version.outputs.version }}
+            type=raw,value=latest
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.title=${{ github.repository }}
+            org.opencontainers.image.version=${{ steps.meta_version.outputs.version }}
+
+      - name: Build args (normalize multiline for buildx input)
+        id: args
+        shell: bash
+        run: |
+          # Convert multiline input into sequence '--build-arg KEY=VAL'
+          BA_INPUT="${{ inputs.build-args }}"
+          BA_FLAGS=""
+          if [ -n "$BA_INPUT" ]; then
+            while IFS= read -r line; do
+              [ -z "$line" ] && continue
+              BA_FLAGS="$BA_FLAGS --build-arg $line"
+            done <<< "$BA_INPUT"
+          fi
+          echo "flags=${BA_FLAGS}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and Push (multi-arch)
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
+        with:
+          context: ${{ inputs.context }}
+          file: ${{ inputs.dockerfile }}
+          push: true
+          platforms: ${{ inputs.platforms }}
+          tags: |
+            ${{ steps.img.outputs.image }}:${{ steps.meta_version.outputs.version }}
+            ${{ steps.img.outputs.image }}:latest
+          labels: ${{ inputs.labels && steps.meta.outputs.labels || '' }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: true
+          sbom: true
+          # target only passed if defined
+          target: ${{ inputs.target != '' && inputs.target || '' }}
+          # dynamic build args
+          build-args: ${{ steps.args.outputs.flags }}

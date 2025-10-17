@@ -1,0 +1,43 @@
+name: "Gradle Build"
+description: "Run Gradle build with caching"
+inputs:
+  java-version:
+    description: "Java version to use"
+    required: false
+    default: "17"
+  tasks:
+    description: "Gradle tasks to run"
+    required: false
+    default: "build"
+  gradle-args:
+    description: "Additional Gradle arguments"
+    required: false
+    default: "--build-cache"
+  working-directory:
+    description: "Directory of the Gradle project"
+    required: false
+    default: "."
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-java@387ac29b308b003ca37ba93a6cab5eb57c8f5f93
+      with:
+        java-version: ${{ inputs.java-version }}
+        distribution: temurin
+    - uses: gradle/actions/setup-gradle@6cfc8b8e8bb586cc164bef1c478c1eea3a4d6a19
+      with:
+        gradle-version: wrapper
+    - name: Run Gradle
+      shell: bash
+      run: |
+        set -euo pipefail
+        TASKS="${{ inputs.tasks }}"
+        if [ -z "$TASKS" ]; then
+          echo "tasks input must not be empty" >&2
+          exit 1
+        fi
+        GRADLE_ARGS="${{ inputs.gradle-args }}"
+        cd "${{ inputs.working-directory }}"
+        IFS=' ' read -r -a TASK_ARR <<< "$TASKS"
+        IFS=' ' read -r -a ARG_ARR <<< "$GRADLE_ARGS"
+        ./gradlew "${TASK_ARR[@]}" "${ARG_ARR[@]}"

@@ -1,0 +1,69 @@
+name: .NET CI
+
+on:
+  workflow_call:
+    inputs:
+      dotnet-version:
+        description: 'Dotnet SDK version'
+        type: string
+        default: '8.0.x'
+      frameworks:
+        description: 'JSON array of target frameworks'
+        type: string
+        default: '["net8.0"]'
+      test-project:
+        description: 'Relative path to test project'
+        type: string
+        default: ''
+      run-tests:
+        description: 'Run tests'
+        type: boolean
+        default: true
+    secrets:
+      nuget-auth-token:
+        description: 'Token for private NuGet feeds'
+        required: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        framework: ${{ fromJSON(inputs.frameworks) }}
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+      - name: Setup .NET
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
+        with:
+          dotnet-version: ${{ inputs.dotnet-version }}
+          cache: true
+      - name: Validate inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          proj="${{ inputs.test-project }}"
+          if [ -n "$proj" ] && [ ! -f "$proj" ]; then
+            echo "test-project '$proj' not found" >&2
+            exit 1
+          fi
+      - name: Restore
+        env:
+          NUGET_AUTH_TOKEN: ${{ secrets.nuget-auth-token }}
+        run: |
+          set -euo pipefail
+          dotnet restore
+      - name: Build
+        run: dotnet build --no-restore
+      - name: Test
+        if: inputs.run-tests == true
+        shell: bash
+        run: |
+          set -euo pipefail
+          proj="${{ inputs.test-project }}"
+          if [ -z "$proj" ]; then
+            dotnet test --no-build -f ${{ matrix.framework }}
+          else
+            dotnet test "$proj" --no-build -f ${{ matrix.framework }}
+          fi

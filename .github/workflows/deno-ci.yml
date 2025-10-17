@@ -1,0 +1,84 @@
+name: Deno CI
+
+on:
+  workflow_call:
+    inputs:
+      deno-version:
+        description: Deno version
+        required: false
+        type: string
+        default: '1.x'
+      os-matrix:
+        description: JSON array of OS labels
+        required: false
+        type: string
+        default: '["ubuntu-latest","windows-latest","macos-latest"]'
+      run-tests:
+        description: Run tests
+        required: false
+        type: boolean
+        default: true
+      deploy:
+        description: Deploy to Deno Deploy
+        required: false
+        type: boolean
+        default: false
+      project:
+        description: Deno Deploy project name
+        required: false
+        type: string
+    secrets:
+      deno-deploy-token:
+        description: Token for Deno Deploy
+        required: false
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJson(inputs.os-matrix) }}
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+      - name: Setup Deno
+        uses: denoland/setup-deno@e95548e56dfa95d4e1a28d6f422fafe75c4c26fb
+        with:
+          deno-version: ${{ inputs.deno-version }}
+      - name: Cache Deno dependencies
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809
+        with:
+          path: |
+            ~/.cache/deno
+            ~/Library/Caches/deno
+            %LOCALAPPDATA%\\deno\\cache
+          key: deno-${{ runner.os }}-${{ hashFiles('**/deno.lock') }}
+          restore-keys: |
+            deno-${{ runner.os }}-
+      - name: Lint
+        run: deno lint
+      - name: Test
+        if: inputs.run-tests == true
+        run: deno test
+      - name: Validate deploy inputs
+        if: inputs.deploy == true
+        run: |
+          set -euo pipefail
+          if [ -z "${{ inputs.project }}" ]; then
+            echo 'project is required when deploy is true' >&2
+            exit 1
+          fi
+          if [ -z "${{ secrets.deno-deploy-token }}" ]; then
+            echo 'deno-deploy-token secret is required when deploy is true' >&2
+            exit 1
+          fi
+      - name: Deploy
+        if: inputs.deploy == true
+        env:
+          DENO_DEPLOY_TOKEN: ${{ secrets.deno-deploy-token }}
+        run: deno run --allow-read --allow-net --allow-env https://deno.land/x/deploy@1.9.1/deployctl.ts deploy --project="${{ inputs.project }}" --prod

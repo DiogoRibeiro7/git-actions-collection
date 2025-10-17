@@ -1,0 +1,8 @@
+name: Commits
+
+on:
+  pull_request:
+
+jobs:
+  lint:
+    uses: your-org/gh-actions-collection/.github/workflows/conventional-commits.yml@main

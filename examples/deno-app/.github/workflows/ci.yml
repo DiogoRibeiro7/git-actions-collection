@@ -1,0 +1,12 @@
+name: Deno CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  test:
+    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/deno-ci.yml@main
+    with:
+      deno-version: '1.x'

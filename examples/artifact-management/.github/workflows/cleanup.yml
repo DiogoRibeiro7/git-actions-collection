@@ -1,0 +1,14 @@
+name: Cleanup
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 1 * * *'
+jobs:
+  cleanup:
+    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/artifact-management.yml@main
+    secrets:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    with:
+      retention-days: 14
+      keep-latest: 3
+      package-name: ghcr.io/example/app

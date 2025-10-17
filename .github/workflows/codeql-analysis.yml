@@ -1,0 +1,25 @@
+name: CodeQL Analysis
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        language: [python, javascript, go]
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+      - uses: github/codeql-action/init@ad2a4837011b42f6947b78d6417e7c253b1c504b
+        with:
+          languages: ${{ matrix.language }}
+      - uses: github/codeql-action/autobuild@ad2a4837011b42f6947b78d6417e7c253b1c504b
+        if: matrix.language != 'python'
+      - uses: github/codeql-action/analyze@ad2a4837011b42f6947b78d6417e7c253b1c504b
+        with:
+          category: "/language:${{ matrix.language }}"
