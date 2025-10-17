@@ -62,7 +62,7 @@ jobs:
           wait "$pid1" "$pid2"
       - name: Trivy (optional)
         if: ${{ inputs['skip-trivy'] == false }}
-        uses: aquasecurity/trivy-action@6e7b7d1fd3e4fef0c5fa8cce1229c54b2c9bd0d8
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8
         with:
           scan-type: fs
           scanners: vuln,secret,config
