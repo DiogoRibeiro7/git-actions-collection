@@ -42,7 +42,7 @@ jobs:
           helm push *.tgz oci://${{ inputs.oci-registry }}
       - name: Publish to GitHub Pages
         if: ${{ inputs.publish && inputs.oci-registry == '' }}
-        uses: helm/chart-releaser-action@419f3267f205afd4639d2eb12a64e911088a5d3d
+        uses: helm/chart-releaser-action@cae68fefc6b5f367a0275617c9f83181ba54714f
         env:
           CR_TOKEN: ${{ github.token }}
         with:
