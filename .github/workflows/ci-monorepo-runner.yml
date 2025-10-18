@@ -4,11 +4,11 @@ on:
   workflow_call:
     inputs:
       kind:
-        description: One of: python,node,java,go,rust,terraform,helm,k8s,docker
+        description: "One of: python,node,java,go,rust,terraform,helm,k8s,docker"
         required: true
         type: string
       working-directory:
-        description: Folder to run in
+        description: "Folder to run in"
         required: true
         type: string
 
@@ -23,7 +23,7 @@ jobs:
         working-directory: ${{ inputs.working-directory }}
         shell: bash
     steps:
-      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+      - uses: actions/checkout@5
 
       # --- Common: actionlint for any nested workflows under this path
       - name: Install actionlint
@@ -33,7 +33,7 @@ jobs:
             | grep -oP '(?<=browser_download_url": ")[^"]*linux_amd64\.tar\.gz')
           curl -sSL "$url" | tar -xz
           sudo mv actionlint /usr/local/bin/
-          actionlint -version
+          actionlint -v
 
       - name: Lint workflows (if present)
         run: |
@@ -90,7 +90,7 @@ jobs:
         if: inputs.kind == 'terraform' || inputs.kind == 'monorepo'
         uses: hashicorp/setup-terraform@123e94d82ab16b6487c14496a76a25d52c6b39b3
         with:
-          terraform_version: 1.8.7
+          terraform_version: latest
 
       # --- Kind-specific commands
       - name: Python tests
