@@ -65,7 +65,7 @@ jobs:
           pip-version: ${{ matrix.function.pip-version || inputs.pip-version }}
       - name: Setup Node.js
         if: steps.changed.outputs.changed == 'true' && startsWith(matrix.function.runtime, 'nodejs')
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903
         with:
           node-version: ${{ matrix.function.node-version || '20' }}
       - name: Build Node.js package
