@@ -44,7 +44,6 @@ jobs:
             | grep -oP '(?<=browser_download_url": ")[^"]*linux_amd64\.tar\.gz')
           curl -sSL "$url" | tar -xz
           sudo mv actionlint /usr/local/bin/
-          actionlint -version
 
       - name: Lint example workflows
         run: |
