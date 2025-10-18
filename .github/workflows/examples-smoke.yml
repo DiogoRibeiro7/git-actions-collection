@@ -196,8 +196,30 @@ jobs:
       - name: Ensure workflows use collection
         run: |
           set -euo pipefail
-          missing=$(rg -L 'uses:\s*DiogoRibeiro7/gh-actions-collection/' -g '*.yml' -g '*.yaml' examples/*/.github/workflows || true)
-          if [ -n "$missing" ]; then
-            echo -e "Missing references in:\n$missing"
+
+          mapfile -t all_files < <(git ls-files \
+            'examples/*/.github/workflows/*.yml' \
+            'examples/*/.github/workflows/*.yaml')
+
+          # Files that contain at least one required 'uses:' line
+          mapfile -t with_ref < <(rg -l \
+            -e 'uses:\s*DiogoRibeiro7/gh-actions-collection/' \
+            "${all_files[@]}" || true)
+
+          # Build a lookup set
+          tmp=$(mktemp)
+          printf '%s\n' "${with_ref[@]}" | sort -u > "$tmp"
+
+          missing=()
+          for f in "${all_files[@]}"; do
+            if ! grep -Fxq "$f" "$tmp"; then
+              missing+=("$f")
+            fi
+          done
+
+          if ((${#missing[@]})); then
+            echo "Missing references in:"
+            printf '%s\n' "${missing[@]}"
             exit 1
           fi
+
