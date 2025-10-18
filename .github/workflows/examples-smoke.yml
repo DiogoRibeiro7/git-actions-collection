@@ -100,7 +100,7 @@ jobs:
         if: matrix.type == 'k8s'
         run: |
           set -euo pipefail
-          curl -L https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz \
+          curl -L https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz \
             | tar -xz
           sudo mv kubeconform /usr/local/bin/
           kubeconform -version
