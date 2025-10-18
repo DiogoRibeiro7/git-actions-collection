@@ -8,14 +8,14 @@ jobs:
   label-and-size:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+      - uses: actions/checkout@5
       - name: Enforce PR template
         uses: ./.github/actions/pr-template-enforcer
       - name: Label PR size
-        uses: codelytv/pr-size-labeler@0b7f116f59d1830881bc1cc88be32b005ab09ffa
+        uses: codelytv/pr-size-labeler@1
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Auto label by paths (example)
-        uses: actions/labeler@8558fd74291d67161a8a78ce36a881fa63b766a9
+        uses: actions/labeler@6
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
