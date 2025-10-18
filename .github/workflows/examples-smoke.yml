@@ -85,11 +85,11 @@ jobs:
 
       - name: Setup Rust
         if: matrix.type == 'rust'
-        uses: dtolnay/rust-toolchain@1d0fa839ab7bb8288b370fd8eeb8ba8a6b2dbb20 # @stable
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Setup Terraform
         if: matrix.type == 'terraform' || matrix.type == 'monorepo'
-        uses: hashicorp/setup-terraform@123e94d82ab16b6487c14496a76a25d52c6b39b3
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.8.7
 
@@ -191,7 +191,7 @@ jobs:
   references:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+      - uses: actions/checkout@v5
       - name: Install ripgrep
         run: sudo apt-get update && sudo apt-get install -y ripgrep
       - name: Ensure workflows use collection
