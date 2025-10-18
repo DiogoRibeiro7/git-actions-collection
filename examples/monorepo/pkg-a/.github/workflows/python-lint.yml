@@ -5,4 +5,4 @@ on:
 
 jobs:
   lint:
-    uses: your-org/gh-actions-collection/.github/workflows/python-lint.yml@main
+    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/python-lint.yml@main
