@@ -9,7 +9,7 @@ jobs:
   publish:
     uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/publish-docker-on-tag.yml@main
     with:
-      image: ghcr.io/${{ toLower(github.repository) }}
+      image: ghcr.io/${{ format('{0}', github.repository) }}
       platforms: linux/amd64,linux/arm64
       target: app
       build-args: |

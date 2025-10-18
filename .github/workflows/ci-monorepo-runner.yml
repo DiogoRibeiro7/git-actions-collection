@@ -84,7 +84,7 @@ jobs:
           set -euo pipefail
           curl -L https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz | tar -xz
           sudo mv kubeconform /usr/local/bin/
-          kubeconform -version
+          kubeconform -v
 
       - name: Setup Terraform
         if: inputs.kind == 'terraform' || inputs.kind == 'monorepo'
