@@ -28,12 +28,11 @@ jobs:
       # --- Common: actionlint for any nested workflows under this path
       - name: Install actionlint
         run: |
-          set -euo pipefail
-          url=$(curl -s https://api.github.com/repos/rhysd/actionlint/releases/latest \
+            set -euo pipefail
+            url=$(curl -s https://api.github.com/repos/rhysd/actionlint/releases/latest \
             | grep -oP '(?<=browser_download_url": ")[^"]*linux_amd64\.tar\.gz')
-          curl -sSL "$url" | tar -xz
-          sudo mv actionlint /usr/local/bin/
-          actionlint -v
+            curl -sSL "$url" | tar -xz
+            sudo mv actionlint /usr/local/bin/
 
       - name: Lint workflows (if present)
         run: |
@@ -84,11 +83,10 @@ jobs:
           set -euo pipefail
           curl -L https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | tar -xz
           sudo mv kubeconform /usr/local/bin/
-          kubeconform -v
 
       - name: Setup Terraform
         if: inputs.kind == 'terraform' || inputs.kind == 'monorepo'
-        uses: hashicorp/setup-terraform@123e94d82ab16b6487c14496a76a25d52c6b39b3
+        uses: hashicorp/setup-terraform@3
         with:
           terraform_version: latest
 
