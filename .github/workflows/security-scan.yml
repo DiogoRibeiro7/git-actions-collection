@@ -35,13 +35,13 @@ jobs:
           python-version: '3.12'
           cache: pip
       - name: Cache pip-audit DB
-        uses: actions/cache@638ed79f9dc94c1de1baef91bcab5edaa19451f4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
           path: ${{ env.PIP_AUDIT_CACHE_DIR }}
           key: pip-audit-${{ runner.os }}-${{ hashFiles('**/requirements.txt') }}
       - name: Cache Trivy DB
         if: ${{ inputs['skip-trivy'] == false }}
-        uses: actions/cache@638ed79f9dc94c1de1baef91bcab5edaa19451f4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
           path: ${{ env.TRIVY_CACHE_DIR }}
           key: trivy-${{ runner.os }}
