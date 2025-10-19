@@ -31,20 +31,20 @@ maintainers = [
 ]
 
 dependencies = [
-    "PyYAML>=6.0,<7.0",
-    "tomlkit>=0.13.0,<1.0",
-    "packaging>=24.0,<25.0",
-    "requests>=2.32.0,<3.0",
+    "PyYAML >=6.0.3,<7.0.0",
+    "tomlkit >=0.13.3,<1.0.0",
+    "packaging >=25.0,<26.0.0",
+    "requests >=2.32.5,<3.0.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=8.0,<9.0",
-    "pytest-cov>=4.0,<5.0",
-    "ruff>=0.6.0,<1.0",
-    "mypy>=1.8.0,<2.0",
-    "types-PyYAML>=6.0.0,<7.0",
-    "types-requests>=2.32.0,<3.0",
+    "pytest >=8.4.2,<9.0.0",
+    "pytest-cov >=7.0.0,<8.0.0",
+    "ruff >=0.14.1,<1.0.0",
+    "mypy >=1.18.2,<2.0.0",
+    "types-PyYAML >=6.0.12.20250915,<7.0.0",
+    "types-requests >=2.32.4.20250913,<3.0.0",
 ]
 
 test = [
