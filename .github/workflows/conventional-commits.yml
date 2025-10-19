@@ -13,7 +13,7 @@ jobs:
           fetch-depth: 0
       - name: Conventional commits check (PR only)
         if: github.event_name == 'pull_request'
-        uses: webiny/action-conventional-commits@4ae80bc67b0b2e72a4d091a7b18eb4ecc7db68c8
+        uses: webiny/action-conventional-commits@8bc41ff4e7d423d56fa4905f6ff79209a78776c7
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Conventional commits check (push to main/develop)
