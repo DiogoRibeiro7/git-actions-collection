@@ -58,7 +58,7 @@ jobs:
       # ---------- Language/toolchain setup (only when needed) ----------
       - name: Setup Python
         if: matrix.type == 'python' || matrix.type == 'monorepo'
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
