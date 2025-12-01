@@ -123,7 +123,7 @@ jobs:
         if: ${{ always() }}
         id: slsa
         continue-on-error: true
-        uses: actions/attest-build-provenance@ba965ac88abfc6fa49344893ed19e5bf479a07d6
+        uses: actions/attest-build-provenance@ca0aaa1889e301c8331fbdb338d9475431b75b13
         with:
           subject-path: |
             pip-audit.sarif
