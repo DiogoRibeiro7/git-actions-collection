@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "markdownlint $@" >> "${FAKEBIN_LOG:?}"
+if [ "${FAKEBIN_FAIL_MARKDOWNLINT:-}" = "1" ]; then exit 1; fi

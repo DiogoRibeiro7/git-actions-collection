@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "gh $@" >> "${FAKEBIN_LOG:?}"
+if [ "${FAKEBIN_FAIL_GH:-}" = "1" ]; then exit 1; fi

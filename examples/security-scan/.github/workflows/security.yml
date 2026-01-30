@@ -1,0 +1,23 @@
+name: Security Scan Example
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+  security-events: write
+  id-token: write
+  attestations: write
+
+jobs:
+  scan:
+    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/security-scan.yml@main
+    with:
+      paths: '.'
+      skip-trivy: true
+      skip-npm-signatures: false
+      skip-java-verify: false
+      skip-go-verify: false

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "mypy $@" >> "${FAKEBIN_LOG:?}"
+if [ "${FAKEBIN_FAIL_MYPY:-}" = "1" ]; then exit 1; fi

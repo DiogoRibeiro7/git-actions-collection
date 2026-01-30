@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "git $@" >> "${FAKEBIN_LOG:?}"
+if [ "${FAKEBIN_FAIL_GIT:-}" = "1" ]; then exit 1; fi

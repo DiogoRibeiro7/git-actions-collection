@@ -35,5 +35,8 @@ runs:
       if: ${{ inputs.packages != '' }}
       shell: bash
       working-directory: ${{ inputs.working-directory }}
-      run: |
-        Rscript -e "packages <- strsplit('${{ inputs.packages }}', '[,\n ]+')[[1]]; packages <- packages[nzchar(packages)]; if (length(packages)) install.packages(packages, repos='${{ inputs.cran-mirror }}')"
+      run: bash scripts/setup-r/install-packages.sh
+      env:
+        INPUT_PACKAGES: ${{ inputs.packages }}
+        INPUT_CRAN_MIRROR: ${{ inputs.cran-mirror }}
+        INPUT_WORKING_DIRECTORY: ${{ inputs.working-directory }}

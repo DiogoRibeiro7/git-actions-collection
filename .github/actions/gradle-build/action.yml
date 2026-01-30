@@ -29,15 +29,8 @@ runs:
         gradle-version: wrapper
     - name: Run Gradle
       shell: bash
-      run: |
-        set -euo pipefail
-        TASKS="${{ inputs.tasks }}"
-        if [ -z "$TASKS" ]; then
-          echo "tasks input must not be empty" >&2
-          exit 1
-        fi
-        GRADLE_ARGS="${{ inputs.gradle-args }}"
-        cd "${{ inputs.working-directory }}"
-        IFS=' ' read -r -a TASK_ARR <<< "$TASKS"
-        IFS=' ' read -r -a ARG_ARR <<< "$GRADLE_ARGS"
-        ./gradlew "${TASK_ARR[@]}" "${ARG_ARR[@]}"
+      run: bash scripts/gradle-build/run.sh
+      env:
+        INPUT_TASKS: ${{ inputs.tasks }}
+        INPUT_GRADLE_ARGS: ${{ inputs.gradle-args }}
+        INPUT_WORKING_DIRECTORY: ${{ inputs.working-directory }}

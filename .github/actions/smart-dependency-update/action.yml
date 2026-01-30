@@ -35,21 +35,15 @@ runs:
         cache: pip
     - id: run
       shell: bash
-      run: |
-        set -euo pipefail
-        pip_version="${{ inputs.pip-version }}"
-        if [ "$pip_version" = "latest" ]; then
-          python -m pip install --upgrade pip
-        else
-          python -m pip install --upgrade "pip==$pip_version"
-        fi
-        pip install tomlkit==0.13.3 packaging==24.2 requests==2.32.3
-        report=$(python scripts/smart_dependency_update.py --manifests ${{ inputs.manifests }} \
-          ${{ inputs.apply == 'true' && '--apply' || '' }} --batch-size ${{ inputs['batch-size'] }} \
-          ${{ inputs.dependabot == 'true' && '--dependabot' || '' }} ${{ inputs.repo && '--repo ' || '' }}${{ inputs.repo }})
-        echo "report=$report" >> "$GITHUB_OUTPUT"
+      run: bash scripts/actions/smart-dependency-update/run.sh
       env:
         GITHUB_TOKEN: ${{ inputs.github-token }}
+        INPUT_MANIFESTS: ${{ inputs.manifests }}
+        INPUT_APPLY: ${{ inputs.apply }}
+        INPUT_BATCH_SIZE: ${{ inputs['batch-size'] }}
+        INPUT_DEPENDABOT: ${{ inputs.dependabot }}
+        INPUT_REPO: ${{ inputs.repo }}
+        INPUT_PIP_VERSION: ${{ inputs.pip-version }}
 outputs:
   report:
     description: "JSON report of updates and conflicts"

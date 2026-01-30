@@ -18,6 +18,18 @@ This repository stores a collection of reusable GitHub Actions, and the goal is 
 | `.github/actions/` | Composite actions written in YAML that can be consumed from any repository. |
 | `.github/workflows/` | Reusable workflows invokable through `workflow_call` plus local automation for this repository. |
 | `docs/` | Extended documentation for complex workflows (API testing, multi-cloud deploy, PyPI trusted publishing, etc.). |
+
+## Testing
+
+Run the full suite locally:
+
+```
+yarn test
+pytest -q
+bats tests/bash
+```
+
+For more details (single test file, env vars, mocks), see CONTRIBUTING.md.
 | `examples/` | Sample repositories showcasing how to wire the actions and workflows together. |
 | `scripts/` | Python utilities used by composite actions and migration helpers. |
 | `tests/` | Pytest suite covering helper scripts and workflow generators. |
@@ -218,7 +230,7 @@ Additional security helpers:
 | Dependency Review | `.github/workflows/dependency-review.yml` | Inputs: —; Secrets: —. | Annotates pull requests with dependency vulnerability information using GitHub's dependency-review action. |
 | Lockfile Consistency | `.github/workflows/lockfile-consistency.yml` | Inputs: `pip-version`; Secrets: —. | Validates that npm, Yarn, pip, and Poetry lockfiles match their manifests with configurable pip bootstrapping. |
 | PR Policy | `.github/workflows/pr-policy.yml` | Inputs: —; Secrets: —. | Applies repository policy checks such as title formatting and draft status enforcement. |
-| Security Scan | `.github/workflows/security-scan.yml` | Inputs: `paths`, `skip-trivy`, `pip-version`; Secrets: —. | Runs Trivy, pip-audit, Bandit, and dependency checks with configurable pip bootstrapping plus optional path targeting and Trivy skip flag. |
+| Security Scan | `.github/workflows/security-scan.yml` | Inputs: `paths`, `skip-trivy`, `pip-version`, `skip-npm-signatures`, `skip-java-verify`, `skip-go-verify`; Secrets: —. | Runs Trivy, pip-audit, Bandit, and dependency checks with configurable pip bootstrapping plus optional path targeting and Trivy skip flag. |
 
 ## Repository automation workflows
 
@@ -288,7 +300,7 @@ These workflows run locally in this repository to keep the collection healthy an
 | Docker Build & Push | reusable | `.github/workflows/docker-build-push.yml` | `image`, `context`, `dockerfile`, `platforms`, `tags`, `aws-role`, `aws-region` | – | `uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/docker-build-push.yml@main` |
 | Publish Docker (Reusable + Tag Trigger) | reusable | `.github/workflows/publish-docker-on-tag.yml` | `image`, `context`, `dockerfile`, `platforms`, `build-args`, `target`, `labels`, `registry` | – | `uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/publish-docker-on-tag.yml@main` |
 | Python Lint | reusable | `.github/workflows/python-lint.yml` | `python-version`, `enable-mypy`, `pip-version` | – | `uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/python-lint.yml@main` |
-| Security Scan | reusable | `.github/workflows/security-scan.yml` | `paths`, `skip-trivy`, `pip-version` | – | `uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/security-scan.yml@main` |
+| Security Scan | reusable | `.github/workflows/security-scan.yml` | `paths`, `skip-trivy`, `pip-version`, `skip-npm-signatures`, `skip-java-verify`, `skip-go-verify` | – | `uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/security-scan.yml@main` |
 | CodeQL Analysis | reusable | `.github/workflows/codeql-analysis.yml` | – | – | `uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/codeql-analysis.yml@main` |
 | Dependency Review | reusable | `.github/workflows/dependency-review.yml` | – | – | `uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/dependency-review.yml@main` |
 | Lockfile Consistency | reusable | `.github/workflows/lockfile-consistency.yml` | `pip-version` | – | `uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/lockfile-consistency.yml@main` |
@@ -466,6 +478,7 @@ Run tests across multiple Python versions and operating systems.
 * `python-versions` (JSON array)
 * `os-matrix` (JSON array)
 * `test-command`
+* `pip-version` (default `24.3.1`, set to `latest` for the newest pip)
 
 **Example**
 
@@ -884,6 +897,10 @@ The workflow caches vulnerability databases, generates SLSA Level 2 attestation
 **Inputs**
 * `paths` (default `.`)
 * `skip-trivy` (default `true`)
+* `pip-version` (default `24.3.1`, set to `latest` for the newest pip)
+* `skip-npm-signatures` (default `false`)
+* `skip-java-verify` (default `false`)
+* `skip-go-verify` (default `false`)
 
 **Example**
 
@@ -1133,7 +1150,7 @@ The first milestones focus on high‑leverage, broadly reusable workflows and co
 2. **Security Scan** (reusable workflow)
 
    * Steps: `pip-audit --strict`, `bandit -r`, `trivy fs` (opt-in), SARIF upload.
-   * Inputs: `paths`, `skip-trivy`.
+   * Inputs: `paths`, `skip-trivy`, `pip-version`, `skip-npm-signatures`, `skip-java-verify`, `skip-go-verify`.
 3. **Check Imports vs pyproject** (composite)
 
    * Script to parse imports and compare with `pyproject.toml`.

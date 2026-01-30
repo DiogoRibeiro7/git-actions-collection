@@ -1,0 +1,11 @@
+name: Node.js CI
+'on':
+  push:
+    branches:
+    - main
+  pull_request: null
+jobs:
+  ci:
+    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/node-ci.yml@main
+    with:
+      node-version: '20'
