@@ -33,29 +33,12 @@ runs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ inputs.python-version }}
-    - name: Upgrade pip
-      shell: bash
-      run: |
-        set -euo pipefail
-        pip_version="${{ inputs.pip-version }}"
-        if [ "$pip_version" = "latest" ]; then
-          python -m pip install --upgrade pip
-        else
-          python -m pip install --upgrade "pip==$pip_version"
-        fi
-    - name: Install dependencies from requirements file
-      if: ${{ inputs.requirements-file != '' }}
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}
-      run: python -m pip install -r "${{ inputs.requirements-file }}"
-    - name: Install additional dependencies
-      if: ${{ inputs.extra-dependencies != '' }}
-      shell: bash
-      run: python -m pip install ${{ inputs.extra-dependencies }}
-    - name: Install mypy
-      shell: bash
-      run: python -m pip install mypy
     - name: Run mypy
       shell: bash
+      run: bash scripts/python-type-check/run.sh
       working-directory: ${{ inputs.working-directory }}
-      run: mypy ${{ inputs.mypy-args }}
+      env:
+        INPUT_REQUIREMENTS_FILE: ${{ inputs.requirements-file }}
+        INPUT_EXTRA_DEPENDENCIES: ${{ inputs.extra-dependencies }}
+        INPUT_MYPY_ARGS: ${{ inputs.mypy-args }}
+        INPUT_PIP_VERSION: ${{ inputs.pip-version }}

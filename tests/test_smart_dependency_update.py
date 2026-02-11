@@ -16,6 +16,11 @@ bump_patch = MODULE.bump_patch
 apply_updates = MODULE.apply_updates
 parse_package_json = MODULE.parse_package_json
 parse_pyproject = MODULE.parse_pyproject
+parse_gemfile = MODULE.parse_gemfile
+parse_gomod = MODULE.parse_gomod
+gather_deps = MODULE.gather_deps
+detect_conflicts = MODULE.detect_conflicts
+_serialise_conflicts = MODULE._serialise_conflicts
 main = MODULE.main
 
 
@@ -126,3 +131,41 @@ def test_main_outputs_serialisable_json(tmp_path, monkeypatch, capsys):
 
     assert payload["updates"][0]["manifest"] == str(package)
     assert payload["conflicts"] == {}
+
+
+def test_detect_conflicts_flags_major_mismatch(tmp_path):
+    pyproject = tmp_path / "pyproject.toml"
+    pyproject.write_text(
+        """[project]
+name = "demo"
+dependencies = ["requests>=1.0"]
+""",
+        encoding="utf-8",
+    )
+    package = tmp_path / "package.json"
+    package.write_text(json.dumps({"dependencies": {"requests": "^2.0.0"}}, indent=2))
+
+    deps = gather_deps([pyproject, package])
+    conflicts = detect_conflicts(deps)
+
+    assert "requests" in conflicts
+    serialised = _serialise_conflicts(conflicts)
+    assert serialised["requests"][0]["manifest"].endswith("pyproject.toml")
+
+
+def test_parse_gemfile_and_gomod(tmp_path):
+    gemfile = tmp_path / "Gemfile"
+    gemfile.write_text("gem 'rails', '7.1.2'\n", encoding="utf-8")
+    gomod = tmp_path / "go.mod"
+    gomod.write_text(
+        """module example.com/demo
+
+require (
+    github.com/example/lib v1.2.3
+)
+""",
+        encoding="utf-8",
+    )
+
+    assert parse_gemfile(gemfile)["rails"] == "7.1.2"
+    assert parse_gomod(gomod)["github.com/example/lib"] == "v1.2.3"

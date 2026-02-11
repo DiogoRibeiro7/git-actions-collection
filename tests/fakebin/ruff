@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "ruff $@" >> "${FAKEBIN_LOG:?}"
+if [ "${FAKEBIN_FAIL_RUFF:-}" = "1" ]; then exit 1; fi

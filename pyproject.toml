@@ -85,7 +85,7 @@ where = ["scripts"]
 include = ["scripts*"]
 
 [tool.setuptools.package-data]
-"*" = ["*.yml", "*.yaml", "*.md", "*.toml"]
+"*" = ["*.yml", "*.yaml", "*.md", "*.toml", "py.typed"]
 
 # Ruff configuration
 [tool.ruff]
@@ -165,6 +165,7 @@ addopts = [
     "--cov-report=term-missing",
     "--cov-report=xml",
     "--cov-report=html",
+    "--cov-fail-under=70",
 ]
 testpaths = ["tests"]
 filterwarnings = [

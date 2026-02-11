@@ -18,7 +18,9 @@ runs:
 
     - name: Enable Corepack
       shell: bash
-      run: corepack enable
+      run: bash scripts/setup-yarn/corepack.sh
+      env:
+        INPUT_WORKING_DIRECTORY: ${{ inputs.working-directory }}
 
     - name: Cache Yarn
       uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809
@@ -32,11 +34,7 @@ runs:
         key: yarn-${{ runner.os }}-${{ hashFiles(format('{0}/yarn.lock', inputs.working-directory)) }}
 
     - name: Install deps
-      working-directory: ${{ inputs.working-directory }}
       shell: bash
-      run: |
-        if [ -f yarn.lock ]; then
-          yarn install --immutable
-        else
-          echo "No yarn.lock found"
-        fi
+      run: bash scripts/setup-yarn/install.sh
+      env:
+        INPUT_WORKING_DIRECTORY: ${{ inputs.working-directory }}

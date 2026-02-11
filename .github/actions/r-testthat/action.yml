@@ -40,16 +40,10 @@ runs:
     - id: package-inputs
       name: Resolve package list
       shell: bash
-      run: |
-        pkgs="remotes,testthat"
-        if [ "${{ inputs.use-devtools }}" = "true" ]; then
-          pkgs="$pkgs,devtools"
-        fi
-        extras="${{ inputs.additional-packages }}"
-        if [ -n "$extras" ]; then
-          pkgs="$pkgs,$extras"
-        fi
-        echo "packages=$pkgs" >> "$GITHUB_OUTPUT"
+      run: bash scripts/r-testthat/package-inputs.sh
+      env:
+        INPUT_USE_DEVTOOLS: ${{ inputs.use-devtools }}
+        INPUT_ADDITIONAL_PACKAGES: ${{ inputs.additional-packages }}
     - name: Setup R for testing
       uses: ./.github/actions/setup-r
       with:
@@ -61,30 +55,9 @@ runs:
     - name: Run testthat suite
       shell: bash
       working-directory: ${{ inputs.working-directory }}
-      run: |
-        Rscript - <<'RSCRIPT'
-        options(error = function(e) { message(conditionMessage(e)); quit(status = 1) })
-        suppressPackageStartupMessages(library(testthat))
-
-        install_deps <- identical(tolower("${{ inputs.install-dependencies }}"), "true")
-        use_devtools <- identical(tolower("${{ inputs.use-devtools }}"), "true")
-        test_dir <- "${{ inputs.test-directory }}"
-
-        if (install_deps && file.exists("DESCRIPTION")) {
-          message("Installing package dependencies via remotes::install_deps().")
-          remotes::install_deps(dependencies = TRUE)
-        }
-
-        if (file.exists("DESCRIPTION") && use_devtools) {
-          message("Running devtools::test() for package tests.")
-          if (!requireNamespace("devtools", quietly = TRUE)) {
-            stop("devtools package is required when use-devtools is true and DESCRIPTION exists.")
-          }
-          devtools::test()
-        } else if (dir.exists(test_dir)) {
-          message(sprintf("Running testthat::test_dir() on %s", test_dir))
-          testthat::test_dir(test_dir, reporter = "summary")
-        } else {
-          message(sprintf("No tests found in '%s' and no DESCRIPTION file detected. Skipping.", test_dir))
-        }
-        RSCRIPT
+      run: bash scripts/r-testthat/run-tests.sh
+      env:
+        INPUT_TEST_DIRECTORY: ${{ inputs.test-directory }}
+        INPUT_INSTALL_DEPENDENCIES: ${{ inputs.install-dependencies }}
+        INPUT_USE_DEVTOOLS: ${{ inputs.use-devtools }}
+        INPUT_WORKING_DIRECTORY: ${{ inputs.working-directory }}

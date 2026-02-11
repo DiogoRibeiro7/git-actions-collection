@@ -23,20 +23,13 @@ runs:
 
     - name: Install Poetry
       shell: bash
-      run: |
-        set -euo pipefail
-        pip_version="${{ inputs.pip-version }}"
-        if [ "$pip_version" = "latest" ]; then
-          python -m pip install --upgrade pip
-        else
-          python -m pip install --upgrade "pip==$pip_version"
-        fi
-        pip install poetry==2.1.4
+      run: bash scripts/setup-poetry/install.sh
+      env:
+        INPUT_PIP_VERSION: ${{ inputs.pip-version }}
 
     - name: Configure Poetry cache
       shell: bash
-      run: |
-        echo "POETRY_CACHE_DIR=$HOME/.cache/pypoetry" >> $GITHUB_ENV
+      run: bash scripts/setup-poetry/configure-cache.sh
 
     - name: Cache Poetry virtualenvs
       uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809
@@ -49,6 +42,4 @@ runs:
     - name: Install dependencies
       if: ${{ inputs.install-deps == 'true' }}
       shell: bash
-      run: |
-        poetry --version
-        poetry install --no-interaction --no-root
+      run: bash scripts/setup-poetry/install-deps.sh

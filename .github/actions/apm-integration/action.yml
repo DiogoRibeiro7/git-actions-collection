@@ -25,50 +25,13 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - id: validate
-      shell: bash
-      run: |
-        set -euo pipefail
-        case "${{ inputs.provider }}" in
-          datadog|newrelic|appinsights) ;;
-          *) echo '::error::Unsupported provider'; exit 1 ;;
-        esac
     - id: notify
       shell: bash
+      run: bash scripts/apm-integration/notify.sh
       env:
-        PROVIDER: ${{ inputs.provider }}
-        API_KEY: ${{ inputs.api-key }}
-        APP_ID: ${{ inputs.app-id }}
-        ENVIRONMENT: ${{ inputs.environment }}
-        DEPLOYMENT_ID: ${{ inputs.deployment-id }}
-        METRICS_FILE: ${{ inputs.metrics-file }}
-      run: |
-        set -euo pipefail
-        case "$PROVIDER" in
-          datadog)
-            curl -fsS -H "DD-API-KEY:$API_KEY" -H 'Content-Type: application/json' \
-              -d "{\"title\":\"Deployment $DEPLOYMENT_ID\",\"text\":\"Environment: $ENVIRONMENT\",\"tags\":[\"env:$ENVIRONMENT\"],\"alert_type\":\"info\"}" \
-              https://api.datadoghq.com/api/v1/events
-            ;;
-          newrelic)
-            if [ -z "$APP_ID" ]; then
-              echo '::error::app-id is required for New Relic' >&2
-              exit 1
-            fi
-            curl -fsS -H "Api-Key:$API_KEY" -H 'Content-Type: application/json' \
-              -d "{\"deployment\":{\"revision\":\"$DEPLOYMENT_ID\",\"user\":\"github-actions\",\"description\":\"Deployment\"}}" \
-              "https://api.newrelic.com/v2/applications/$APP_ID/deployments.json"
-            ;;
-          appinsights)
-            curl -fsS -H 'Content-Type: application/json' \
-              -d "{\"name\":\"Microsoft.ApplicationInsights.Event\",\"time\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"iKey\":\"$API_KEY\",\"data\":{\"baseType\":\"EventData\",\"baseData\":{\"name\":\"deployment\",\"properties\":{\"deploymentId\":\"$DEPLOYMENT_ID\",\"environment\":\"$ENVIRONMENT\"}}}}" \
-              https://dc.services.visualstudio.com/v2/track
-            ;;
-        esac
-        if [ -n "$METRICS_FILE" ]; then
-          latency=$(jq -r '.latency // empty' "$METRICS_FILE" || true)
-          threshold=$(jq -r '.threshold // empty' "$METRICS_FILE" || true)
-          if [ -n "$latency" ] && [ -n "$threshold" ] && [ "$latency" -gt "$threshold" ]; then
-            echo "::warning::latency $latency exceeded threshold $threshold"
-          fi
-        fi
+        INPUT_PROVIDER: ${{ inputs.provider }}
+        INPUT_API_KEY: ${{ inputs.api-key }}
+        INPUT_APP_ID: ${{ inputs.app-id }}
+        INPUT_ENVIRONMENT: ${{ inputs.environment }}
+        INPUT_DEPLOYMENT_ID: ${{ inputs.deployment-id }}
+        INPUT_METRICS_FILE: ${{ inputs.metrics-file }}

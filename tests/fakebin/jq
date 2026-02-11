@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "jq $@" >> "${FAKEBIN_LOG:?}"
+if [ "${FAKEBIN_FAIL_JQ:-}" = "1" ]; then exit 1; fi

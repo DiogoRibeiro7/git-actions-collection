@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "python $@" >> "${FAKEBIN_LOG:?}"
+if [ "${FAKEBIN_FAIL_PYTHON:-}" = "1" ]; then
+  exit 1
+fi
+
+if [ "${FAKEBIN_PYTHON_MODE:-}" = "check-imports" ]; then
+  if [ "$1" = "-c" ]; then
+    echo "foo bar"
+    exit 0
+  fi
+  if echo "$@" | grep -q "check_imports_vs_pyproject.py"; then
+    echo "{\"missing\":[\"foo\",\"bar\"]}"
+    exit 0
+  fi
+fi
+
+if [ "${FAKEBIN_PYTHON_MODE:-}" = "smart-update" ]; then
+  if echo "$@" | grep -q "smart_dependency_update.py"; then
+    echo "{}"
+    exit 0
+  fi
+fi
+
+exit 0

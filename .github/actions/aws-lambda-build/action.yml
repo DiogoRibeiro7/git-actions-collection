@@ -25,18 +25,8 @@ runs:
         python-version: ${{ inputs.python-version }}
     - name: Build lambda package
       shell: bash
-      run: |
-        set -euo pipefail
-        pip_version="${{ inputs.pip-version }}"
-        if [ "$pip_version" = "latest" ]; then
-          python -m pip install --upgrade pip
-        else
-          python -m pip install --upgrade "pip==$pip_version"
-        fi
-        mkdir -p artifact build/python
-        rsync -av --exclude '__pycache__' --exclude '*.pyc' "${{ inputs.src }}/" build/
-        if [ -f "${{ inputs.src }}/requirements.txt" ]; then
-          pip install -r "${{ inputs.src }}/requirements.txt" -t build/
-        fi
-        (cd build && zip -r ../${{ inputs.output-zip }} .)
-        echo "Created ${{ inputs.output-zip }}"
+      run: bash scripts/aws-lambda-build/build.sh
+      env:
+        INPUT_SRC: ${{ inputs.src }}
+        INPUT_OUTPUT_ZIP: ${{ inputs.output-zip }}
+        INPUT_PIP_VERSION: ${{ inputs.pip-version }}

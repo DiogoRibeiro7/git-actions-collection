@@ -1,0 +1,10 @@
+name: Python package
+'on':
+  push:
+    branches:
+    - main
+jobs:
+  ci:
+    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/python-test-matrix.yml@main
+    with:
+      python-versions: '["3.11"]'

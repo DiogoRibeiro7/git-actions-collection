@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "poetry $@" >> "${FAKEBIN_LOG:?}"
+if [ "${FAKEBIN_FAIL_POETRY:-}" = "1" ]; then exit 1; fi

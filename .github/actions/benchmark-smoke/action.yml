@@ -24,22 +24,17 @@ runs:
       with:
         python-version: ${{ inputs.python-version }}
     - name: Install dependencies
-      run: |
-        set -euo pipefail
-        pip_version="${{ inputs.pip-version }}"
-        if [ "$pip_version" = "latest" ]; then
-          python -m pip install --upgrade pip
-        else
-          python -m pip install --upgrade "pip==$pip_version"
-        fi
-        pip install pytest==8.4.1 pytest-benchmark==5.1.0
+      run: bash scripts/benchmark-smoke/install.sh
       shell: bash
       working-directory: ${{ inputs.working-directory }}
+      env:
+        INPUT_PIP_VERSION: ${{ inputs.pip-version }}
     - name: Run benchmark
-      run: |
-        pytest ${{ inputs.pytest-args }} --benchmark-only --benchmark-json=benchmark.json
+      run: bash scripts/benchmark-smoke/run.sh
       shell: bash
       working-directory: ${{ inputs.working-directory }}
+      env:
+        INPUT_PYTEST_ARGS: ${{ inputs.pytest-args }}
     - name: Upload results
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:

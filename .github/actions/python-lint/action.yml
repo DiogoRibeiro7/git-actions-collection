@@ -22,22 +22,7 @@ runs:
         cache: pip
     - name: Install tools
       shell: bash
-      run: |
-        set -euo pipefail
-        pip_version="${{ inputs.pip-version }}"
-        if [ "$pip_version" = "latest" ]; then
-          python -m pip install --upgrade pip
-        else
-          python -m pip install --upgrade "pip==$pip_version"
-        fi
-        pip install ruff==0.12.10
-        if [ "${{ inputs.enable-mypy }}" = "true" ]; then
-          pip install mypy==1.17.1
-        fi
-    - name: Ruff
-      shell: bash
-      run: ruff check .
-    - name: Mypy
-      if: ${{ inputs.enable-mypy == 'true' }}
-      shell: bash
-      run: mypy .
+      run: bash scripts/python-lint/run.sh
+      env:
+        INPUT_ENABLE_MYPY: ${{ inputs.enable-mypy }}
+        INPUT_PIP_VERSION: ${{ inputs.pip-version }}

@@ -46,30 +46,20 @@ runs:
         cache: pip
     - id: check
       shell: bash
-      run: |
-        set -euo pipefail
-        pip_version="${{ inputs.pip-version }}"
-        if [ "$pip_version" = "latest" ]; then
-          python -m pip install --upgrade pip
-        else
-          python -m pip install --upgrade "pip==$pip_version"
-        fi
-        pip install tomlkit==0.13.3
-        python scripts/check_imports_vs_pyproject.py --paths ${{ inputs.paths }} --fail-on none --format json > result.json
-        missing=$(python -c "import json; print(' '.join(json.load(open(\"result.json\"))['missing']))")
-        echo "missing=$missing" >> "$GITHUB_OUTPUT"
-        if [ "${{ inputs.update-pyproject }}" != "true" ]; then
-          python scripts/check_imports_vs_pyproject.py --paths ${{ inputs.paths }} --fail-on ${{ inputs.fail-on }} --format ${{ inputs.format }}
-        fi
+      run: bash scripts/actions/check-imports/check.sh
+      env:
+        INPUT_PATHS: ${{ inputs.paths }}
+        INPUT_FAIL_ON: ${{ inputs.fail-on }}
+        INPUT_FORMAT: ${{ inputs.format }}
+        INPUT_UPDATE_PYPROJECT: ${{ inputs.update-pyproject }}
+        INPUT_PIP_VERSION: ${{ inputs.pip-version }}
     - if: inputs.update-pyproject == 'true' && steps.check.outputs.missing != ''
       name: Update pyproject
       shell: bash
-      run: |
-        set -euo pipefail
-        python scripts/check_imports_vs_pyproject.py --paths ${{ inputs.paths }} --fail-on none --format text --update
-        if [ "${{ inputs.smart-update }}" = 'true' ]; then
-          python scripts/smart_dependency_update.py --manifests pyproject.toml --apply
-        fi
+      run: bash scripts/actions/check-imports/update.sh
+      env:
+        INPUT_PATHS: ${{ inputs.paths }}
+        INPUT_SMART_UPDATE: ${{ inputs.smart-update }}
     - if: inputs.update-pyproject == 'true' && inputs.create-pr == 'true' && steps.check.outputs.missing != ''
       uses: peter-evans/create-pull-request@4e1beaa7521e8b457b572c090b25bd3db56bf1c5
       with:

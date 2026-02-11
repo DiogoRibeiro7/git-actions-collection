@@ -17,6 +17,21 @@ on:
         required: false
         type: string
         default: '24.3.1'
+      skip-npm-signatures:
+        description: 'Skip npm package signature verification'
+        required: false
+        type: boolean
+        default: false
+      skip-java-verify:
+        description: 'Skip Maven/Gradle dependency verification'
+        required: false
+        type: boolean
+        default: false
+      skip-go-verify:
+        description: 'Skip Go module verification'
+        required: false
+        type: boolean
+        default: false
 permissions:
   contents: read
   security-events: write
@@ -72,39 +87,39 @@ jobs:
           exit-code: '1'
           path: ${{ inputs.paths }}
       - name: Set up Node (if needed)
-        if: hashFiles('package-lock.json') != ''
+        if: hashFiles('package-lock.json') != '' && inputs['skip-npm-signatures'] == false
         uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903
         with:
           node-version: '20'
           cache: npm
       - name: Verify npm signatures
-        if: hashFiles('package-lock.json') != ''
+        if: hashFiles('package-lock.json') != '' && inputs['skip-npm-signatures'] == false
         run: |
           set -euo pipefail
           npm audit signatures
       - name: Set up Java (if needed)
-        if: hashFiles('pom.xml') != '' || hashFiles('build.gradle') != '' || hashFiles('build.gradle.kts') != ''
+        if: (hashFiles('pom.xml') != '' || hashFiles('build.gradle') != '' || hashFiles('build.gradle.kts') != '') && inputs['skip-java-verify'] == false
         uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165
         with:
           distribution: temurin
           java-version: '17'
       - name: Verify Maven dependencies
-        if: hashFiles('pom.xml') != ''
+        if: hashFiles('pom.xml') != '' && inputs['skip-java-verify'] == false
         run: |
           set -euo pipefail
           mvn -B -q -e -DskipTests verify
       - name: Verify Gradle dependencies
-        if: hashFiles('build.gradle') != '' || hashFiles('build.gradle.kts') != ''
+        if: (hashFiles('build.gradle') != '' || hashFiles('build.gradle.kts') != '') && inputs['skip-java-verify'] == false
         run: |
           set -euo pipefail
           ./gradlew --no-daemon --write-verification-metadata sha256
       - name: Set up Go (if needed)
-        if: hashFiles('go.sum') != ''
+        if: hashFiles('go.sum') != '' && inputs['skip-go-verify'] == false
         uses: actions/setup-go@1d76b952eb9246b03e20e15a9ef98c6d4af389ef
         with:
           go-version: '1.22'
       - name: Verify Go modules
-        if: hashFiles('go.sum') != ''
+        if: hashFiles('go.sum') != '' && inputs['skip-go-verify'] == false
         run: |
           set -euo pipefail
           go mod verify
@@ -123,7 +138,7 @@ jobs:
         if: ${{ always() }}
         id: slsa
         continue-on-error: true
-        uses: actions/attest-build-provenance@ba965ac88abfc6fa49344893ed19e5bf479a07d6
+        uses: actions/attest-build-provenance@ca0aaa1889e301c8331fbdb338d9475431b75b13
         with:
           subject-path: |
             pip-audit.sarif
