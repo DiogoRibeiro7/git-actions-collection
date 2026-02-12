@@ -142,6 +142,21 @@ exit 0
   [ "$status" -ne 0 ]
 }
 
+@test "gradle-build defaults tasks to build" {
+  mkdir -p "$TEST_TMPDIR/project"
+  cat > "$TEST_TMPDIR/project/gradlew" <<'EOF'
+#!/usr/bin/env bash
+echo "gradlew $@" >> "$COMMAND_LOG"
+EOF
+  chmod +x "$TEST_TMPDIR/project/gradlew"
+
+  INPUT_GRADLE_ARGS="--info" INPUT_WORKING_DIRECTORY="$TEST_TMPDIR/project" \
+    bash "$REPO_ROOT/scripts/gradle-build/run.sh"
+
+  run grep -q "gradlew build --info" "$COMMAND_LOG"
+  [ "$status" -eq 0 ]
+}
+
 @test "gradle-build runs gradlew in working directory" {
   mkdir -p "$TEST_TMPDIR/project"
   cat > "$TEST_TMPDIR/project/gradlew" <<'EOF'
@@ -245,4 +260,176 @@ EOF
     INPUT_WORKING_DIRECTORY="/tmp" bash "$REPO_ROOT/scripts/r-testthat/run-tests.sh"
   run grep -q "Rscript" "$COMMAND_LOG"
   [ "$status" -eq 0 ]
+}
+
+@test "setup-poetry install-deps runs poetry install" {
+  make_logger poetry
+
+  bash "$REPO_ROOT/scripts/setup-poetry/install-deps.sh"
+
+  run grep -q "poetry --version" "$COMMAND_LOG"
+  [ "$status" -eq 0 ]
+  run grep -q "poetry install --no-interaction --no-root" "$COMMAND_LOG"
+  [ "$status" -eq 0 ]
+}
+
+@test "setup-poetry install supports latest pip" {
+  make_logger python
+  make_logger pip
+
+  INPUT_PIP_VERSION="latest" bash "$REPO_ROOT/scripts/setup-poetry/install.sh"
+
+  run grep -q "python -m pip install --upgrade pip" "$COMMAND_LOG"
+  [ "$status" -eq 0 ]
+}
+
+@test "setup-yarn install skips when no lockfile" {
+  make_fake yarn 'echo "yarn $@" >> "$COMMAND_LOG"'
+
+  run INPUT_WORKING_DIRECTORY="$TEST_TMPDIR" bash "$REPO_ROOT/scripts/setup-yarn/install.sh"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"No yarn.lock found"* ]]
+  run grep -q "yarn install" "$COMMAND_LOG"
+  [ "$status" -ne 0 ]
+}
+
+@test "markdown-lint runs without config" {
+  make_fake npm 'echo "npm $@" >> "$COMMAND_LOG"'
+  make_fake markdownlint 'echo "markdownlint $@" >> "$COMMAND_LOG"'
+
+  INPUT_PATHS="README.md" INPUT_CONFIG_FILE="" bash "$REPO_ROOT/scripts/markdown-lint/run.sh"
+
+  run grep -q "markdownlint README.md" "$COMMAND_LOG"
+  [ "$status" -eq 0 ]
+}
+
+@test "pr-template-enforcer succeeds with required sections" {
+  body=$'## Summary\nA change\n\n## Testing\nRan tests'
+  run env PR_BODY="$body" bash "$REPO_ROOT/scripts/pr-template-enforcer/enforce.sh"
+  [ "$status" -eq 0 ]
+}
+
+@test "python-lint skips mypy when disabled" {
+  make_fake python 'echo "python $@" >> "$COMMAND_LOG"'
+  make_logger pip
+  make_fake ruff 'echo "ruff $@" >> "$COMMAND_LOG"'
+  make_fake mypy 'echo "mypy $@" >> "$COMMAND_LOG"'
+
+  INPUT_ENABLE_MYPY="false" INPUT_PIP_VERSION="24.3.1" bash "$REPO_ROOT/scripts/python-lint/run.sh"
+
+  run grep -q "ruff check ." "$COMMAND_LOG"
+  [ "$status" -eq 0 ]
+  run grep -q "mypy ." "$COMMAND_LOG"
+  [ "$status" -ne 0 ]
+}
+
+@test "python-type-check installs extra deps" {
+  make_fake python 'echo "python $@" >> "$COMMAND_LOG"'
+  make_fake mypy 'echo "mypy $@" >> "$COMMAND_LOG"'
+
+  INPUT_REQUIREMENTS_FILE="" INPUT_EXTRA_DEPENDENCIES="requests typer" INPUT_MYPY_ARGS="src" \
+    INPUT_PIP_VERSION="24.3.1" bash "$REPO_ROOT/scripts/python-type-check/run.sh"
+
+  run grep -q "python -m pip install requests typer" "$COMMAND_LOG"
+  [ "$status" -eq 0 ]
+}
+
+@test "aws-lambda-build errors on empty src" {
+  run env INPUT_SRC="" INPUT_OUTPUT_ZIP="artifact/lambda.zip" bash "$REPO_ROOT/scripts/aws-lambda-build/build.sh"
+  [ "$status" -ne 0 ]
+}
+
+@test "aws-lambda-build skips requirements when missing" {
+  make_logger python
+  make_logger pip
+  make_logger rsync
+  make_fake zip 'touch "${2}"; echo "zip $@" >> "$COMMAND_LOG"'
+
+  mkdir -p "$TEST_TMPDIR/lambda"
+
+  INPUT_SRC="$TEST_TMPDIR/lambda" INPUT_OUTPUT_ZIP="artifact/lambda.zip" \
+    bash "$REPO_ROOT/scripts/aws-lambda-build/build.sh"
+
+  run grep -q "pip install -r" "$COMMAND_LOG"
+  [ "$status" -ne 0 ]
+}
+
+@test "benchmark-smoke install pins pytest tools" {
+  make_logger python
+  make_logger pip
+
+  INPUT_PIP_VERSION="24.3.1" bash "$REPO_ROOT/scripts/benchmark-smoke/install.sh"
+
+  run grep -q "pip install pytest==8.4.1 pytest-benchmark==5.1.0" "$COMMAND_LOG"
+  [ "$status" -eq 0 ]
+}
+
+@test "benchmark-smoke run defaults args" {
+  make_fake pytest 'echo "pytest $@" >> "$COMMAND_LOG"'
+
+  bash "$REPO_ROOT/scripts/benchmark-smoke/run.sh"
+
+  run grep -q "pytest --benchmark-only --benchmark-json=benchmark.json" "$COMMAND_LOG"
+  [ "$status" -eq 0 ]
+}
+
+@test "apm-integration requires provider" {
+  run env INPUT_PROVIDER="" INPUT_API_KEY="token" bash "$REPO_ROOT/scripts/apm-integration/notify.sh"
+  [ "$status" -ne 0 ]
+}
+
+@test "apm-integration requires api key" {
+  run env INPUT_PROVIDER="datadog" INPUT_API_KEY="" bash "$REPO_ROOT/scripts/apm-integration/notify.sh"
+  [ "$status" -ne 0 ]
+}
+
+@test "apm-integration newrelic requires app id" {
+  run env INPUT_PROVIDER="newrelic" INPUT_API_KEY="token" INPUT_DEPLOYMENT_ID="abc" \
+    bash "$REPO_ROOT/scripts/apm-integration/notify.sh"
+  [ "$status" -ne 0 ]
+}
+
+@test "apm-integration newrelic posts deployment" {
+  make_logger curl
+
+  INPUT_PROVIDER="newrelic" INPUT_API_KEY="token" INPUT_APP_ID="123" INPUT_DEPLOYMENT_ID="abc" \
+    bash "$REPO_ROOT/scripts/apm-integration/notify.sh"
+
+  run grep -q "api.newrelic.com/v2/applications/123/deployments.json" "$COMMAND_LOG"
+  [ "$status" -eq 0 ]
+}
+
+@test "apm-integration appinsights posts event" {
+  make_logger curl
+  make_fake date 'echo "2020-01-01T00:00:00Z"'
+
+  INPUT_PROVIDER="appinsights" INPUT_API_KEY="ikey" INPUT_DEPLOYMENT_ID="abc" \
+    bash "$REPO_ROOT/scripts/apm-integration/notify.sh"
+
+  run grep -q "dc.services.visualstudio.com/v2/track" "$COMMAND_LOG"
+  [ "$status" -eq 0 ]
+}
+
+@test "r-lint package inputs default to lintr" {
+  INPUT_ADDITIONAL_PACKAGES="" bash "$REPO_ROOT/scripts/r-lint/package-inputs.sh"
+  run grep -q "packages=lintr" "$GITHUB_OUTPUT"
+  [ "$status" -eq 0 ]
+}
+
+@test "r-testthat package inputs without devtools" {
+  INPUT_USE_DEVTOOLS="false" INPUT_ADDITIONAL_PACKAGES="" bash "$REPO_ROOT/scripts/r-testthat/package-inputs.sh"
+  run grep -q "packages=remotes,testthat" "$GITHUB_OUTPUT"
+  [ "$status" -eq 0 ]
+}
+
+@test "check-imports skips enforcement when updating pyproject" {
+  make_fake python 'echo "python $@" >> "$COMMAND_LOG"'
+  make_logger pip
+
+  INPUT_PATHS="src" INPUT_FAIL_ON="missing" INPUT_FORMAT="json" INPUT_UPDATE_PYPROJECT="true" \
+    INPUT_PIP_VERSION="24.3.1" bash "$REPO_ROOT/scripts/actions/check-imports/check.sh"
+
+  run grep -q "--fail-on missing" "$COMMAND_LOG"
+  [ "$status" -ne 0 ]
 }

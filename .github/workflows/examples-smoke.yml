@@ -83,7 +83,7 @@ jobs:
 
       # ---------- Language/toolchain setup (only when needed) ----------
       - name: Setup Python
-        if: matrix.type == 'python' || matrix.type == 'monorepo'
+        if: matrix.type == 'python' || matrix.type == 'monorepo' || matrix.type == 'docker'
         uses: actions/setup-python@v6
         with:
           python-version: '3.12'
@@ -136,16 +136,15 @@ jobs:
           set -euo pipefail
           cd "examples/${{ matrix.example }}"
           python -m pip install -q pytest pytest-cov
-          PYTEST_ADDOPTS="" pytest -q -o addopts=
+          pytest
 
       - name: Node check
         if: matrix.type == 'node'
         run: |
           set -euo pipefail
           cd "examples/${{ matrix.example }}"
-          corepack enable
-          yarn -v
-          node -v
+          node --version
+          node --test
 
       - name: Java tests
         if: matrix.type == 'java'
@@ -159,7 +158,7 @@ jobs:
         run: |
           set -euo pipefail
           cd "examples/${{ matrix.example }}"
-          cargo check
+          cargo test
 
       - name: Go test
         if: matrix.type == 'go'
@@ -174,12 +173,21 @@ jobs:
           set -euo pipefail
           terraform -version
           terraform -chdir="examples/${{ matrix.example }}" init -backend=false
+          terraform -chdir="examples/${{ matrix.example }}" validate
 
       - name: Ensure Docker
         if: matrix.type == 'docker'
         run: |
           set -euo pipefail
           docker --version
+
+      - name: Docker app tests
+        if: matrix.type == 'docker'
+        run: |
+          set -euo pipefail
+          cd "examples/${{ matrix.example }}"
+          python -m pip install -q pytest pytest-cov
+          pytest
 
       - name: Docker build
         if: matrix.type == 'docker'
@@ -192,9 +200,15 @@ jobs:
         if: matrix.type == 'monorepo'
         run: |
           set -euo pipefail
-          cd examples/monorepo/pkg-a && python -m pip install -q ruff && ruff check .
-          cd ../web-app && corepack enable && yarn -v
-          cd ../infra && terraform init -backend=false
+          cd examples/monorepo/pkg-a
+          python -m pip install -q ruff pytest pytest-cov
+          ruff check .
+          pytest
+          cd ../web-app
+          node --version
+          node --test
+          cd ../infra
+          terraform init -backend=false
 
       - name: Kubernetes manifests lint
         if: matrix.type == 'k8s'

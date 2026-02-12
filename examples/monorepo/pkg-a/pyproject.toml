@@ -1,0 +1,3 @@
+[tool.pytest.ini_options]
+addopts = "-q --cov=pkg_a --cov-report=term-missing --cov-fail-under=70"
+testpaths = ["tests"]
