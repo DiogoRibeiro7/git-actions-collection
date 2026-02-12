@@ -57,7 +57,7 @@ run_action() {
     if [ -z "$run_cmd" ]; then
       continue
     fi
-    run_cmd=${run_cmd//"/\"}
+    run_cmd=${run_cmd//\"/\\\"}
     run_cmd=${run_cmd//scripts\//"$REPO_ROOT/scripts/"}
 
     bash -lc "cd \"$GITHUB_WORKSPACE\" && $run_cmd" 1>>"$stdout_file" 2>>"$stderr_file" || status=$?
