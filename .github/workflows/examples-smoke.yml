@@ -136,7 +136,7 @@ jobs:
           set -euo pipefail
           cd "examples/${{ matrix.example }}"
           python -m pip install -q pytest pytest-cov
-          pytest -q
+          PYTEST_ADDOPTS="" pytest -q -o addopts=
 
       - name: Node check
         if: matrix.type == 'node'
