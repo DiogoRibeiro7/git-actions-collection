@@ -38,20 +38,22 @@ jobs:
       - uses: actions/checkout@v5
       # ---------- Common tooling ----------
       - name: Install actionlint
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           api_url="https://api.github.com/repos/rhysd/actionlint/releases/latest"
-          auth_header=()
-          if [ -n "${GITHUB_TOKEN:-}" ]; then
-            auth_header=(-H "Authorization: Bearer ${GITHUB_TOKEN}")
-          fi
-          url=$(curl -sSfL "${auth_header[@]}" "$api_url" | python - <<'PY'
+          url=$(python - <<'PY'
           import json
+          import os
           import sys
+          import urllib.request
 
-          data = json.load(sys.stdin)
+          api_url = os.environ["API_URL"]
+          req = urllib.request.Request(api_url, headers={"Accept": "application/vnd.github+json"})
+          token = os.environ.get("GITHUB_TOKEN")
+          if token:
+              req.add_header("Authorization", f"Bearer {token}")
+          with urllib.request.urlopen(req, timeout=15) as resp:
+              data = json.load(resp)
           for asset in data.get("assets", []):
               download_url = asset.get("browser_download_url", "")
               if download_url.endswith("linux_amd64.tar.gz"):
@@ -65,6 +67,9 @@ jobs:
           fi
           curl -sSL "$url" | tar -xz
           sudo mv actionlint /usr/local/bin/
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          API_URL: https://api.github.com/repos/rhysd/actionlint/releases/latest
 
       - name: Lint example workflows
         run: |

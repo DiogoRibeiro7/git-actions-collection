@@ -28,11 +28,35 @@ jobs:
       # --- Common: actionlint for any nested workflows under this path
       - name: Install actionlint
         run: |
-            set -euo pipefail
-            url=$(curl -s https://api.github.com/repos/rhysd/actionlint/releases/latest \
-            | grep -oP '(?<=browser_download_url": ")[^"]*linux_amd64\.tar\.gz')
-            curl -sSL "$url" | tar -xz
-            sudo mv actionlint /usr/local/bin/
+          set -euo pipefail
+          url=$(python - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          api_url = os.environ["API_URL"]
+          req = urllib.request.Request(api_url, headers={"Accept": "application/vnd.github+json"})
+          token = os.environ.get("GITHUB_TOKEN")
+          if token:
+              req.add_header("Authorization", f"Bearer {token}")
+          with urllib.request.urlopen(req, timeout=15) as resp:
+              data = json.load(resp)
+          for asset in data.get("assets", []):
+              download_url = asset.get("browser_download_url", "")
+              if download_url.endswith("linux_amd64.tar.gz"):
+                  print(download_url)
+                  break
+          PY
+          )
+          if [ -z "$url" ]; then
+            echo "actionlint linux_amd64 tarball not found in latest release." >&2
+            exit 1
+          fi
+          curl -sSL "$url" | tar -xz
+          sudo mv actionlint /usr/local/bin/
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          API_URL: https://api.github.com/repos/rhysd/actionlint/releases/latest
 
       - name: Lint workflows (if present)
         run: |
