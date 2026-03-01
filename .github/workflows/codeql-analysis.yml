@@ -14,7 +14,7 @@ jobs:
       matrix:
         language: [python, javascript, go]
     steps:
-      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
       - uses: github/codeql-action/init@ad2a4837011b42f6947b78d6417e7c253b1c504b
         with:
           languages: ${{ matrix.language }}

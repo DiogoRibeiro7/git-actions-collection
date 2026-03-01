@@ -36,7 +36,7 @@ jobs:
       image: pytorch/pytorch:2.1.2-cuda11.8-cudnn8-runtime
       options: --gpus all
     steps:
-      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
       - uses: actions/setup-python@cfd55ca82492758d853442341ad4d8010466803a
         with:
           python-version: ${{ inputs.python-version }}

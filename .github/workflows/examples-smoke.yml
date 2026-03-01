@@ -35,7 +35,7 @@ jobs:
 
     steps:
       # Pin to a specific commit for reproducibility (update occasionally)
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       # ---------- Common tooling ----------
       - name: Install actionlint
         run: |
@@ -228,7 +228,7 @@ jobs:
   references:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Install ripgrep
         run: sudo apt-get update && sudo apt-get install -y ripgrep
       - name: Ensure workflows use collection
