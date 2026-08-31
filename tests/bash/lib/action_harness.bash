@@ -34,6 +34,10 @@ run_action() {
   export FAKEBIN_LOG="$temp_dir/fakebin.log"
   : > "$FAKEBIN_LOG"
 
+  # Git does not need to preserve executable bits for these tiny test shims.
+  # Make them executable explicitly before putting them on PATH so the tests
+  # cannot silently fall through to real host commands.
+  chmod +x "$REPO_ROOT"/tests/fakebin/*
   export PATH="$REPO_ROOT/tests/fakebin:$PATH"
 
   local kv
@@ -66,8 +70,6 @@ run_action() {
     run_cmd=${run_cmd//\"/\\\"}
     run_cmd=${run_cmd//scripts\//"$REPO_ROOT/scripts/"}
 
-    # Do not use a login shell here: it can replace PATH and bypass the fake
-    # command shims used to test composite actions deterministically.
     bash -c "cd \"$GITHUB_WORKSPACE\" && $run_cmd" 1>>"$stdout_file" 2>>"$stderr_file" || status=$?
     if [ "$status" -ne 0 ]; then
       break
