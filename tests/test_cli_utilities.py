@@ -421,7 +421,9 @@ def test_pypi_wizard_creates_workflow(tmp_path, monkeypatch, capsys):
 
     workflow = tmp_path / ".github" / "workflows" / "publish-to-pypi.yml"
     assert workflow.exists()
-    assert "publish-to-pypi.yml@main" in workflow.read_text(encoding="utf-8")
+    text = workflow.read_text(encoding="utf-8")
+    assert "DiogoRibeiro7/git-actions-collection/.github/workflows/publish-to-pypi.yml@develop" in text
+    assert "@main" not in text
     expected_path = str(Path(".github") / "workflows" / "publish-to-pypi.yml")
     assert f"Created {expected_path}" in capsys.readouterr().out
 
