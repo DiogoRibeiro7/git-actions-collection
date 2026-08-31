@@ -13,7 +13,7 @@ on:
     types: [published]
 jobs:
   publish:
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/publish-to-pypi.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/publish-to-pypi.yml@develop
     with:
       python-version: '3.12'
 """

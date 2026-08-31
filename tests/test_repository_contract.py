@@ -8,7 +8,7 @@ import subprocess
 ROOT = Path(__file__).resolve().parents[1]
 CANONICAL_SLUG = "DiogoRibeiro7/git-actions-collection"
 CANONICAL_REPOSITORY_URL = f"github.com/{CANONICAL_SLUG}"
-STALE_SLUG = "DiogoRibeiro7/gh-actions-collection"
+STALE_SLUG = "DiogoRibeiro7/" + "gh-actions-collection"
 
 
 def _tracked_paths() -> set[str]:
@@ -32,6 +32,17 @@ def test_public_metadata_uses_canonical_repository_identity() -> None:
     assert STALE_SLUG not in pyproject
     assert CANONICAL_SLUG in readme
     assert CANONICAL_REPOSITORY_URL in pyproject
+
+
+def test_tracked_content_has_no_stale_repository_slug() -> None:
+    """Prevent stale consumer references from re-entering tracked public content."""
+    completed = subprocess.run(
+        ["git", "grep", "-n", "-F", STALE_SLUG, "--", ".", ":!tests/test_repository_contract.py"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode == 1, completed.stdout
 
 
 def test_generated_outputs_are_not_tracked() -> None:
