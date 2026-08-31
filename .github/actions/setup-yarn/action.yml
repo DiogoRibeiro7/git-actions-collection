@@ -18,7 +18,7 @@ runs:
 
     - name: Enable Corepack
       shell: bash
-      run: bash scripts/setup-yarn/corepack.sh
+      run: bash "${{ github.action_path }}/../../../scripts/setup-yarn/corepack.sh"
       env:
         INPUT_WORKING_DIRECTORY: ${{ inputs.working-directory }}
 
@@ -35,6 +35,6 @@ runs:
 
     - name: Install deps
       shell: bash
-      run: bash scripts/setup-yarn/install.sh
+      run: bash "${{ github.action_path }}/../../../scripts/setup-yarn/install.sh"
       env:
         INPUT_WORKING_DIRECTORY: ${{ inputs.working-directory }}

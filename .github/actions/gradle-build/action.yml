@@ -29,7 +29,7 @@ runs:
         gradle-version: wrapper
     - name: Run Gradle
       shell: bash
-      run: bash scripts/gradle-build/run.sh
+      run: bash "${{ github.action_path }}/../../../scripts/gradle-build/run.sh"
       env:
         INPUT_TASKS: ${{ inputs.tasks }}
         INPUT_GRADLE_ARGS: ${{ inputs.gradle-args }}

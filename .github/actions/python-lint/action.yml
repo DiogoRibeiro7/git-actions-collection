@@ -22,7 +22,7 @@ runs:
         cache: pip
     - name: Install tools
       shell: bash
-      run: bash scripts/python-lint/run.sh
+      run: bash "${{ github.action_path }}/../../../scripts/python-lint/run.sh"
       env:
         INPUT_ENABLE_MYPY: ${{ inputs.enable-mypy }}
         INPUT_PIP_VERSION: ${{ inputs.pip-version }}

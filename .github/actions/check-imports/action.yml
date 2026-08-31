@@ -46,7 +46,7 @@ runs:
         cache: pip
     - id: check
       shell: bash
-      run: bash scripts/actions/check-imports/check.sh
+      run: bash "${{ github.action_path }}/../../../scripts/actions/check-imports/check.sh"
       env:
         INPUT_PATHS: ${{ inputs.paths }}
         INPUT_FAIL_ON: ${{ inputs.fail-on }}
@@ -56,7 +56,7 @@ runs:
     - if: inputs.update-pyproject == 'true' && steps.check.outputs.missing != ''
       name: Update pyproject
       shell: bash
-      run: bash scripts/actions/check-imports/update.sh
+      run: bash "${{ github.action_path }}/../../../scripts/actions/check-imports/update.sh"
       env:
         INPUT_PATHS: ${{ inputs.paths }}
         INPUT_SMART_UPDATE: ${{ inputs.smart-update }}

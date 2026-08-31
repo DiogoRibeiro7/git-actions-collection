@@ -36,21 +36,27 @@ runs:
     - id: package-inputs
       name: Resolve package list
       shell: bash
-      run: bash scripts/r-lint/package-inputs.sh
+      run: bash "${{ github.action_path }}/../../../scripts/r-lint/package-inputs.sh"
       env:
         INPUT_ADDITIONAL_PACKAGES: ${{ inputs.additional-packages }}
-    - name: Setup R with lintr
-      uses: ./.github/actions/setup-r
+    - name: Install R
+      uses: r-lib/actions/setup-r@v2
       with:
         r-version: ${{ inputs.r-version }}
-        cran-mirror: ${{ inputs.cran-mirror }}
         use-public-rspm: ${{ inputs.use-public-rspm }}
-        packages: ${{ steps.package-inputs.outputs.packages }}
-        working-directory: ${{ inputs.working-directory }}
+        http-user-agent: "${{ runner.os }}-${{ runner.arch }}"
+    - name: Install lint packages
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: bash "${{ github.action_path }}/../../../scripts/setup-r/install-packages.sh"
+      env:
+        INPUT_PACKAGES: ${{ steps.package-inputs.outputs.packages }}
+        INPUT_CRAN_MIRROR: ${{ inputs.cran-mirror }}
+        INPUT_WORKING_DIRECTORY: ${{ inputs.working-directory }}
     - name: Run lintr
       shell: bash
       working-directory: ${{ inputs.working-directory }}
-      run: bash scripts/r-lint/run-lint.sh
+      run: bash "${{ github.action_path }}/../../../scripts/r-lint/run-lint.sh"
       env:
         INPUT_CONFIG_FILE: ${{ inputs.config-file }}
         INPUT_TARGETS: ${{ inputs.targets }}

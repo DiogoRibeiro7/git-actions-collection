@@ -4,6 +4,6 @@ runs:
   using: composite
   steps:
     - shell: bash
-      run: bash scripts/pr-template-enforcer/enforce.sh
+      run: bash "${{ github.action_path }}/../../../scripts/pr-template-enforcer/enforce.sh"
       env:
         PR_BODY: ${{ github.event.pull_request.body }}
