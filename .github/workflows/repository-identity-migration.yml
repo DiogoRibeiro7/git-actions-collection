@@ -1,0 +1,91 @@
+name: Repository identity migration
+
+on:
+  push:
+    branches:
+      - chore/migrate-all-references
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: chore/migrate-all-references
+          fetch-depth: 0
+
+      - name: Canonicalize tracked references
+        run: |
+          python - <<'PY'
+          from __future__ import annotations
+
+          from pathlib import Path
+          import subprocess
+
+          old = "DiogoRibeiro7/" + "gh-actions-collection"
+          new = "DiogoRibeiro7/git-actions-collection"
+          workflow = Path(".github/workflows/repository-identity-migration.yml")
+
+          tracked = subprocess.check_output(["git", "ls-files", "-z"]).split(b"\0")
+          changed: list[str] = []
+
+          for raw_path in tracked:
+              if not raw_path:
+                  continue
+              path = Path(raw_path.decode())
+              if path == workflow or not path.is_file():
+                  continue
+              data = path.read_bytes()
+              if b"\0" in data:
+                  continue
+              try:
+                  text = data.decode("utf-8")
+              except UnicodeDecodeError:
+                  continue
+
+              migrated = text.replace(old, new)
+              lines = []
+              for line in migrated.splitlines(keepends=True):
+                  if new in line and "@main" in line:
+                      line = line.replace("@main", "@develop")
+                  lines.append(line)
+              migrated = "".join(lines)
+
+              if migrated != text:
+                  path.write_text(migrated, encoding="utf-8")
+                  changed.append(str(path))
+
+          workflow.unlink()
+
+          remaining: list[str] = []
+          for raw_path in subprocess.check_output(["git", "ls-files", "-z"]).split(b"\0"):
+              if not raw_path:
+                  continue
+              path = Path(raw_path.decode())
+              if path == workflow or not path.is_file():
+                  continue
+              try:
+                  text = path.read_text(encoding="utf-8")
+              except (UnicodeDecodeError, OSError):
+                  continue
+              if old in text:
+                  remaining.append(str(path))
+
+          if remaining:
+              raise SystemExit(f"stale repository slug remains in: {remaining}")
+
+          print(f"Migrated {len(changed)} tracked files")
+          PY
+
+      - name: Commit migration
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "chore: migrate repository references"
+          git push origin HEAD:chore/migrate-all-references
