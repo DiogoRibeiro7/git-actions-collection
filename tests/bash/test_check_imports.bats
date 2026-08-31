@@ -4,7 +4,7 @@ set -euo pipefail
 load "$(dirname "$BATS_TEST_FILENAME")/lib/action_harness.bash"
 
 @test "check-imports missing GITHUB_OUTPUT fails" {
-  GITHUB_OUTPUT="" run_action "$REPO_ROOT/.github/actions/check-imports" paths=src update-pyproject=false
+  RUN_ACTION_UNSET_GITHUB_OUTPUT=true run_action "$REPO_ROOT/.github/actions/check-imports" paths=src update-pyproject=false
   assert_exit_code 1
   [[ "$RUN_ACTION_STDERR" == *"GITHUB_OUTPUT is not set"* ]]
 }

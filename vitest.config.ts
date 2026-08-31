@@ -1,11 +1,11 @@
-const path = require('path');
-const { defineConfig } = require('vitest/config');
+import path from 'node:path';
+import { defineConfig } from 'vitest/config';
 
-module.exports = defineConfig({
+export default defineConfig({
   resolve: {
     alias: {
-      '@actions/core': path.resolve(__dirname, 'tests/__mocks__/@actions/core.ts'),
-      '@actions/github': path.resolve(__dirname, 'tests/__mocks__/@actions/github.ts')
+      '@actions/core': path.resolve(process.cwd(), 'tests/__mocks__/@actions/core.ts'),
+      '@actions/github': path.resolve(process.cwd(), 'tests/__mocks__/@actions/github.ts')
     }
   },
   test: {

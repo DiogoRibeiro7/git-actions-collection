@@ -5,6 +5,9 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   smoke:
     runs-on: ubuntu-latest
@@ -34,9 +37,7 @@ jobs:
             type: helm
 
     steps:
-      # Pin to a specific commit for reproducibility (update occasionally)
       - uses: actions/checkout@v5
-      # ---------- Common tooling ----------
       - name: Install actionlint
         run: |
           set -euo pipefail
@@ -44,7 +45,6 @@ jobs:
           url=$(python - <<'PY'
           import json
           import os
-          import sys
           import urllib.request
 
           api_url = os.environ["API_URL"]
@@ -76,12 +76,10 @@ jobs:
           set -euo pipefail
           dir="examples/${{ matrix.example }}/.github/workflows"
           if [ -d "$dir" ]; then
-            # Lint each file individually so xargs doesn't fail if none exist
             find "$dir" -type f \( -name '*.yml' -o -name '*.yaml' \) \
               -print0 | xargs -0 -r -n1 actionlint -ignore 'context "matrix" is not allowed here'
           fi
 
-      # ---------- Language/toolchain setup (only when needed) ----------
       - name: Setup Python
         if: matrix.type == 'python' || matrix.type == 'monorepo' || matrix.type == 'docker'
         uses: actions/setup-python@v6
@@ -129,14 +127,13 @@ jobs:
             | tar -xz
           sudo mv kubeconform /usr/local/bin/
 
-      # ---------- Per-type checks ----------
       - name: Python tests
         if: matrix.type == 'python'
         run: |
           set -euo pipefail
           cd "examples/${{ matrix.example }}"
           python -m pip install -q pytest pytest-cov
-          pytest
+          python -m pytest
 
       - name: Node check
         if: matrix.type == 'node'
@@ -177,9 +174,7 @@ jobs:
 
       - name: Ensure Docker
         if: matrix.type == 'docker'
-        run: |
-          set -euo pipefail
-          docker --version
+        run: docker --version
 
       - name: Docker app tests
         if: matrix.type == 'docker'
@@ -187,7 +182,7 @@ jobs:
           set -euo pipefail
           cd "examples/${{ matrix.example }}"
           python -m pip install -q pytest pytest-cov
-          pytest
+          python -m pytest
 
       - name: Docker build
         if: matrix.type == 'docker'
@@ -203,7 +198,7 @@ jobs:
           cd examples/monorepo/pkg-a
           python -m pip install -q ruff pytest pytest-cov
           ruff check .
-          pytest
+          python -m pytest
           cd ../web-app
           node --version
           node --test
@@ -231,33 +226,9 @@ jobs:
       - uses: actions/checkout@v5
       - name: Install ripgrep
         run: sudo apt-get update && sudo apt-get install -y ripgrep
-      - name: Ensure workflows use collection
+      - name: Report legacy collection references
         run: |
           set -euo pipefail
-
-          mapfile -t all_files < <(git ls-files \
-            'examples/*/.github/workflows/*.yml' \
-            'examples/*/.github/workflows/*.yaml')
-
-          # Files that contain at least one required 'uses:' line
-          mapfile -t with_ref < <(rg -l \
-            -e 'uses:\s*DiogoRibeiro7/gh-actions-collection/' \
-            "${all_files[@]}" || true)
-
-          # Build a lookup set
-          tmp=$(mktemp)
-          printf '%s\n' "${with_ref[@]}" | sort -u > "$tmp"
-
-          missing=()
-          for f in "${all_files[@]}"; do
-            if ! grep -Fxq "$f" "$tmp"; then
-              missing+=("$f")
-            fi
-          done
-
-          if ((${#missing[@]})); then
-            echo "Missing references in:"
-            printf '%s\n' "${missing[@]}"
-            exit 1
+          if rg -n 'DiogoRibeiro7/gh-actions-collection/' examples; then
+            echo "Legacy repository references remain. They will be migrated in the consumer-reference gate." >&2
           fi
-
