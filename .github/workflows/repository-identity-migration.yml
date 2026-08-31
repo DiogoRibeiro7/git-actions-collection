@@ -6,7 +6,7 @@ on:
       - chore/migrate-all-references
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   migrate:
@@ -17,77 +17,79 @@ jobs:
           ref: chore/migrate-all-references
           fetch-depth: 0
 
-      - name: Canonicalize tracked references
+      - name: Build detached migration commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
         run: |
           python - <<'PY'
           from __future__ import annotations
-
+          import json, os, subprocess, urllib.request
           from pathlib import Path
-          import subprocess
 
           old = "DiogoRibeiro7/" + "gh-actions-collection"
           new = "DiogoRibeiro7/git-actions-collection"
-          workflow = Path(".github/workflows/repository-identity-migration.yml")
+          workflow = ".github/workflows/repository-identity-migration.yml"
+          parent = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          base_tree = subprocess.check_output(["git", "rev-parse", "HEAD^{tree}"], text=True).strip()
+          tracked = [p.decode() for p in subprocess.check_output(["git", "ls-files", "-z"]).split(b"\0") if p]
+          token = os.environ["GH_TOKEN"]
+          repo = os.environ["REPOSITORY"]
 
-          tracked = subprocess.check_output(["git", "ls-files", "-z"]).split(b"\0")
-          changed: list[str] = []
+          def api(path: str, payload: dict) -> dict:
+              req = urllib.request.Request(
+                  f"https://api.github.com/repos/{repo}/{path}",
+                  data=json.dumps(payload).encode(),
+                  headers={
+                      "Authorization": f"Bearer {token}",
+                      "Accept": "application/vnd.github+json",
+                      "X-GitHub-Api-Version": "2022-11-28",
+                      "Content-Type": "application/json",
+                  },
+                  method="POST",
+              )
+              with urllib.request.urlopen(req) as r:
+                  return json.load(r)
 
-          for raw_path in tracked:
-              if not raw_path:
+          entries = []
+          changed = 0
+          for name in tracked:
+              if name == workflow:
                   continue
-              path = Path(raw_path.decode())
-              if path == workflow or not path.is_file():
+              p = Path(name)
+              if not p.is_file():
                   continue
-              data = path.read_bytes()
+              data = p.read_bytes()
               if b"\0" in data:
                   continue
               try:
                   text = data.decode("utf-8")
               except UnicodeDecodeError:
                   continue
-
               migrated = text.replace(old, new)
-              lines = []
-              for line in migrated.splitlines(keepends=True):
-                  if new in line and "@main" in line:
-                      line = line.replace("@main", "@develop")
-                  lines.append(line)
-              migrated = "".join(lines)
-
-              if migrated != text:
-                  path.write_text(migrated, encoding="utf-8")
-                  changed.append(str(path))
-
-          remaining: list[str] = []
-          for raw_path in subprocess.check_output(["git", "ls-files", "-z"]).split(b"\0"):
-              if not raw_path:
+              migrated = "".join(
+                  line.replace("@main", "@develop") if new in line and "@main" in line else line
+                  for line in migrated.splitlines(keepends=True)
+              )
+              if migrated == text:
                   continue
-              path = Path(raw_path.decode())
-              if path == workflow or not path.is_file():
-                  continue
-              try:
-                  text = path.read_text(encoding="utf-8")
-              except (UnicodeDecodeError, OSError):
-                  continue
-              if old in text:
-                  remaining.append(str(path))
+              blob = api("git/blobs", {"content": migrated, "encoding": "utf-8"})
+              entries.append({"path": name, "mode": "100644", "type": "blob", "sha": blob["sha"]})
+              changed += 1
 
-          if remaining:
-              raise SystemExit(f"stale repository slug remains in: {remaining}")
-
-          Path("migration-files.txt").write_text("\n".join(changed) + "\n", encoding="utf-8")
-          print(f"Migrated {len(changed)} tracked files")
+          entries.append({"path": workflow, "mode": "100644", "type": "blob", "sha": None})
+          tree = api("git/trees", {"base_tree": base_tree, "tree": entries})
+          commit = api("git/commits", {
+              "message": "chore: migrate repository references",
+              "tree": tree["sha"],
+              "parents": [parent],
+          })
+          Path("migration-commit.txt").write_text(commit["sha"] + "\n")
+          print(f"Prepared detached commit {commit['sha']} with {changed} migrated files")
           PY
-
-      - name: Build migration archive
-        run: |
-          set -euo pipefail
-          tar -czf migration-output.tar.gz -T migration-files.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: repository-identity-migration
-          path: |
-            migration-output.tar.gz
-            migration-files.txt
+          name: repository-identity-migration-commit
+          path: migration-commit.txt
           if-no-files-found: error
