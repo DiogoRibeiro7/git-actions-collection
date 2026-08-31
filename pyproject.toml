@@ -66,11 +66,11 @@ docs = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/DiogoRibeiro7/gh-actions-collection"
-Documentation = "https://github.com/DiogoRibeiro7/gh-actions-collection#readme"
-Repository = "https://github.com/DiogoRibeiro7/gh-actions-collection"
-"Bug Tracker" = "https://github.com/DiogoRibeiro7/gh-actions-collection/issues"
-Changelog = "https://github.com/DiogoRibeiro7/gh-actions-collection/releases"
+Homepage = "https://github.com/DiogoRibeiro7/git-actions-collection"
+Documentation = "https://github.com/DiogoRibeiro7/git-actions-collection#readme"
+Repository = "https://github.com/DiogoRibeiro7/git-actions-collection"
+"Bug Tracker" = "https://github.com/DiogoRibeiro7/git-actions-collection/issues"
+Changelog = "https://github.com/DiogoRibeiro7/git-actions-collection/releases"
 
 [project.scripts]
 check-imports = "scripts.check_imports_vs_pyproject:main"
@@ -177,30 +177,3 @@ markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
 ]
-
-# Coverage configuration
-[tool.coverage.run]
-source = ["scripts"]
-omit = [
-    "*/tests/*",
-    "*/test_*",
-    "*/__pycache__/*",
-    "*/site-packages/*",
-]
-
-[tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "if self.debug:",
-    "if settings.DEBUG",
-    "raise AssertionError",
-    "raise NotImplementedError",
-    "if 0:",
-    "if __name__ == .__main__.:",
-    "class .*\\bProtocol\\):",
-    "@(abc\\.)?abstractmethod",
-]
-
-[tool.coverage.html]
-directory = "htmlcov"

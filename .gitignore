@@ -1,8 +1,16 @@
 __pycache__/
 .pytest_cache/
+.ruff_cache/
+.mypy_cache/
 .venv/
 node_modules/
+build/
 dist/
+htmlcov/
+coverage.xml
+.coverage
+.coverage.*
+target/
 *.pyc
 *.pyo
 *.env
