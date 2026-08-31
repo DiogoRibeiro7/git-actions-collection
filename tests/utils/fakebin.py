@@ -21,6 +21,16 @@ exec /usr/bin/grep "$@"
     os.chmod(path, 0o755)
 
 
+def _command_body(name: str, body: str) -> str:
+    """Build a fake command body while preserving Python inline evaluation."""
+    if name == "python":
+        return (
+            'if [ "${1:-}" = "-c" ]; then exec /usr/bin/python3 "$@"; fi\n'
+            + body
+        )
+    return body
+
+
 def make_fakebin(tmp_path: Path, commands: dict[str, str]) -> Path:
     """Create deterministic command shims used by composite-action tests."""
     fakebin = tmp_path / "fakebin"
@@ -29,6 +39,9 @@ def make_fakebin(tmp_path: Path, commands: dict[str, str]) -> Path:
         _write_grep_wrapper(fakebin)
     for name, body in commands.items():
         path = fakebin / name
-        path.write_text("#!/usr/bin/env bash\n" + body + "\n", encoding="utf-8")
+        path.write_text(
+            "#!/usr/bin/env bash\n" + _command_body(name, body) + "\n",
+            encoding="utf-8",
+        )
         os.chmod(path, 0o755)
     return fakebin
