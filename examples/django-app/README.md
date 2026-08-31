@@ -2,7 +2,7 @@
 
 This project shows a tiny [Django](https://www.djangoproject.com/) web app.
 It demonstrates PostgreSQL integration and how to reuse workflows from
-[`gh-actions-collection`](../../README.md).
+[`git-actions-collection`](../../README.md).
 
 ## Local development
 
@@ -26,21 +26,21 @@ and builds a container image using reusable workflows.
 ```yaml
 jobs:
   lint:
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/python-lint.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/python-lint.yml@develop
   test:
     needs: lint
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/python-test-matrix.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/python-test-matrix.yml@develop
     with:
       test-command: python manage.py test
   docker:
     needs: test
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/docker-build-push.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/docker-build-push.yml@develop
     with:
       image: ghcr.io/${{ github.repository }}
     secrets: inherit
 ```
 
-Replace `DiogoRibeiro7` with your own GitHub namespace when adopting.
+Until the first stable release is cut, examples use `@develop`. For production adoption, pin an exact commit SHA.
 
 ## Database configuration
 
