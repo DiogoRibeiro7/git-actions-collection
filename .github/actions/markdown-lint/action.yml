@@ -21,7 +21,7 @@ runs:
         node-version: ${{ inputs.node-version }}
     - name: Install markdownlint-cli
       shell: bash
-      run: bash scripts/markdown-lint/run.sh
+      run: bash "${{ github.action_path }}/../../../scripts/markdown-lint/run.sh"
       env:
         INPUT_PATHS: ${{ inputs.paths }}
         INPUT_CONFIG_FILE: ${{ inputs.config-file }}

@@ -27,7 +27,7 @@ runs:
   steps:
     - id: notify
       shell: bash
-      run: bash scripts/apm-integration/notify.sh
+      run: bash "${{ github.action_path }}/../../../scripts/apm-integration/notify.sh"
       env:
         INPUT_PROVIDER: ${{ inputs.provider }}
         INPUT_API_KEY: ${{ inputs.api-key }}

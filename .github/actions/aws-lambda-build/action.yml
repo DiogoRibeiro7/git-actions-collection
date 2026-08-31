@@ -25,7 +25,7 @@ runs:
         python-version: ${{ inputs.python-version }}
     - name: Build lambda package
       shell: bash
-      run: bash scripts/aws-lambda-build/build.sh
+      run: bash "${{ github.action_path }}/../../../scripts/aws-lambda-build/build.sh"
       env:
         INPUT_SRC: ${{ inputs.src }}
         INPUT_OUTPUT_ZIP: ${{ inputs.output-zip }}

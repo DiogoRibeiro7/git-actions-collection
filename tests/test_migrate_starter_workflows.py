@@ -39,15 +39,16 @@ jobs:
       - run: npm test
 """
 
+
 def test_python_migration() -> None:
     migrated = convert(PYTHON_STARTER)
-    assert 'python-test-matrix.yml@main' in migrated
+    assert 'python-test-matrix.yml@develop' in migrated
     assert "python-versions: '[\"3.x\"]'" in migrated
 
 
 def test_node_migration() -> None:
     migrated = convert(NODE_STARTER)
-    assert 'node-ci.yml@main' in migrated
+    assert 'node-ci.yml@develop' in migrated
     assert "node-version: '20'" in migrated
 
 
@@ -67,7 +68,7 @@ jobs:
 
 def test_generate_python_without_version() -> None:
     content = generate({"name": "Python CI", "on": {"push": None}}, "python", "")
-    assert "python-test-matrix.yml@main" in content
+    assert "python-test-matrix.yml@develop" in content
     assert "python-versions" not in content
 
 

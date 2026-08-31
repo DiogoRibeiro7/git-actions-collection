@@ -35,7 +35,7 @@ runs:
         cache: pip
     - id: run
       shell: bash
-      run: bash scripts/actions/smart-dependency-update/run.sh
+      run: bash "${{ github.action_path }}/../../../scripts/actions/smart-dependency-update/run.sh"
       env:
         GITHUB_TOKEN: ${{ inputs.github-token }}
         INPUT_MANIFESTS: ${{ inputs.manifests }}

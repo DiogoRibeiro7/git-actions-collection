@@ -23,13 +23,13 @@ runs:
 
     - name: Install Poetry
       shell: bash
-      run: bash scripts/setup-poetry/install.sh
+      run: bash "${{ github.action_path }}/../../../scripts/setup-poetry/install.sh"
       env:
         INPUT_PIP_VERSION: ${{ inputs.pip-version }}
 
     - name: Configure Poetry cache
       shell: bash
-      run: bash scripts/setup-poetry/configure-cache.sh
+      run: bash "${{ github.action_path }}/../../../scripts/setup-poetry/configure-cache.sh"
 
     - name: Cache Poetry virtualenvs
       uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809
@@ -42,4 +42,4 @@ runs:
     - name: Install dependencies
       if: ${{ inputs.install-deps == 'true' }}
       shell: bash
-      run: bash scripts/setup-poetry/install-deps.sh
+      run: bash "${{ github.action_path }}/../../../scripts/setup-poetry/install-deps.sh"

@@ -24,13 +24,13 @@ runs:
       with:
         python-version: ${{ inputs.python-version }}
     - name: Install dependencies
-      run: bash scripts/benchmark-smoke/install.sh
+      run: bash "${{ github.action_path }}/../../../scripts/benchmark-smoke/install.sh"
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       env:
         INPUT_PIP_VERSION: ${{ inputs.pip-version }}
     - name: Run benchmark
-      run: bash scripts/benchmark-smoke/run.sh
+      run: bash "${{ github.action_path }}/../../../scripts/benchmark-smoke/run.sh"
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       env:

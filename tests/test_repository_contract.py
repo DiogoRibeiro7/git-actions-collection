@@ -6,6 +6,8 @@ from pathlib import Path
 import re
 import subprocess
 
+import yaml
+
 ROOT = Path(__file__).resolve().parents[1]
 CANONICAL_SLUG = "DiogoRibeiro7/git-actions-collection"
 CANONICAL_REPOSITORY_URL = f"github.com/{CANONICAL_SLUG}"
@@ -61,6 +63,21 @@ def test_collection_consumer_refs_do_not_use_stale_main() -> None:
         if pattern.search(text):
             offenders.append(relative)
     assert not offenders, f"canonical collection references still use @main: {offenders}"
+
+
+def test_composite_actions_resolve_bundled_helpers_from_action_path() -> None:
+    """Prevent exported actions from assuming collection helpers exist in the caller workspace."""
+    offenders: list[str] = []
+    for action_file in sorted((ROOT / ".github" / "actions").glob("*/action.yml")):
+        data = yaml.safe_load(action_file.read_text(encoding="utf-8"))
+        for step in data.get("runs", {}).get("steps", []):
+            command = str(step.get("run") or "")
+            uses = str(step.get("uses") or "")
+            if "bash scripts/" in command or command.startswith("scripts/"):
+                offenders.append(f"{action_file.relative_to(ROOT)}: {command}")
+            if uses.startswith("./.github/actions/"):
+                offenders.append(f"{action_file.relative_to(ROOT)}: uses {uses}")
+    assert not offenders, f"composite actions contain caller-relative bundled helpers: {offenders}"
 
 
 def test_pypi_wizard_uses_current_pre_v1_consumer_ref() -> None:
