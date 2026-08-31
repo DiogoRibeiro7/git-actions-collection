@@ -22,22 +22,21 @@ else
 fi
 pip install tomlkit==0.13.3 packaging==24.2 requests==2.32.3
 
-apply_flag=""
+read -r -a manifest_args <<< "$manifests"
+args=(--manifests "${manifest_args[@]}")
 if [ "$apply" = "true" ]; then
-  apply_flag="--apply"
+  args+=(--apply)
 fi
-
-alert_flag=""
+args+=(--batch-size "$batch_size")
 if [ "$dependabot" = "true" ]; then
-  alert_flag="--dependabot"
+  args+=(--dependabot)
 fi
-
-repo_flag=""
 if [ -n "$repo" ]; then
-  repo_flag="--repo $repo"
+  args+=(--repo "$repo")
 fi
 
-report=$(python "$repo_root/scripts/smart_dependency_update.py" --manifests $manifests $apply_flag --batch-size "$batch_size" $alert_flag $repo_flag)
+echo "Running smart dependency update: python $repo_root/scripts/smart_dependency_update.py ${args[*]}"
+report=$(python "$repo_root/scripts/smart_dependency_update.py" "${args[@]}")
 if [ -z "${GITHUB_OUTPUT:-}" ]; then
   echo "GITHUB_OUTPUT is not set" >&2
   exit 1

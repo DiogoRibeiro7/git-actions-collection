@@ -6,8 +6,9 @@ from pathlib import Path
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
-CANONICAL_REPOSITORY = "github.com/DiogoRibeiro7/git-actions-collection"
-STALE_REPOSITORY = "github.com/DiogoRibeiro7/gh-actions-collection"
+CANONICAL_SLUG = "DiogoRibeiro7/git-actions-collection"
+CANONICAL_REPOSITORY_URL = f"github.com/{CANONICAL_SLUG}"
+STALE_SLUG = "DiogoRibeiro7/gh-actions-collection"
 
 
 def _tracked_paths() -> set[str]:
@@ -22,12 +23,15 @@ def _tracked_paths() -> set[str]:
     return {line.strip() for line in completed.stdout.splitlines() if line.strip()}
 
 
-def test_public_metadata_uses_canonical_repository_url() -> None:
-    """Prevent public documentation from drifting back to the old repository slug."""
-    for relative_path in ("README.md", "pyproject.toml"):
-        text = (ROOT / relative_path).read_text(encoding="utf-8")
-        assert STALE_REPOSITORY not in text, f"stale repository URL in {relative_path}"
-        assert CANONICAL_REPOSITORY in text, f"canonical repository URL missing from {relative_path}"
+def test_public_metadata_uses_canonical_repository_identity() -> None:
+    """Keep the public slug and package metadata aligned with the real repository."""
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+
+    assert STALE_SLUG not in readme
+    assert STALE_SLUG not in pyproject
+    assert CANONICAL_SLUG in readme
+    assert CANONICAL_REPOSITORY_URL in pyproject
 
 
 def test_generated_outputs_are_not_tracked() -> None:
