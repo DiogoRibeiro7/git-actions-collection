@@ -49,6 +49,16 @@ def test_migrated_consumer_surfaces_have_no_stale_repository_slug() -> None:
     assert completed.returncode == 1, completed.stdout
 
 
+def test_pypi_wizard_uses_current_pre_v1_consumer_ref() -> None:
+    """Keep generated PyPI workflows on the current pre-v1 integration ref."""
+    wizard = (ROOT / "scripts" / "pypi_trusted_publishing_wizard.py").read_text(encoding="utf-8")
+    expected = (
+        "uses: DiogoRibeiro7/git-actions-collection/"
+        ".github/workflows/publish-to-pypi.yml@develop"
+    )
+    assert expected in wizard
+
+
 def test_generated_outputs_are_not_tracked() -> None:
     """Keep local coverage and compiled build products out of the repository."""
     tracked = _tracked_paths()
