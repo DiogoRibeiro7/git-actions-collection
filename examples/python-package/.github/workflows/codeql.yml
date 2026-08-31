@@ -11,4 +11,4 @@ permissions:
 
 jobs:
   analyze:
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/codeql-analysis.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/codeql-analysis.yml@develop

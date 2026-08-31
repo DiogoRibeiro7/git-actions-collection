@@ -7,7 +7,7 @@ Deploy multiple AWS Lambda functions across runtimes with optional layers, envir
 ```yaml
 jobs:
   deploy:
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/aws-lambda-deploy.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/aws-lambda-deploy.yml@develop
     with:
       aws-role: arn:aws:iam::123456789012:role/GitHubActions
       aws-region: us-east-1

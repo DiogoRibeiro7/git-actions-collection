@@ -6,6 +6,6 @@ name: Node.js CI
   pull_request: null
 jobs:
   ci:
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/node-ci.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/node-ci.yml@develop
     with:
       node-version: '20'

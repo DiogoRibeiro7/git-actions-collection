@@ -5,4 +5,4 @@ on:
 
 jobs:
   lint:
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/conventional-commits.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/conventional-commits.yml@develop

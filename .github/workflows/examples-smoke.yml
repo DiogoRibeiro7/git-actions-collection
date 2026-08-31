@@ -224,14 +224,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - name: Enforce migrated consumer references
+      - name: Enforce repository reference contract
         run: |
           set -euo pipefail
-          if grep -Fn 'DiogoRibeiro7/gh-actions-collection/' examples/*/README.md scripts/pypi_trusted_publishing_wizard.py; then
-            echo "Legacy repository references remain on migrated consumer surfaces." >&2
+          legacy="DiogoRibeiro7/"'gh-actions-collection'
+          canonical="DiogoRibeiro7/"'git-actions-collection'
+          if git grep -n -F "$legacy" -- .; then
+            echo "Legacy repository references are forbidden in tracked content." >&2
             exit 1
           fi
-          if grep -En 'DiogoRibeiro7/git-actions-collection/.+@main' examples/*/README.md scripts/pypi_trusted_publishing_wizard.py; then
-            echo "Migrated consumer surfaces must not use @main until the stable branch is synchronized." >&2
+          if git grep -n -E "${canonical}/.+@main" -- .; then
+            echo "Collection consumer references must not use @main until the stable branch is synchronized." >&2
             exit 1
           fi

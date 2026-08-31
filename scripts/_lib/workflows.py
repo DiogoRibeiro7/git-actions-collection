@@ -9,7 +9,8 @@ import yaml
 CHECKOUT_REF = "08eba0b27e820071cde6df949e0beb9ba4906955"
 SETUP_PYTHON_REF = "a26af69be951a213d495a4c3e4e4022e16d87065"
 SETUP_NODE_REF = "49933ea5288caeca8642d1e84afbd3f7d6820020"
-REPO = "DiogoRibeiro7/gh-actions-collection"
+REPO = "DiogoRibeiro7/git-actions-collection"
+CONSUMER_REF = "develop"
 
 
 def python_workflow(branch: str) -> str:
@@ -87,7 +88,7 @@ def generate_migrated(workflow: Dict[str, Any], language: str, version: str) -> 
         "python": "python-test-matrix.yml",
         "node": "node-ci.yml",
     }[language]
-    job: Dict[str, Any] = {"uses": f"{REPO}/.github/workflows/{uses_path}@main"}
+    job: Dict[str, Any] = {"uses": f"{REPO}/.github/workflows/{uses_path}@{CONSUMER_REF}"}
     if language == "python" and version:
         job["with"] = {"python-versions": f'["{version}"]'}
     if language == "node" and version:

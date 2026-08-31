@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -34,19 +35,32 @@ def test_public_metadata_uses_canonical_repository_identity() -> None:
     assert CANONICAL_REPOSITORY_URL in pyproject
 
 
-def test_migrated_consumer_surfaces_have_no_stale_repository_slug() -> None:
-    """Keep the consumer surfaces migrated in PR #76 on the canonical repository."""
-    paths = [
-        "examples/*/README.md",
-        "scripts/pypi_trusted_publishing_wizard.py",
-    ]
+def test_tracked_content_has_no_stale_repository_slug() -> None:
+    """Prevent the retired repository identity from re-entering tracked content."""
     completed = subprocess.run(
-        ["git", "grep", "-n", "-F", STALE_SLUG, "--", *paths],
+        ["git", "grep", "-n", "-F", STALE_SLUG, "--", "."],
         cwd=ROOT,
         capture_output=True,
         text=True,
     )
     assert completed.returncode == 1, completed.stdout
+
+
+def test_collection_consumer_refs_do_not_use_stale_main() -> None:
+    """Keep collection self-references off main until main is the supported stable surface."""
+    pattern = re.compile(rf"{re.escape(CANONICAL_SLUG)}/.+@main\b")
+    offenders: list[str] = []
+    for relative in sorted(_tracked_paths()):
+        path = ROOT / relative
+        if not path.is_file():
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        if pattern.search(text):
+            offenders.append(relative)
+    assert not offenders, f"canonical collection references still use @main: {offenders}"
 
 
 def test_pypi_wizard_uses_current_pre_v1_consumer_ref() -> None:

@@ -2,6 +2,6 @@ name: Lint Helm Chart
 on: [push]
 jobs:
   lint:
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/helm-chart-lint-test.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/helm-chart-lint-test.yml@develop
     with:
       chart-path: .

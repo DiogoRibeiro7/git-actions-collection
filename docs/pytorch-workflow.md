@@ -31,7 +31,7 @@ on: [push]
 
 jobs:
   train:
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/pytorch-train-deploy.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/pytorch-train-deploy.yml@develop
     with:
       python-version: '3.11'
       deploy: true

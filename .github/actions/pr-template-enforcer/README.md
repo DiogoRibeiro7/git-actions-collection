@@ -6,7 +6,7 @@ Fails the workflow if a pull request description is empty or missing the require
 
 ```yaml
 - name: Enforce PR template
-  uses: DiogoRibeiro7/gh-actions-collection/.github/actions/pr-template-enforcer@main
+  uses: DiogoRibeiro7/git-actions-collection/.github/actions/pr-template-enforcer@develop
 ```
 
 The action checks for the `## Summary` and `## Testing` sections.

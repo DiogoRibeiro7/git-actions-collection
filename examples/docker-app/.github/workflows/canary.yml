@@ -7,7 +7,7 @@ on:
 
 jobs:
   release:
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/canary-release.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/canary-release.yml@develop
     with:
       project-type: docker
       image: ghcr.io/${{ github.repository }}

@@ -7,7 +7,7 @@ on:
 
 jobs:
   publish:
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/pypi-publish.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/pypi-publish.yml@develop
     with:
       build-backend: poetry
       environment: pypi
