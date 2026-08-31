@@ -224,14 +224,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - name: Enforce canonical consumer references
+      - name: Enforce reference migration debt contract
         run: |
           set -euo pipefail
-          if grep -RFn 'DiogoRibeiro7/gh-actions-collection/' examples scripts; then
-            echo "Legacy repository references are forbidden." >&2
+          legacy_repo='DiogoRibeiro7/'"gh-actions-collection"
+          allowlist='tests/fixtures/legacy_repository_reference_paths.txt'
+
+          git grep -l -F "$legacy_repo" -- . \
+            ':!tests/test_repository_contract.py' \
+            ':!tests/fixtures/legacy_repository_reference_paths.txt' \
+            | sort > /tmp/actual-legacy-paths.txt || true
+          grep -vE '^\s*(#|$)' "$allowlist" | sort > /tmp/allowed-legacy-paths.txt
+
+          if ! diff -u /tmp/allowed-legacy-paths.txt /tmp/actual-legacy-paths.txt; then
+            echo "Legacy repository reference debt changed. Migrate references or update the explicit debt manifest." >&2
             exit 1
           fi
+
           if grep -REn 'DiogoRibeiro7/git-actions-collection/.+@main' examples scripts/pypi_trusted_publishing_wizard.py; then
-            echo "Consumer examples must not use @main until the stable branch is synchronized." >&2
+            echo "Canonical consumer examples must not use @main until the stable branch is synchronized." >&2
             exit 1
           fi
