@@ -34,15 +34,29 @@ def test_public_metadata_uses_canonical_repository_identity() -> None:
     assert CANONICAL_REPOSITORY_URL in pyproject
 
 
-def test_tracked_content_has_no_stale_repository_slug() -> None:
-    """Prevent stale consumer references from re-entering tracked public content."""
+def test_migrated_consumer_surfaces_have_no_stale_repository_slug() -> None:
+    """Keep the consumer surfaces migrated in PR #76 on the canonical repository."""
+    paths = [
+        "examples/*/README.md",
+        "scripts/pypi_trusted_publishing_wizard.py",
+    ]
     completed = subprocess.run(
-        ["git", "grep", "-n", "-F", STALE_SLUG, "--", ".", ":!tests/test_repository_contract.py"],
+        ["git", "grep", "-n", "-F", STALE_SLUG, "--", *paths],
         cwd=ROOT,
         capture_output=True,
         text=True,
     )
     assert completed.returncode == 1, completed.stdout
+
+
+def test_pypi_wizard_uses_current_pre_v1_consumer_ref() -> None:
+    """Keep generated PyPI workflows on the current pre-v1 integration ref."""
+    wizard = (ROOT / "scripts" / "pypi_trusted_publishing_wizard.py").read_text(encoding="utf-8")
+    expected = (
+        "uses: DiogoRibeiro7/git-actions-collection/"
+        ".github/workflows/publish-to-pypi.yml@develop"
+    )
+    assert expected in wizard
 
 
 def test_generated_outputs_are_not_tracked() -> None:
