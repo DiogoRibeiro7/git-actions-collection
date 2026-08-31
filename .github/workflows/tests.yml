@@ -41,5 +41,5 @@ jobs:
         with:
           name: coverage
           path: |
-            coverage/**
+            htmlcov/**
             coverage.xml
