@@ -23,6 +23,7 @@ run_action() {
     export GITHUB_WORKSPACE="$temp_dir/workspace"
     mkdir -p "$GITHUB_WORKSPACE"
   fi
+  export GITHUB_ACTION_PATH="$(cd "$action_dir" && pwd)"
 
   if [ "${RUN_ACTION_UNSET_GITHUB_OUTPUT:-false}" = "true" ]; then
     unset GITHUB_OUTPUT
@@ -61,14 +62,21 @@ run_action() {
   local steps
   steps=$(awk '/^[[:space:]]*run: /{sub(/^[[:space:]]*run: /,""); print}' "$action_file")
 
+  local action_path_expr='${{ github.action_path }}'
+  local workspace_expr='${{ github.workspace }}'
   local run_cmd
   local status=0
   while IFS= read -r run_cmd; do
     if [ -z "$run_cmd" ]; then
       continue
     fi
+
+    # Model the caller/action boundary instead of rewriting repo-relative
+    # scripts into this collection. Correct actions must locate bundled
+    # helpers through github.action_path.
+    run_cmd="${run_cmd//$action_path_expr/$GITHUB_ACTION_PATH}"
+    run_cmd="${run_cmd//$workspace_expr/$GITHUB_WORKSPACE}"
     run_cmd=${run_cmd//\"/\\\"}
-    run_cmd=${run_cmd//scripts\//"$REPO_ROOT/scripts/"}
 
     bash -c "cd \"$GITHUB_WORKSPACE\" && $run_cmd" 1>>"$stdout_file" 2>>"$stderr_file" || status=$?
     if [ "$status" -ne 0 ]; then
