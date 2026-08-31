@@ -10,5 +10,7 @@ on:
   pull_request:
 jobs:
   go:
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/go-ci.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/go-ci.yml@develop
 ```
+
+Until the first stable release is cut, examples use `@develop`. For production adoption, pin an exact commit SHA.

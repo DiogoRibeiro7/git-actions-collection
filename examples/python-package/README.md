@@ -1,7 +1,7 @@
 # Python Package Example
 
 This minimal package demonstrates how to reuse workflows from
-[`gh-actions-collection`](../../README.md).
+[`git-actions-collection`](../../README.md).
 
 ## CI via Reusable Workflows
 
@@ -11,13 +11,13 @@ reusable workflows.
 ```yaml
 jobs:
   lint:
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/python-lint.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/python-lint.yml@develop
   test:
     needs: lint
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/coverage-report.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/coverage-report.yml@develop
 ```
 
-Replace `DiogoRibeiro7` with your GitHub organization or username when adopting.
+Until the first stable release is cut, examples use `@develop`. For production adoption, pin an exact commit SHA.
 
 ## Security Scan
 
@@ -26,7 +26,7 @@ The workflow in `.github/workflows/security.yml` runs dependency and static anal
 ```yaml
 jobs:
   scan:
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/security-scan.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/security-scan.yml@develop
     with:
       paths: '.'
       skip-trivy: true
@@ -54,7 +54,7 @@ It defaults to TestPyPI to keep releases safe.
 ```yaml
 jobs:
   publish:
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/pypi-publish.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/pypi-publish.yml@develop
     with:
       build-backend: poetry
       environment: pypi
@@ -79,7 +79,7 @@ No secrets are needed; OIDC handles authentication. Flip `pre-release` to `false
 ```yaml
 jobs:
   release:
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/canary-release.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/canary-release.yml@develop
     with:
       project-type: python
       build-backend: poetry
@@ -92,5 +92,5 @@ jobs:
 ```yaml
 steps:
   - uses: actions/checkout@v4
-  - uses: DiogoRibeiro7/gh-actions-collection/.github/actions/benchmark-smoke@main
+  - uses: DiogoRibeiro7/git-actions-collection/.github/actions/benchmark-smoke@develop
 ```

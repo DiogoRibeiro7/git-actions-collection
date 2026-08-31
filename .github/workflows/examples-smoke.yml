@@ -224,11 +224,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - name: Install ripgrep
-        run: sudo apt-get update && sudo apt-get install -y ripgrep
-      - name: Report legacy collection references
+      - name: Enforce canonical consumer references
         run: |
           set -euo pipefail
-          if rg -n 'DiogoRibeiro7/gh-actions-collection/' examples; then
-            echo "Legacy repository references remain. They will be migrated in the consumer-reference gate." >&2
+          if grep -RFn 'DiogoRibeiro7/gh-actions-collection/' examples scripts; then
+            echo "Legacy repository references are forbidden." >&2
+            exit 1
+          fi
+          if grep -REn 'DiogoRibeiro7/git-actions-collection/.+@main' examples scripts/pypi_trusted_publishing_wizard.py; then
+            echo "Consumer examples must not use @main until the stable branch is synchronized." >&2
+            exit 1
           fi

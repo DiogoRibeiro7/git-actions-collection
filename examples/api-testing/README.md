@@ -13,7 +13,7 @@ name: API Tests
 on: [push]
 jobs:
   api-tests:
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/api-testing.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/api-testing.yml@develop
     with:
       openapi-spec: openapi.yaml
       contract-path: postman-collection.json
@@ -21,3 +21,5 @@ jobs:
       load-script: k6-script.js
       run-zap: false
 ```
+
+Until the first stable release is cut, examples use `@develop`. For production adoption, pin an exact commit SHA.

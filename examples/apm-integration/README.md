@@ -6,12 +6,14 @@ Demonstrates notifying Datadog after a deployment.
 
 ```yaml
 - name: APM notify
-  uses: DiogoRibeiro7/gh-actions-collection/.github/actions/apm-integration@main
+  uses: DiogoRibeiro7/git-actions-collection/.github/actions/apm-integration@develop
   with:
     provider: datadog
     api-key: ${{ secrets.DD_API_KEY }}
     environment: demo
 ```
+
+Until the first stable release is cut, examples use `@develop`. For production adoption, pin an exact commit SHA.
 
 ## Setup
 
