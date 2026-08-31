@@ -24,8 +24,12 @@ run_action() {
     mkdir -p "$GITHUB_WORKSPACE"
   fi
 
-  export GITHUB_OUTPUT="$temp_dir/github_output"
-  : > "$GITHUB_OUTPUT"
+  if [ "${RUN_ACTION_UNSET_GITHUB_OUTPUT:-false}" = "true" ]; then
+    unset GITHUB_OUTPUT
+  else
+    export GITHUB_OUTPUT="$temp_dir/github_output"
+    : > "$GITHUB_OUTPUT"
+  fi
 
   export FAKEBIN_LOG="$temp_dir/fakebin.log"
   : > "$FAKEBIN_LOG"
@@ -47,6 +51,8 @@ run_action() {
 
   local stdout_file="$temp_dir/stdout"
   local stderr_file="$temp_dir/stderr"
+  : > "$stdout_file"
+  : > "$stderr_file"
 
   local steps
   steps=$(awk '/^[[:space:]]*run: /{sub(/^[[:space:]]*run: /,""); print}' "$action_file")
@@ -60,7 +66,9 @@ run_action() {
     run_cmd=${run_cmd//\"/\\\"}
     run_cmd=${run_cmd//scripts\//"$REPO_ROOT/scripts/"}
 
-    bash -lc "cd \"$GITHUB_WORKSPACE\" && $run_cmd" 1>>"$stdout_file" 2>>"$stderr_file" || status=$?
+    # Do not use a login shell here: it can replace PATH and bypass the fake
+    # command shims used to test composite actions deterministically.
+    bash -c "cd \"$GITHUB_WORKSPACE\" && $run_cmd" 1>>"$stdout_file" 2>>"$stderr_file" || status=$?
     if [ "$status" -ne 0 ]; then
       break
     fi
@@ -85,6 +93,10 @@ assert_output_pair() {
   local key="$1"
   local expected="$2"
   local line
+  if [ -z "${GITHUB_OUTPUT:-}" ]; then
+    echo "GITHUB_OUTPUT is not available" >&2
+    return 1
+  fi
   line=$(grep -E "^${key}=" "$GITHUB_OUTPUT" | head -n1 | cut -d= -f2- || true)
   if [ "$line" != "$expected" ]; then
     echo "expected output $key=$expected, got $key=$line" >&2

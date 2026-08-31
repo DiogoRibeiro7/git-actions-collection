@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "commonjs",
   "scripts": {
-    "test": "node scripts/run-tests.mjs",
+    "test": "vitest run",
     "test:py": "pytest -q",
     "test:bash": "bats tests/bash",
     "lint": "eslint . --ext .ts",

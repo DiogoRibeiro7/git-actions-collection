@@ -286,7 +286,7 @@ EOF
 @test "setup-yarn install skips when no lockfile" {
   make_fake yarn 'echo "yarn $@" >> "$COMMAND_LOG"'
 
-  run INPUT_WORKING_DIRECTORY="$TEST_TMPDIR" bash "$REPO_ROOT/scripts/setup-yarn/install.sh"
+  run env INPUT_WORKING_DIRECTORY="$TEST_TMPDIR" bash "$REPO_ROOT/scripts/setup-yarn/install.sh"
 
   [ "$status" -eq 0 ]
   [[ "$output" == *"No yarn.lock found"* ]]
