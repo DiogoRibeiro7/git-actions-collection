@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CANONICAL_SLUG = "DiogoRibeiro7/git-actions-collection"
 CANONICAL_REPOSITORY_URL = f"github.com/{CANONICAL_SLUG}"
 STALE_SLUG = "DiogoRibeiro7/" + "gh-actions-collection"
+LEGACY_REFERENCE_ALLOWLIST = ROOT / "tests" / "fixtures" / "legacy_repository_reference_paths.txt"
 
 
 def _tracked_paths() -> set[str]:
@@ -23,6 +24,28 @@ def _tracked_paths() -> set[str]:
     return {line.strip() for line in completed.stdout.splitlines() if line.strip()}
 
 
+def _stale_reference_paths() -> set[str]:
+    """Return tracked paths that still contain the legacy repository slug."""
+    completed = subprocess.run(
+        [
+            "git",
+            "grep",
+            "-l",
+            "-F",
+            STALE_SLUG,
+            "--",
+            ".",
+            ":!tests/test_repository_contract.py",
+            ":!tests/fixtures/legacy_repository_reference_paths.txt",
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode in {0, 1}, completed.stderr
+    return {line.strip() for line in completed.stdout.splitlines() if line.strip()}
+
+
 def test_public_metadata_uses_canonical_repository_identity() -> None:
     """Keep the public slug and package metadata aligned with the real repository."""
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
@@ -34,15 +57,23 @@ def test_public_metadata_uses_canonical_repository_identity() -> None:
     assert CANONICAL_REPOSITORY_URL in pyproject
 
 
-def test_tracked_content_has_no_stale_repository_slug() -> None:
-    """Prevent stale consumer references from re-entering tracked public content."""
-    completed = subprocess.run(
-        ["git", "grep", "-n", "-F", STALE_SLUG, "--", ".", ":!tests/test_repository_contract.py"],
-        cwd=ROOT,
-        capture_output=True,
-        text=True,
+def test_legacy_repository_reference_debt_is_explicit() -> None:
+    """Forbid new stale references and require the migration debt manifest to stay exact."""
+    allowed = {
+        line.strip()
+        for line in LEGACY_REFERENCE_ALLOWLIST.read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    }
+    actual = _stale_reference_paths()
+
+    unexpected = actual - allowed
+    resolved_but_allowlisted = allowed - actual
+
+    assert not unexpected, f"untracked legacy repository references: {sorted(unexpected)}"
+    assert not resolved_but_allowlisted, (
+        "remove migrated paths from legacy reference allowlist: "
+        f"{sorted(resolved_but_allowlisted)}"
     )
-    assert completed.returncode == 1, completed.stdout
 
 
 def test_generated_outputs_are_not_tracked() -> None:
