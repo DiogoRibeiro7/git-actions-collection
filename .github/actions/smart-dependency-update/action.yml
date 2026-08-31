@@ -40,7 +40,7 @@ runs:
         GITHUB_TOKEN: ${{ inputs.github-token }}
         INPUT_MANIFESTS: ${{ inputs.manifests }}
         INPUT_APPLY: ${{ inputs.apply }}
-        INPUT_BATCH_SIZE: ${{ inputs['batch-size'] }}
+        INPUT_BATCH_SIZE: ${{ inputs.batch-size }}
         INPUT_DEPENDABOT: ${{ inputs.dependabot }}
         INPUT_REPO: ${{ inputs.repo }}
         INPUT_PIP_VERSION: ${{ inputs.pip-version }}

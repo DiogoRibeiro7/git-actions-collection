@@ -14,18 +14,18 @@ export default defineConfig({
     restoreMocks: true,
     clearMocks: true,
     mockReset: true,
-    include: ['tests/**/*.test.ts']
-  },
-  coverage: {
-    reporter: ['text', 'lcov'],
-    reportsDirectory: 'coverage',
     include: ['tests/**/*.test.ts'],
-    exclude: ['**/node_modules/**', '**/dist/**'],
-    thresholds: {
-      lines: 70,
-      functions: 70,
-      statements: 70,
-      branches: 70
+    coverage: {
+      reporter: ['text', 'lcov'],
+      reportsDirectory: 'coverage',
+      include: ['tests/**/*.test.ts'],
+      exclude: ['**/node_modules/**', '**/dist/**'],
+      thresholds: {
+        lines: 70,
+        functions: 70,
+        statements: 70,
+        branches: 70
+      }
     }
   }
 });

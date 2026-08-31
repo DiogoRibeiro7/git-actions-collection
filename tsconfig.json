@@ -8,6 +8,11 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "types": ["node", "vitest/globals"],
+    "baseUrl": ".",
+    "paths": {
+      "@actions/core": ["tests/__mocks__/@actions/core.ts"],
+      "@actions/github": ["tests/__mocks__/@actions/github.ts"]
+    },
     "outDir": "dist"
   },
   "include": ["tests/**/*.ts", "vitest.config.ts"]
