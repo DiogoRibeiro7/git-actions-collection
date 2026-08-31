@@ -34,10 +34,14 @@ def test_public_metadata_uses_canonical_repository_identity() -> None:
     assert CANONICAL_REPOSITORY_URL in pyproject
 
 
-def test_tracked_content_has_no_stale_repository_slug() -> None:
-    """Prevent stale consumer references from re-entering tracked public content."""
+def test_migrated_consumer_surfaces_have_no_stale_repository_slug() -> None:
+    """Keep the consumer surfaces migrated in PR #76 on the canonical repository."""
+    paths = [
+        "examples/*/README.md",
+        "scripts/pypi_trusted_publishing_wizard.py",
+    ]
     completed = subprocess.run(
-        ["git", "grep", "-n", "-F", STALE_SLUG, "--", ".", ":!tests/test_repository_contract.py"],
+        ["git", "grep", "-n", "-F", STALE_SLUG, "--", *paths],
         cwd=ROOT,
         capture_output=True,
         text=True,
