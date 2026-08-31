@@ -10,5 +10,5 @@ Fails the job if any secrets are detected.
 ```yaml
 steps:
   - uses: actions/checkout@v4
-  - uses: DiogoRibeiro7/gh-actions-collection/.github/actions/secret-scan@main
+  - uses: DiogoRibeiro7/git-actions-collection/.github/actions/secret-scan@develop
 ```

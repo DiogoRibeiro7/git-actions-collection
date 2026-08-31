@@ -33,7 +33,7 @@ permissions:
 jobs:
   python:
     if: inputs.project-type == 'python' && (github.ref == 'refs/heads/develop' || contains(github.ref_name, '-rc'))
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/pypi-publish.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/pypi-publish.yml@develop
     with:
       build-backend: ${{ inputs.build-backend }}
       environment: testpypi
@@ -42,7 +42,7 @@ jobs:
 
   npm:
     if: inputs.project-type == 'npm' && (github.ref == 'refs/heads/develop' || contains(github.ref_name, '-rc'))
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/npm-publish.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/npm-publish.yml@develop
     with:
       working-directory: ${{ inputs.working-directory }}
       tag: next
@@ -51,7 +51,7 @@ jobs:
 
   docker:
     if: inputs.project-type == 'docker' && (github.ref == 'refs/heads/develop' || contains(github.ref_name, '-rc'))
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/docker-build-push.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/docker-build-push.yml@develop
     with:
       image: ${{ inputs.image != '' && inputs.image || format('ghcr.io/{0}', github.repository) }}
       context: ${{ inputs.working-directory }}

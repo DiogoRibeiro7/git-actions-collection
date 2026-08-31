@@ -22,7 +22,7 @@ Batch-update dependencies across multiple languages with conflict detection and 
 ## Usage
 
 ```yaml
-- uses: DiogoRibeiro7/gh-actions-collection/.github/actions/smart-dependency-update@main
+- uses: DiogoRibeiro7/git-actions-collection/.github/actions/smart-dependency-update@develop
   with:
     manifests: "package.json pyproject.toml"
     apply: "true"

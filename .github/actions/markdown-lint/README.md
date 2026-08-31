@@ -20,13 +20,13 @@ None
 ### Basic
 
 ```yaml
-- uses: DiogoRibeiro7/gh-actions-collection/.github/actions/markdown-lint@main
+- uses: DiogoRibeiro7/git-actions-collection/.github/actions/markdown-lint@develop
 ```
 
 ### Custom configuration and paths
 
 ```yaml
-- uses: DiogoRibeiro7/gh-actions-collection/.github/actions/markdown-lint@main
+- uses: DiogoRibeiro7/git-actions-collection/.github/actions/markdown-lint@develop
   with:
     paths: |
       README.md
@@ -57,7 +57,7 @@ jobs:
             ${{ runner.os }}-markdownlint-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-markdownlint-
-      - uses: DiogoRibeiro7/gh-actions-collection/.github/actions/markdown-lint@main
+      - uses: DiogoRibeiro7/git-actions-collection/.github/actions/markdown-lint@develop
         with:
           config-file: .markdownlint.yml
           paths: docs/
@@ -97,7 +97,7 @@ jobs:
 
 ```yaml
 - uses: DavidAnson/markdownlint-cli2-action@v15
-+ uses: DiogoRibeiro7/gh-actions-collection/.github/actions/markdown-lint@main
++ uses: DiogoRibeiro7/git-actions-collection/.github/actions/markdown-lint@develop
 ```
 
 ### From `github/super-linter`
@@ -106,7 +106,7 @@ Replace the Markdown section of Super Linter with this action for faster,
 focused linting:
 
 ```yaml
-- uses: DiogoRibeiro7/gh-actions-collection/.github/actions/markdown-lint@main
+- uses: DiogoRibeiro7/git-actions-collection/.github/actions/markdown-lint@develop
   with:
     paths: docs/
 ```

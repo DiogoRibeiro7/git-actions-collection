@@ -7,7 +7,7 @@ on:
 
 jobs:
   publish:
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/publish-docker-on-tag.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/publish-docker-on-tag.yml@develop
     with:
       image: ghcr.io/${{ format('{0}', github.repository) }}
       platforms: linux/amd64,linux/arm64

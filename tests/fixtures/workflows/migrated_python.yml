@@ -6,6 +6,6 @@ name: Python package
 
 jobs:
   ci:
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/python-test-matrix.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/python-test-matrix.yml@develop
     with:
       python-versions: '["3.x"]'

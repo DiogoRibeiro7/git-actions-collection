@@ -7,6 +7,6 @@ on:
 
 jobs:
   publish:
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/npm-publish.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/npm-publish.yml@develop
     secrets:
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
