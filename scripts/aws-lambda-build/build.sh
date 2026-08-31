@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-src="${INPUT_SRC:-lambda/}"
-output_zip="${INPUT_OUTPUT_ZIP:-artifact/lambda.zip}"
+# Defaults belong to action.yml. Using `${VAR-}` here preserves an explicitly
+# empty input so validation can reject it instead of silently replacing it.
+src="${INPUT_SRC-}"
+output_zip="${INPUT_OUTPUT_ZIP-}"
 pip_version="${INPUT_PIP_VERSION:-24.3.1}"
 
 if [ -z "$src" ]; then
