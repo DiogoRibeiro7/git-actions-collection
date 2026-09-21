@@ -9,7 +9,7 @@ name: CI
 on: [push]
 jobs:
   test:
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/api-testing.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/api-testing.yml@develop
     with:
       openapi-spec: openapi.yaml
       contract-path: postman-collection.json

@@ -10,6 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
-      - uses: DiogoRibeiro7/gh-actions-collection/.github/actions/setup-yarn@main
+      - uses: DiogoRibeiro7/git-actions-collection/.github/actions/setup-yarn@develop
       - run: yarn lint
       - run: yarn test

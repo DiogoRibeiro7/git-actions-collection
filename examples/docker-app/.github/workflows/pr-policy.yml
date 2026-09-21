@@ -5,4 +5,4 @@ on:
 
 jobs:
   policy:
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/pr-policy.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/pr-policy.yml@develop

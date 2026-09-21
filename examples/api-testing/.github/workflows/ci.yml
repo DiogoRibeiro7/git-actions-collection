@@ -3,12 +3,12 @@ on: [push]
 
 jobs:
   build:
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/node-ci.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/node-ci.yml@develop
     with:
       node-version: '20'
   api-tests:
     needs: build
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/api-testing.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/api-testing.yml@develop
     with:
       openapi-spec: openapi.yaml
       contract-path: postman-collection.json

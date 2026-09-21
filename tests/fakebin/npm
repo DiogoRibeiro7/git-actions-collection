@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "npm $@" >> "${FAKEBIN_LOG:?}"
+if [ "${FAKEBIN_FAIL_NPM:-}" = "1" ]; then exit 1; fi

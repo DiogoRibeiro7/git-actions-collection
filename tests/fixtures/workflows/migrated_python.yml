@@ -1,0 +1,11 @@
+name: Python package
+"on":
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ci:
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/python-test-matrix.yml@develop
+    with:
+      python-versions: '["3.x"]'

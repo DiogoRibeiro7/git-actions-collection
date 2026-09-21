@@ -13,7 +13,7 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
-The image will be published to `ghcr.io/diogoribeiro7/gh-actions-collection` for both `linux/amd64`
+The image will be published to `ghcr.io/diogoribeiro7/git-actions-collection` for both `linux/amd64`
 and `linux/arm64` platforms.
 
 ## Canary Release
@@ -23,8 +23,10 @@ Use `.github/workflows/canary.yml` to build an image tagged `:rc` when pushing t
 ```yaml
 jobs:
   release:
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/canary-release.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/canary-release.yml@develop
     with:
       project-type: docker
       image: ghcr.io/${{ github.repository }}
 ```
+
+Until the first stable release is cut, examples use `@develop`. For production adoption, pin an exact commit SHA.

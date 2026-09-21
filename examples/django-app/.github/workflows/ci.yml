@@ -7,18 +7,18 @@ on:
 
 jobs:
   lint:
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/python-lint.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/python-lint.yml@develop
 
   test:
     needs: lint
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/python-test-matrix.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/python-test-matrix.yml@develop
     with:
       python-versions: '["3.11","3.12"]'
       test-command: python manage.py test
 
   docker:
     needs: test
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/docker-build-push.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/docker-build-push.yml@develop
     with:
       image: ghcr.io/${{ github.repository }}
     secrets: inherit

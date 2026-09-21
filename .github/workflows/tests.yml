@@ -1,0 +1,47 @@
+name: Unit Tests
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: yarn
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Enable Corepack
+        run: corepack enable
+      - name: Install Node dependencies
+        run: yarn install --frozen-lockfile
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e '.[dev]'
+      - name: Yarn lint
+        run: yarn lint
+      - name: Yarn typecheck
+        run: yarn typecheck
+      - name: Vitest
+        run: yarn test
+      - name: Pytest
+        run: python -m pytest -q
+      - name: Upload coverage artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: |
+            htmlcov/**
+            coverage.xml

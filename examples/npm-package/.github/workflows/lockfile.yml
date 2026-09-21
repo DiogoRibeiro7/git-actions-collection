@@ -8,4 +8,4 @@ on:
 
 jobs:
   check:
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/lockfile-consistency.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/lockfile-consistency.yml@develop

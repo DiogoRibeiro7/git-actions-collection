@@ -2,6 +2,6 @@ name: Lint K8s Manifests
 on: [push]
 jobs:
   lint:
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/k8s-manifests-lint.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/k8s-manifests-lint.yml@develop
     with:
       paths: .

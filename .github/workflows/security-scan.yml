@@ -17,6 +17,21 @@ on:
         required: false
         type: string
         default: '24.3.1'
+      skip-npm-signatures:
+        description: 'Skip npm package signature verification'
+        required: false
+        type: boolean
+        default: false
+      skip-java-verify:
+        description: 'Skip Maven/Gradle dependency verification'
+        required: false
+        type: boolean
+        default: false
+      skip-go-verify:
+        description: 'Skip Go module verification'
+        required: false
+        type: boolean
+        default: false
 permissions:
   contents: read
   security-events: write
@@ -30,18 +45,18 @@ jobs:
       TRIVY_CACHE_DIR: ~/.cache/trivy
     steps:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+      - uses: actions/setup-python@cfd55ca82492758d853442341ad4d8010466803a
         with:
           python-version: '3.12'
           cache: pip
       - name: Cache pip-audit DB
-        uses: actions/cache@638ed79f9dc94c1de1baef91bcab5edaa19451f4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
           path: ${{ env.PIP_AUDIT_CACHE_DIR }}
           key: pip-audit-${{ runner.os }}-${{ hashFiles('**/requirements.txt') }}
       - name: Cache Trivy DB
         if: ${{ inputs['skip-trivy'] == false }}
-        uses: actions/cache@638ed79f9dc94c1de1baef91bcab5edaa19451f4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
           path: ${{ env.TRIVY_CACHE_DIR }}
           key: trivy-${{ runner.os }}
@@ -72,39 +87,39 @@ jobs:
           exit-code: '1'
           path: ${{ inputs.paths }}
       - name: Set up Node (if needed)
-        if: hashFiles('package-lock.json') != ''
+        if: hashFiles('package-lock.json') != '' && inputs['skip-npm-signatures'] == false
         uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903
         with:
           node-version: '20'
           cache: npm
       - name: Verify npm signatures
-        if: hashFiles('package-lock.json') != ''
+        if: hashFiles('package-lock.json') != '' && inputs['skip-npm-signatures'] == false
         run: |
           set -euo pipefail
           npm audit signatures
       - name: Set up Java (if needed)
-        if: hashFiles('pom.xml') != '' || hashFiles('build.gradle') != '' || hashFiles('build.gradle.kts') != ''
+        if: (hashFiles('pom.xml') != '' || hashFiles('build.gradle') != '' || hashFiles('build.gradle.kts') != '') && inputs['skip-java-verify'] == false
         uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165
         with:
           distribution: temurin
           java-version: '17'
       - name: Verify Maven dependencies
-        if: hashFiles('pom.xml') != ''
+        if: hashFiles('pom.xml') != '' && inputs['skip-java-verify'] == false
         run: |
           set -euo pipefail
           mvn -B -q -e -DskipTests verify
       - name: Verify Gradle dependencies
-        if: hashFiles('build.gradle') != '' || hashFiles('build.gradle.kts') != ''
+        if: (hashFiles('build.gradle') != '' || hashFiles('build.gradle.kts') != '') && inputs['skip-java-verify'] == false
         run: |
           set -euo pipefail
           ./gradlew --no-daemon --write-verification-metadata sha256
       - name: Set up Go (if needed)
-        if: hashFiles('go.sum') != ''
+        if: hashFiles('go.sum') != '' && inputs['skip-go-verify'] == false
         uses: actions/setup-go@1d76b952eb9246b03e20e15a9ef98c6d4af389ef
         with:
           go-version: '1.22'
       - name: Verify Go modules
-        if: hashFiles('go.sum') != ''
+        if: hashFiles('go.sum') != '' && inputs['skip-go-verify'] == false
         run: |
           set -euo pipefail
           go mod verify
@@ -123,7 +138,7 @@ jobs:
         if: ${{ always() }}
         id: slsa
         continue-on-error: true
-        uses: actions/attest-build-provenance@0b6e9809265278d02c58acf52849a95818a5a306
+        uses: actions/attest-build-provenance@ca0aaa1889e301c8331fbdb338d9475431b75b13
         with:
           subject-path: |
             pip-audit.sarif
@@ -134,7 +149,7 @@ jobs:
             audit.log
       - name: Upload artifacts
         if: ${{ always() }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
         with:
           name: security-reports
           path: |
@@ -147,7 +162,7 @@ jobs:
           if-no-files-found: ignore
       - name: Upload SLSA bundle
         if: ${{ steps.slsa.outputs.bundle-path != '' && always() }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
         with:
           name: security-attestation
           path: ${{ steps.slsa.outputs.bundle-path }}

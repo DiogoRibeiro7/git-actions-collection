@@ -5,4 +5,4 @@ on:
 
 jobs:
   go:
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/go-ci.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/go-ci.yml@develop

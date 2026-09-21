@@ -17,7 +17,7 @@ None
 ## Example
 
 ```yaml
-- uses: DiogoRibeiro7/gh-actions-collection/.github/actions/aws-lambda-build@main
+- uses: DiogoRibeiro7/git-actions-collection/.github/actions/aws-lambda-build@develop
   with:
     src: lambda
     output-zip: artifact/lambda.zip

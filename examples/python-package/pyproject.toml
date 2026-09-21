@@ -14,3 +14,7 @@ from = "src"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+addopts = "-q --cov=demo --cov-report=term-missing --cov-fail-under=70"
+testpaths = ["tests"]

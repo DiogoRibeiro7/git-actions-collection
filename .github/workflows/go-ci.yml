@@ -23,6 +23,6 @@ jobs:
       - name: Run tests
         run: go test ./...
       - name: GolangCI-Lint
-        uses: golangci/golangci-lint-action@d6238b002a20823d52840fda27e2d4891c5952dc
+        uses: golangci/golangci-lint-action@e7fa5ac41e1cf5b7d48e45e42232ce7ada589601
         with:
           version: latest

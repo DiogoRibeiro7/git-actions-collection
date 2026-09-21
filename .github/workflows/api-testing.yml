@@ -119,7 +119,7 @@ jobs:
     steps:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
       - name: OWASP ZAP API scan
-        uses: zaproxy/action-api-scan@411cbe8fc59d9966a77d61b50daf6c49b6763605
+        uses: zaproxy/action-api-scan@5158fe4d9d8fcc75ea204db81317cce7f9e5453d
         with:
           api-url: ${{ inputs.base-url }}
           format: openapi

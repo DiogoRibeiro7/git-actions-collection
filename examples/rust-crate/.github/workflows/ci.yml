@@ -5,4 +5,4 @@ on:
 
 jobs:
   rust:
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/rust-ci.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/rust-ci.yml@develop

@@ -16,7 +16,7 @@ None
 ## Example
 
 ```yaml
-- uses: DiogoRibeiro7/gh-actions-collection/.github/actions/python-lint@main
+- uses: DiogoRibeiro7/git-actions-collection/.github/actions/python-lint@develop
   with:
     python-version: '3.12'
     enable-mypy: true

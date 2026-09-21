@@ -18,7 +18,7 @@ concurrency:
 jobs:
   publish:
     # Reuse the workflow from your actions repository
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/publish-docker-on-tag.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/publish-docker-on-tag.yml@develop
     with:
       # Suggestion: use the GHCR image name based on this repository
       # (you can replace with 'ghcr.io/DiogoRibeiro7/your-image' if you prefer a fixed name)

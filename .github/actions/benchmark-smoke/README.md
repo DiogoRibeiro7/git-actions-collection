@@ -11,5 +11,5 @@ Runs [pytest-benchmark](https://pytest-benchmark.readthedocs.io/) and uploads th
 ```yaml
 steps:
   - uses: actions/checkout@v4
-  - uses: DiogoRibeiro7/gh-actions-collection/.github/actions/benchmark-smoke@main
+  - uses: DiogoRibeiro7/git-actions-collection/.github/actions/benchmark-smoke@develop
 ```

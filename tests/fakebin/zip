@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "zip $@" >> "${FAKEBIN_LOG:?}"
+if [ "${FAKEBIN_FAIL_ZIP:-}" = "1" ]; then exit 1; fi
+last=${@: -1}; mkdir -p "$(dirname "$last")"; touch "$last"

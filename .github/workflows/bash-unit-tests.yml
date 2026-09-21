@@ -1,0 +1,21 @@
+name: Bash Unit Tests
+on:
+  pull_request:
+    paths:
+      - 'scripts/**'
+      - 'tests/bash/**'
+      - '.github/actions/**/action.yml'
+      - '.github/workflows/bash-unit-tests.yml'
+  workflow_dispatch:
+
+jobs:
+  bats:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install bats-core
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bats
+      - name: Run bats
+        run: bats tests/bash

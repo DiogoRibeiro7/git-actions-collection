@@ -9,4 +9,4 @@ permissions:
 
 jobs:
   review:
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/dependency-review.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/dependency-review.yml@develop

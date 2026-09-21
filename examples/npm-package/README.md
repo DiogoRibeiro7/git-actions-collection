@@ -11,7 +11,7 @@ jobs:
   lint-test:
     steps:
       - uses: actions/checkout@v4
-      - uses: DiogoRibeiro7/gh-actions-collection/.github/actions/setup-yarn@main
+      - uses: DiogoRibeiro7/git-actions-collection/.github/actions/setup-yarn@develop
       - run: yarn lint
       - run: yarn test
 ```
@@ -35,9 +35,11 @@ Use `.github/workflows/canary.yml` to publish pre-release packages under the `ne
 ```yaml
 jobs:
   release:
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/canary-release.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/canary-release.yml@develop
     with:
       project-type: npm
     secrets:
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 ```
+
+Until the first stable release is cut, examples use `@develop`. For production adoption, pin an exact commit SHA.

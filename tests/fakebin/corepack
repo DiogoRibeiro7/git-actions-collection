@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "corepack $@" >> "${FAKEBIN_LOG:?}"
+if [ "${FAKEBIN_FAIL_COREPACK:-}" = "1" ]; then exit 1; fi

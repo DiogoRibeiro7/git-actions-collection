@@ -11,6 +11,6 @@ permissions:
 
 jobs:
   plan:
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/terraform-plan-comment.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/terraform-plan-comment.yml@develop
     with:
       working-directory: .

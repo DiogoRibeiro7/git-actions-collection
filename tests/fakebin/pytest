@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "pytest $@" >> "${FAKEBIN_LOG:?}"
+if [ "${FAKEBIN_FAIL_PYTEST:-}" = "1" ]; then
+  exit 2
+fi

@@ -11,9 +11,10 @@ WORKFLOW_TEMPLATE = """name: Publish to PyPI
 on:
   release:
     types: [published]
+# Pre-v1 note: publish-to-pypi.yml@main is intentionally unsupported; pin an exact SHA for production.
 jobs:
   publish:
-    uses: DiogoRibeiro7/gh-actions-collection/.github/workflows/publish-to-pypi.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/publish-to-pypi.yml@develop
     with:
       python-version: '3.12'
 """
