@@ -46,7 +46,7 @@ name: Python package
 on: [push]
 jobs:
   ci:
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/python-test-matrix.yml@develop
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/python-test-matrix.yml@main
     with:
       python-versions: '["3.x"]'
 ```
@@ -81,7 +81,7 @@ on:
     branches: [ main ]
 jobs:
   ci:
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/node-ci.yml@develop
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/node-ci.yml@main
     with:
       node-version: '20'
 ```
