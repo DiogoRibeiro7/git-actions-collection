@@ -1,16 +1,9 @@
 name: R Lint
 
 on:
-  push:
-    paths:
-      - '**/*.R'
-      - '**/*.Rmd'
-      - '**/.lintr'
-      - '.lintr'
-      - '.github/actions/r-lint/**'
-      - '.github/actions/setup-r/**'
-      - '.github/workflows/r-lint.yml'
   pull_request:
+    branches:
+      - main
     paths:
       - '**/*.R'
       - '**/*.Rmd'
@@ -20,6 +13,10 @@ on:
       - '.github/actions/setup-r/**'
       - '.github/workflows/r-lint.yml'
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
