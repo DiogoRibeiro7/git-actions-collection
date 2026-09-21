@@ -21,7 +21,7 @@ None
 ## Example
 
 ```yaml
-- uses: DiogoRibeiro7/git-actions-collection/.github/actions/check-imports@develop
+- uses: DiogoRibeiro7/git-actions-collection/.github/actions/check-imports@main
   with:
     paths: "src tests"
     update-pyproject: true

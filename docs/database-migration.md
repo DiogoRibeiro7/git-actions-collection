@@ -7,7 +7,7 @@ Run database schema migrations across environments with automatic rollback and h
 ```yaml
 jobs:
   migrate:
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/database-migration.yml@develop
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/database-migration.yml@main
     with:
       tool: flyway # or liquibase, alembic
       migration-dir: migrations

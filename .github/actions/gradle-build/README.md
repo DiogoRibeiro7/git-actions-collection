@@ -18,7 +18,7 @@ None
 ## Example
 
 ```yaml
-- uses: DiogoRibeiro7/git-actions-collection/.github/actions/gradle-build@develop
+- uses: DiogoRibeiro7/git-actions-collection/.github/actions/gradle-build@main
   with:
     java-version: '17'
     tasks: build test

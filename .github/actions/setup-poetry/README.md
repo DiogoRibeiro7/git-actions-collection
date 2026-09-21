@@ -16,7 +16,7 @@ None
 ## Example
 
 ```yaml
-- uses: DiogoRibeiro7/git-actions-collection/.github/actions/setup-poetry@develop
+- uses: DiogoRibeiro7/git-actions-collection/.github/actions/setup-poetry@main
   with:
     python-version: '3.12'
     install-deps: true

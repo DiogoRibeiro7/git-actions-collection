@@ -7,7 +7,7 @@ Deploy a Next.js application to Vercel using the official CLI with retry logic f
 ```yaml
 jobs:
   deploy:
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/vercel-nextjs.yml@develop
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/vercel-nextjs.yml@main
     with:
       vercel-org-id: ${{ vars.VERCEL_ORG_ID }}
       vercel-project-id: ${{ vars.VERCEL_PROJECT_ID }}
