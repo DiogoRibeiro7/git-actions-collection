@@ -32,6 +32,13 @@ run_action() {
     : > "$GITHUB_OUTPUT"
   fi
 
+  if [ "${RUN_ACTION_UNSET_GITHUB_ENV:-false}" = "true" ]; then
+    unset GITHUB_ENV
+  else
+    export GITHUB_ENV="$temp_dir/github_env"
+    : > "$GITHUB_ENV"
+  fi
+
   export FAKEBIN_LOG="$temp_dir/fakebin.log"
   : > "$FAKEBIN_LOG"
 
@@ -76,8 +83,10 @@ run_action() {
     # helpers through github.action_path.
     run_cmd="${run_cmd//$action_path_expr/$GITHUB_ACTION_PATH}"
     run_cmd="${run_cmd//$workspace_expr/$GITHUB_WORKSPACE}"
-    run_cmd=${run_cmd//\"/\\\"}
 
+    # Keep the command's YAML-authored quoting intact. The command string is
+    # parsed by the child shell; pre-escaping quotes here would turn them into
+    # literal filename characters (for example bash \"/path/script.sh\").
     bash -c "cd \"$GITHUB_WORKSPACE\" && $run_cmd" 1>>"$stdout_file" 2>>"$stderr_file" || status=$?
     if [ "$status" -ne 0 ]; then
       break
@@ -95,6 +104,10 @@ assert_exit_code() {
   local expected="$1"
   if [ "${RUN_ACTION_EXIT_CODE:-}" != "$expected" ]; then
     echo "expected exit code $expected, got ${RUN_ACTION_EXIT_CODE:-}" >&2
+    if [ -n "${RUN_ACTION_STDERR:-}" ]; then
+      echo "action stderr:" >&2
+      echo "$RUN_ACTION_STDERR" >&2
+    fi
     return 1
   fi
 }
