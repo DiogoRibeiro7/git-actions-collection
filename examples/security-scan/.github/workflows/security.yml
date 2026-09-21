@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   scan:
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/security-scan.yml@develop
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/security-scan.yml@main
     with:
       paths: '.'
       skip-trivy: true
