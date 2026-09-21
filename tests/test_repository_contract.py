@@ -48,23 +48,6 @@ def test_tracked_content_has_no_stale_repository_slug() -> None:
     assert completed.returncode == 1, completed.stdout
 
 
-def test_collection_consumer_refs_do_not_use_stale_main() -> None:
-    """Keep collection self-references off main until main is the supported stable surface."""
-    pattern = re.compile(rf"{re.escape(CANONICAL_SLUG)}/.+@main\b")
-    offenders: list[str] = []
-    for relative in sorted(_tracked_paths()):
-        path = ROOT / relative
-        if not path.is_file():
-            continue
-        try:
-            text = path.read_text(encoding="utf-8")
-        except UnicodeDecodeError:
-            continue
-        if pattern.search(text):
-            offenders.append(relative)
-    assert not offenders, f"canonical collection references still use @main: {offenders}"
-
-
 def test_composite_actions_resolve_bundled_helpers_from_action_path() -> None:
     """Prevent exported actions from assuming collection helpers exist in the caller workspace."""
     offenders: list[str] = []
@@ -80,12 +63,12 @@ def test_composite_actions_resolve_bundled_helpers_from_action_path() -> None:
     assert not offenders, f"composite actions contain caller-relative bundled helpers: {offenders}"
 
 
-def test_pypi_wizard_uses_current_pre_v1_consumer_ref() -> None:
-    """Keep generated PyPI workflows on the current pre-v1 integration ref."""
+def test_pypi_wizard_uses_main_consumer_ref() -> None:
+    """Keep generated PyPI workflows on the canonical main consumer ref."""
     wizard = (ROOT / "scripts" / "pypi_trusted_publishing_wizard.py").read_text(encoding="utf-8")
     expected = (
         "uses: DiogoRibeiro7/git-actions-collection/"
-        ".github/workflows/publish-to-pypi.yml@develop"
+        ".github/workflows/publish-to-pypi.yml@main"
     )
     assert expected in wizard
 
