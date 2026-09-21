@@ -6,13 +6,12 @@ The repository centralises automation that would otherwise be copied between pro
 
 ## Status
 
-> **Pre-v1 public toolkit.** This repository does not yet publish a stable GitHub release channel.
+> **Pre-v1 public toolkit.** `main` is the canonical development and consumer branch. The repository does not yet publish a stable major-version release channel.
 
-- `develop` is the current integration branch.
-- `main` is the intended stable branch, but it is not yet the canonical consumer surface.
-- For experimentation, consumers may reference `@develop`.
-- For production use before the first stable release, pin an exact commit SHA rather than a moving branch.
-- The v1 hardening work will define the supported surface, synchronise `main`, and publish versioned release tags.
+- All normal development targets `main` through pull requests.
+- Consumers evaluating the collection may reference `@main`.
+- Production consumers should prefer an exact commit SHA until the first stable major tag is published.
+- The remaining v1 hardening work will define the supported surface and publish versioned release tags.
 
 ## What is in the repository
 
@@ -61,7 +60,7 @@ The collection covers a broad set of stacks, but the most useful pieces are the 
 
 ## Using a reusable workflow
 
-During the pre-v1 period, `develop` is suitable for evaluation:
+During the pre-v1 period, `main` is the canonical evaluation branch:
 
 ```yaml
 name: Python CI
@@ -72,12 +71,12 @@ on:
 
 jobs:
   tests:
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/python-test-matrix.yml@develop
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/python-test-matrix.yml@main
     with:
       python-versions: '["3.11", "3.12"]'
 ```
 
-For production use before the first stable release, replace `@develop` with the exact commit SHA you have validated.
+For production use before the first stable release, prefer the exact commit SHA you have validated.
 
 ## Using a composite action
 
@@ -85,7 +84,7 @@ For production use before the first stable release, replace `@develop` with the 
 steps:
   - uses: actions/checkout@v4
   - name: Check Python imports
-    uses: DiogoRibeiro7/git-actions-collection/.github/actions/check-imports@develop
+    uses: DiogoRibeiro7/git-actions-collection/.github/actions/check-imports@main
 ```
 
 The same pinning rule applies: use a commit SHA when reproducibility matters.
@@ -172,8 +171,7 @@ Where a workflow performs a privileged operation, prefer:
 The first stable release will be cut only after the repository has a smaller, explicit support contract. The current hardening sequence is:
 
 1. clean repository identity and generated artefacts;
-2. make `main` the canonical stable branch;
-3. classify workflows and actions as supported, reference, or experimental;
+2. classify workflows and actions as supported, reference, or experimental;
 4. remove or consolidate duplicate workflow variants;
 5. audit third-party action pins and permissions;
 6. ensure every advertised supported example is exercised in CI;
