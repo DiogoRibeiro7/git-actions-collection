@@ -5,6 +5,6 @@ on:
 
 jobs:
   build:
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/java-ci.yml@develop
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/java-ci.yml@main
     with:
       build-tool: maven
