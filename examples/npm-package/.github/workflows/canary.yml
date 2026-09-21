@@ -2,12 +2,12 @@ name: Canary Release
 
 on:
   push:
-    branches: [ develop ]
+    branches: [ main ]
     tags: [ "*-rc*" ]
 
 jobs:
   release:
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/canary-release.yml@develop
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/canary-release.yml@main
     with:
       project-type: npm
       working-directory: .
