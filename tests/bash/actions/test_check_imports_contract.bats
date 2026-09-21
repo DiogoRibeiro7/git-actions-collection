@@ -4,7 +4,7 @@ set -euo pipefail
 load "$(dirname "$BATS_TEST_FILENAME")/../lib/action_harness.bash"
 
 @test "check-imports fails when GITHUB_OUTPUT missing" {
-  GITHUB_OUTPUT="" run_action "$REPO_ROOT/.github/actions/check-imports" paths=src update-pyproject=false
+  RUN_ACTION_UNSET_GITHUB_OUTPUT=true run_action "$REPO_ROOT/.github/actions/check-imports" paths=src update-pyproject=false
   assert_exit_code 1
 }
 
@@ -13,4 +13,3 @@ load "$(dirname "$BATS_TEST_FILENAME")/../lib/action_harness.bash"
   assert_exit_code 0
   grep -q "python" "$FAKEBIN_LOG"
 }
-
