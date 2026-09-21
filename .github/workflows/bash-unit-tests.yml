@@ -1,12 +1,18 @@
 name: Bash Unit Tests
 on:
   pull_request:
+    branches:
+      - main
     paths:
       - 'scripts/**'
       - 'tests/bash/**'
       - '.github/actions/**/action.yml'
       - '.github/workflows/bash-unit-tests.yml'
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   bats:
