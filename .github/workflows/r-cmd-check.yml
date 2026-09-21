@@ -1,14 +1,9 @@
 name: R Package Check
 
 on:
-  push:
-    paths:
-      - '**/*.R'
-      - '**/DESCRIPTION'
-      - '**/NAMESPACE'
-      - '.github/actions/setup-r/**'
-      - '.github/workflows/r-cmd-check.yml'
   pull_request:
+    branches:
+      - main
     paths:
       - '**/*.R'
       - '**/DESCRIPTION'
@@ -16,6 +11,10 @@ on:
       - '.github/actions/setup-r/**'
       - '.github/workflows/r-cmd-check.yml'
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
