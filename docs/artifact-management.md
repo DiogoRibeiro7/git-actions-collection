@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 jobs:
   cleanup:
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/artifact-management.yml@develop
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/artifact-management.yml@main
     secrets:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     with:
