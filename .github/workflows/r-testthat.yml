@@ -1,15 +1,9 @@
 name: R Tests (testthat)
 
 on:
-  push:
-    paths:
-      - '**/*.R'
-      - '**/tests/testthat/**'
-      - '**/DESCRIPTION'
-      - '.github/actions/r-testthat/**'
-      - '.github/actions/setup-r/**'
-      - '.github/workflows/r-testthat.yml'
   pull_request:
+    branches:
+      - main
     paths:
       - '**/*.R'
       - '**/tests/testthat/**'
@@ -18,6 +12,10 @@ on:
       - '.github/actions/setup-r/**'
       - '.github/workflows/r-testthat.yml'
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
