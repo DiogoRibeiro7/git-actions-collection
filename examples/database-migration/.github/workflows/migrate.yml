@@ -6,7 +6,7 @@ on:
 
 jobs:
   migrate:
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/database-migration.yml@develop
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/database-migration.yml@main
     with:
       tool: flyway
       migration-dir: migrations
