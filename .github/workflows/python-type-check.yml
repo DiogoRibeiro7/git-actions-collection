@@ -1,17 +1,18 @@
 name: Python Type Check
 
 on:
-  push:
-    paths:
-      - '**/*.py'
-      - '.github/actions/python-type-check/**'
-      - '.github/workflows/python-type-check.yml'
   pull_request:
+    branches:
+      - main
     paths:
       - '**/*.py'
       - '.github/actions/python-type-check/**'
       - '.github/workflows/python-type-check.yml'
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
