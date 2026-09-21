@@ -1,12 +1,18 @@
 name: JS/TS Unit Tests
 on:
   pull_request:
+    branches:
+      - main
     paths:
       - '**/*.ts'
       - 'package.json'
       - 'yarn.lock'
       - '.github/workflows/js-unit-tests.yml'
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
