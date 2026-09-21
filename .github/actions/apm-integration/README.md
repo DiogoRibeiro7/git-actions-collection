@@ -21,7 +21,7 @@ None
 
 ```yaml
 actions-apm:
-  uses: DiogoRibeiro7/git-actions-collection/.github/actions/apm-integration@develop
+  uses: DiogoRibeiro7/git-actions-collection/.github/actions/apm-integration@main
   with:
     provider: datadog
     api-key: ${{ secrets.DD_API_KEY }}
