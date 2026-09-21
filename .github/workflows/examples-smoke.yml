@@ -248,7 +248,3 @@ jobs:
             echo "Legacy repository references are forbidden in tracked content." >&2
             exit 1
           fi
-          if git grep -n -E "${canonical}/.+@main" -- .; then
-            echo "Collection consumer references must not use @main until the stable branch is synchronized." >&2
-            exit 1
-          fi
