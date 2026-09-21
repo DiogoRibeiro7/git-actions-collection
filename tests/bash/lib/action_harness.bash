@@ -32,6 +32,13 @@ run_action() {
     : > "$GITHUB_OUTPUT"
   fi
 
+  if [ "${RUN_ACTION_UNSET_GITHUB_ENV:-false}" = "true" ]; then
+    unset GITHUB_ENV
+  else
+    export GITHUB_ENV="$temp_dir/github_env"
+    : > "$GITHUB_ENV"
+  fi
+
   export FAKEBIN_LOG="$temp_dir/fakebin.log"
   : > "$FAKEBIN_LOG"
 
