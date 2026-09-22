@@ -6,7 +6,7 @@ The repository centralises automation that would otherwise be copied between pro
 
 ## Status
 
-> **Pre-v1 public toolkit.** `main` is the canonical development and consumer branch. The repository does not yet publish a stable major-version release channel.
+> **Pre-v1 personal toolkit.** `main` is the canonical development and consumer branch. Distribution is directly through GitHub refs and Releases; there is no Marketplace or package-registry publication for this repository.
 
 - All normal development targets `main` through pull requests.
 - Consumers evaluating the collection may reference `@main`.
