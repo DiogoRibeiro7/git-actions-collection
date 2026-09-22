@@ -22,3 +22,10 @@ def test_python_test_matrix_strategy_uses_inputs():
     matrix = data["jobs"]["test"]["strategy"]["matrix"]
     assert "fromJson(inputs.python-versions)" in matrix["python"]
     assert "fromJson(inputs.os-matrix)" in matrix["os"]
+
+
+def test_python_test_matrix_permissions_are_read_only():
+    workflow_path = Path(".github/workflows/python-test-matrix.yml")
+    data = yaml.safe_load(workflow_path.read_text(encoding="utf-8"))
+
+    assert data["permissions"] == {"contents": "read"}
