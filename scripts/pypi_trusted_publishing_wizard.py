@@ -14,7 +14,7 @@ on:
 # Pre-v1 note: @main is the canonical evaluation ref; pin an exact SHA for production.
 jobs:
   publish:
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/publish-to-pypi.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/pypi-publish.yml@main
     with:
       python-version: '3.12'
 """
@@ -41,7 +41,7 @@ def main() -> None:
     print("PyPI Trusted Publishing Setup Wizard\n")
     repo = guess_repo()
     project = input("PyPI project name: ").strip()
-    workflow_path = os.path.join(".github", "workflows", "publish-to-pypi.yml")
+    workflow_path = os.path.join(".github", "workflows", "pypi-release.yml")
     os.makedirs(os.path.dirname(workflow_path), exist_ok=True)
     if os.path.exists(workflow_path):
         overwrite = input(f"{workflow_path} exists. Overwrite? [y/N]: ").strip().lower()
