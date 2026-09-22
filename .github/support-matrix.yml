@@ -45,6 +45,7 @@ workflows:
     security-scan.yml:
       evidence:
         - tests/python/test_security_scan_workflow.py
+        - .github/workflows/test-security-scan.yml
         - examples/security-scan
   reference:
     - api-testing.yml
@@ -102,4 +103,5 @@ workflows:
     - r-testthat.yml
     - repository-release.yml
     - test-python-test-matrix.yml
+    - test-security-scan.yml
     - tests.yml

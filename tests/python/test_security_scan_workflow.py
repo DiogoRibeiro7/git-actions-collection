@@ -14,6 +14,7 @@ def test_security_scan_inputs_defaults():
     on_block = data.get("on") or data.get(True)
     inputs = on_block["workflow_call"]["inputs"]
     assert inputs["paths"]["default"] == "."
+    assert inputs["skip-python-scans"]["default"] is False
     assert inputs["skip-trivy"]["default"] is True
     assert inputs["pip-version"]["default"] == "24.3.1"
     assert inputs["skip-npm-signatures"]["default"] is False
@@ -53,3 +54,19 @@ def test_security_scan_provenance_is_isolated_from_scanners():
     uses = {step.get("uses") for step in provenance_steps}
     assert "actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093" in uses
     assert "actions/attest-build-provenance@ca0aaa1889e301c8331fbdb338d9475431b75b13" in uses
+
+
+def test_security_scan_has_executable_self_test():
+    workflow_path = Path(".github/workflows/test-security-scan.yml")
+    data = yaml.safe_load(workflow_path.read_text(encoding="utf-8"))
+
+    smoke = data["jobs"]["smoke"]
+    assert smoke["uses"] == "./.github/workflows/security-scan.yml"
+    assert smoke["with"] == {
+        "paths": "tests/python/test_security_scan_workflow.py",
+        "skip-python-scans": True,
+        "skip-trivy": True,
+        "skip-npm-signatures": True,
+        "skip-java-verify": True,
+        "skip-go-verify": True,
+    }
