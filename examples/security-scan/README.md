@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   scan:
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/security-scan.yml@develop
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/security-scan.yml@main
     with:
       paths: '.'
       skip-trivy: true
@@ -20,4 +20,4 @@ jobs:
       skip-go-verify: false
 ```
 
-Until the first stable release is cut, examples use `@develop`. For production adoption, pin an exact commit SHA.
+Until the first stable release is cut, examples use `@main`. For production adoption, pin an exact commit SHA.
