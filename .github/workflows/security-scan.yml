@@ -34,11 +34,12 @@ on:
         default: false
 permissions:
   contents: read
-  security-events: write
-  id-token: write
-  attestations: write
+
 jobs:
   security:
+    permissions:
+      contents: read
+      security-events: write
     runs-on: ubuntu-latest
     env:
       PIP_AUDIT_CACHE_DIR: ~/.cache/pip-audit
@@ -134,19 +135,6 @@ jobs:
             echo "commit: $GITHUB_SHA"
             echo "timestamp: $(date -u +%FT%TZ)"
           } > audit.log
-      - name: Generate SLSA provenance
-        if: ${{ always() }}
-        id: slsa
-        continue-on-error: true
-        uses: actions/attest-build-provenance@ca0aaa1889e301c8331fbdb338d9475431b75b13
-        with:
-          subject-path: |
-            pip-audit.sarif
-            bandit.sarif
-            trivy.sarif
-            pip-audit.log
-            bandit.log
-            audit.log
       - name: Upload artifacts
         if: ${{ always() }}
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
@@ -160,12 +148,6 @@ jobs:
             bandit.log
             audit.log
           if-no-files-found: ignore
-      - name: Upload SLSA bundle
-        if: ${{ steps.slsa.outputs.bundle-path != '' && always() }}
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
-        with:
-          name: security-attestation
-          path: ${{ steps.slsa.outputs.bundle-path }}
       - name: Upload pip-audit report
         if: ${{ always() }}
         uses: github/codeql-action/upload-sarif@ad2a4837011b42f6947b78d6417e7c253b1c504b
@@ -181,3 +163,33 @@ jobs:
         uses: github/codeql-action/upload-sarif@ad2a4837011b42f6947b78d6417e7c253b1c504b
         with:
           sarif_file: trivy.sarif
+
+  provenance:
+    name: Generate provenance
+    needs: security
+    if: ${{ always() && needs.security.result != 'cancelled' }}
+    continue-on-error: true
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download security reports
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: security-reports
+          path: security-reports
+
+      - name: Generate SLSA provenance
+        id: slsa
+        uses: actions/attest-build-provenance@ca0aaa1889e301c8331fbdb338d9475431b75b13
+        with:
+          subject-path: security-reports/**
+
+      - name: Upload SLSA bundle
+        if: ${{ steps.slsa.outputs.bundle-path != '' }}
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        with:
+          name: security-attestation
+          path: ${{ steps.slsa.outputs.bundle-path }}
