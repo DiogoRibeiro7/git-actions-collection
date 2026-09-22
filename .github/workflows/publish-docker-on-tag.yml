@@ -1,15 +1,10 @@
-name: Publish Docker (Reusable + Tag Trigger)
+name: Publish Docker
 
 on:
-  # Trigger when tagging v*
-  push:
-    tags:
-      - 'v*'
-  # Allows invocation by other repositories/workflows
   workflow_call:
     inputs:
       image:
-        description: 'Full image name (e.g., ghcr.io/org/app)'
+        description: 'Full image name (e.g. ghcr.io/org/app)'
         required: false
         type: string
         default: ''
@@ -44,7 +39,7 @@ on:
         type: boolean
         default: true
       registry:
-        description: 'Registry to log in to (e.g., ghcr.io or docker.io)'
+        description: 'Registry to log in to (e.g. ghcr.io or docker.io)'
         required: false
         type: string
         default: 'ghcr.io'
@@ -67,7 +62,6 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     env:
-      # Repository name (lowercased in shell when needed)
       REPO: ${{ github.repository }}
     steps:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
@@ -86,7 +80,6 @@ jobs:
             IMAGE="${{ inputs.image }}"
             IMAGE="${IMAGE,,}"
           else
-            # Default: GHCR with lowercase repo path
             IMAGE="ghcr.io/${REPO,,}"
           fi
           echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
@@ -94,15 +87,14 @@ jobs:
       - name: Log in to registry
         uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef
         with:
-            registry: ${{ inputs.registry }}
-            username: ${{ secrets.REGISTRY_USERNAME || github.actor }}
-            password: ${{ secrets.REGISTRY_PASSWORD || secrets.GITHUB_TOKEN }}
+          registry: ${{ inputs.registry }}
+          username: ${{ secrets.REGISTRY_USERNAME || github.actor }}
+          password: ${{ secrets.REGISTRY_PASSWORD || secrets.GITHUB_TOKEN }}
 
       - name: Extract version and set tags
         id: meta_version
         shell: bash
         run: |
-          # If running on a tag use the tag ref; otherwise use short SHA
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             VERSION="${GITHUB_REF#refs/tags/}"
           else
@@ -110,7 +102,7 @@ jobs:
           fi
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
-      - name: Generate labels and tags (docker/metadata-action)
+      - name: Generate labels and tags
         id: meta
         if: ${{ inputs.labels }}
         uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051
@@ -125,11 +117,10 @@ jobs:
             org.opencontainers.image.title=${{ github.repository }}
             org.opencontainers.image.version=${{ steps.meta_version.outputs.version }}
 
-      - name: Build args (normalize multiline for buildx input)
+      - name: Build args
         id: args
         shell: bash
         run: |
-          # Convert multiline input into sequence '--build-arg KEY=VAL'
           BA_INPUT="${{ inputs.build-args }}"
           BA_FLAGS=""
           if [ -n "$BA_INPUT" ]; then
@@ -140,7 +131,7 @@ jobs:
           fi
           echo "flags=${BA_FLAGS}" >> "$GITHUB_OUTPUT"
 
-      - name: Build and Push (multi-arch)
+      - name: Build and push
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
         with:
           context: ${{ inputs.context }}
@@ -155,7 +146,5 @@ jobs:
           cache-to: type=gha,mode=max
           provenance: true
           sbom: true
-          # target only passed if defined
           target: ${{ inputs.target != '' && inputs.target || '' }}
-          # dynamic build args
           build-args: ${{ steps.args.outputs.flags }}
