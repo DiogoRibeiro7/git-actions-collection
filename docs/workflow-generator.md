@@ -14,7 +14,7 @@ This writes `.github/workflows/python-ci.yml` for the `main` branch. Override th
 branch or output path if needed:
 
 ```bash
-python scripts/workflow_generator.py node --branch develop --output .github/workflows/ci.yml
+python scripts/workflow_generator.py node --branch feature/demo --output .github/workflows/ci.yml
 ```
 
 ## Features
