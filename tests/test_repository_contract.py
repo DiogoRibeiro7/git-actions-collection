@@ -63,12 +63,12 @@ def test_composite_actions_resolve_bundled_helpers_from_action_path() -> None:
     assert not offenders, f"composite actions contain caller-relative bundled helpers: {offenders}"
 
 
-def test_pypi_wizard_uses_main_consumer_ref() -> None:
-    """Keep generated PyPI workflows on the canonical main consumer ref."""
+def test_pypi_wizard_uses_canonical_publish_workflow() -> None:
+    """Keep generated PyPI workflows on the canonical publishing workflow."""
     wizard = (ROOT / "scripts" / "pypi_trusted_publishing_wizard.py").read_text(encoding="utf-8")
     expected = (
         "uses: DiogoRibeiro7/git-actions-collection/"
-        ".github/workflows/publish-to-pypi.yml@main"
+        ".github/workflows/pypi-publish.yml@main"
     )
     assert expected in wizard
 
@@ -93,3 +93,20 @@ def test_gitignore_covers_generated_outputs() -> None:
     ignored = set((ROOT / ".gitignore").read_text(encoding="utf-8").splitlines())
     required = {"coverage.xml", ".coverage", ".coverage.*", "htmlcov/", "target/"}
     assert required <= ignored
+
+
+def test_legacy_publish_workflows_remain_thin_compatibility_aliases() -> None:
+    """Prevent legacy publishing entry points from growing separate implementations."""
+    aliases = {
+        "publish-to-pypi.yml": "./.github/workflows/pypi-publish.yml",
+        "publish-to-npm.yml": "./.github/workflows/npm-publish.yml",
+    }
+
+    for filename, target in aliases.items():
+        path = ROOT / ".github" / "workflows" / filename
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        jobs = data["jobs"]
+        assert len(jobs) == 1
+        job = next(iter(jobs.values()))
+        assert job["uses"] == target
+        assert "steps" not in job
