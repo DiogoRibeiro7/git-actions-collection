@@ -32,8 +32,8 @@ def test_node_workflow_deterministic(fixtures_dir: Path):
 
 
 def test_branch_override(tmp_path: Path):
-    content = python_workflow("develop")
-    assert "branches: [develop]" in content
+    content = python_workflow("feature/demo")
+    assert "branches: [feature/demo]" in content
 
 
 def test_output_path_override(tmp_path: Path, monkeypatch):
