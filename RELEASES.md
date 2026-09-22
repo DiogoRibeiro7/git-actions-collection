@@ -1,6 +1,6 @@
 # Release Policy
 
-This repository is primarily a library of reusable GitHub Actions and workflows. Its release model therefore follows the conventions used by reusable GitHub Actions rather than application deployment semantics.
+This repository is primarily a personal library of reusable GitHub Actions and workflows. It is distributed directly through GitHub repository refs and GitHub Releases. It is not published through GitHub Marketplace or a package registry.
 
 ## Branches
 
@@ -33,11 +33,12 @@ Repository releases are intentionally manual.
 1. Merge all intended changes into `main`.
 2. Confirm required CI checks are green.
 3. Review the public workflows, actions, examples, and documentation.
-4. Run **Repository Release** from GitHub Actions on `main`.
-5. Supply the semantic version without the `v` prefix, for example `1.0.0`.
-6. The workflow creates the annotated exact tag, publishes a GitHub Release with generated notes, and updates the moving major tag for stable releases.
+4. Update `pyproject.toml` so its project version matches the stable version to be released.
+5. Run **Repository Release** from GitHub Actions on `main`.
+6. Supply the semantic version without the `v` prefix, for example `1.0.0`.
+7. The workflow validates the stable release version against `pyproject.toml`, creates the annotated exact tag, publishes a GitHub Release with generated notes, and updates the moving major tag.
 
-The release workflow does not publish containers, Python packages, npm packages, or other artifacts for this repository. Publishing workflows in this collection are reusable building blocks for consumer repositories.
+The release workflow does not publish containers, Python packages, npm packages, Marketplace listings, or other registry artifacts for this repository. Publishing workflows in this collection are reusable building blocks for consumer repositories.
 
 ## Prereleases
 
