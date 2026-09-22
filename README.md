@@ -89,6 +89,10 @@ steps:
 
 The same pinning rule applies: use a commit SHA when reproducibility matters.
 
+## Support policy
+
+The public support surface is intentionally smaller than the full catalogue. See [SUPPORT.md](SUPPORT.md) for the compatibility promise and `.github/support-matrix.yml` for the machine-readable classification of supported, reference, experimental, and internal components.
+
 ## Selected reusable workflows
 
 | Workflow | Purpose |
