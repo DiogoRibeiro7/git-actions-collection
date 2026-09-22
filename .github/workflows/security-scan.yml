@@ -7,6 +7,11 @@ on:
         required: false
         type: string
         default: "."
+      skip-python-scans:
+        description: 'Skip pip-audit and Bandit scans'
+        required: false
+        type: boolean
+        default: false
       skip-trivy:
         description: 'Skip Trivy filesystem scan'
         required: false
@@ -51,6 +56,7 @@ jobs:
           python-version: '3.12'
           cache: pip
       - name: Cache pip-audit DB
+        if: ${{ inputs['skip-python-scans'] == false }}
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
           path: ${{ env.PIP_AUDIT_CACHE_DIR }}
@@ -62,6 +68,7 @@ jobs:
           path: ${{ env.TRIVY_CACHE_DIR }}
           key: trivy-${{ runner.os }}
       - name: Python dependency scans
+        if: ${{ inputs['skip-python-scans'] == false }}
         run: |
           set -euo pipefail
           pip_version="${{ inputs.pip-version }}"
@@ -149,12 +156,12 @@ jobs:
             audit.log
           if-no-files-found: ignore
       - name: Upload pip-audit report
-        if: ${{ always() }}
+        if: ${{ inputs['skip-python-scans'] == false && always() }}
         uses: github/codeql-action/upload-sarif@ad2a4837011b42f6947b78d6417e7c253b1c504b
         with:
           sarif_file: pip-audit.sarif
       - name: Upload Bandit report
-        if: ${{ always() }}
+        if: ${{ inputs['skip-python-scans'] == false && always() }}
         uses: github/codeql-action/upload-sarif@ad2a4837011b42f6947b78d6417e7c253b1c504b
         with:
           sarif_file: bandit.sarif
