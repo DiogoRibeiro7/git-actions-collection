@@ -1,4 +1,5 @@
-name: Publish to PyPI
+name: Publish to PyPI (compatibility alias)
+
 on:
   workflow_call:
     inputs:
@@ -12,45 +13,17 @@ on:
         required: false
         type: string
         default: '24.3.1'
+
 permissions:
   contents: read
   id-token: write
+
 jobs:
-  build-and-publish:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
-      - uses: actions/setup-python@cfd55ca82492758d853442341ad4d8010466803a
-        with:
-          python-version: ${{ inputs.python-version }}
-      - name: Install build tools
-        shell: bash
-        run: |
-          set -euo pipefail
-          pip_version="${{ inputs.pip-version }}"
-          if [ "$pip_version" = "latest" ]; then
-            python -m pip install --upgrade pip
-          else
-            python -m pip install --upgrade "pip==$pip_version"
-          fi
-          python -m pip install --upgrade build==1.2.2.post1 twine==5.1.1
-      - name: Build package
-        shell: bash
-        run: |
-          set -euo pipefail
-          python -m build
-      - name: Validate distribution metadata
-        shell: bash
-        run: |
-          set -euo pipefail
-          twine check --strict dist/*
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e
-        with:
-          print-hash: true
-      - name: Upload dist artifacts on failure
-        if: failure()
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
-        with:
-          name: dist
-          path: dist/*
+  publish:
+    uses: ./.github/workflows/pypi-publish.yml
+    with:
+      python-version: ${{ inputs.python-version }}
+      build-backend: build
+      environment: pypi
+      pre-release: false
+      pip-version: ${{ inputs.pip-version }}

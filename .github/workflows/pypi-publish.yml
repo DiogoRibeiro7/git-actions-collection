@@ -50,7 +50,7 @@ jobs:
             python -m pip install --upgrade "pip==$pip_version"
           fi
           if [ "${{ inputs.build-backend }}" = "poetry" ]; then
-            pip install poetry
+            pip install poetry twine
           else
             pip install build twine
           fi
@@ -61,9 +61,13 @@ jobs:
           else
             python -m build
           fi
+      - name: Validate distribution metadata
+        run: twine check --strict dist/*
+
       - name: Publish to PyPI (trusted publishing)
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e
         with:
           skip-existing: true
           verbose: true
+          print-hash: true
           repository-url: ${{ inputs.pre-release && 'https://test.pypi.org/legacy/' || '' }}

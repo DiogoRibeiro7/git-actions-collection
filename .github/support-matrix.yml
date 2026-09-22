@@ -70,6 +70,8 @@ workflows:
     - permissions-template.yml
     - pr-policy.yml
     - python-lint.yml
+    - publish-to-npm.yml
+    - publish-to-pypi.yml
     - release-drafter.yml
     - ruby-ci.yml
     - rust-ci.yml
@@ -81,8 +83,6 @@ workflows:
     - multi-cloud-deploy.yml
     - npm-publish.yml
     - publish-docker-on-tag.yml
-    - publish-to-npm.yml
-    - publish-to-pypi.yml
     - pypi-publish.yml
     - pytorch-train-deploy.yml
     - release-container.yml
