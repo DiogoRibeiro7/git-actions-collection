@@ -452,7 +452,7 @@ def test_workflow_generator_writes_python_ci(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(
         sys,
         "argv",
-        ["workflow-generator", "python", "--branch", "develop"],
+        ["workflow-generator", "python", "--branch", "feature/demo"],
     )
 
     exit_code = workflow_generator.main()
@@ -461,7 +461,7 @@ def test_workflow_generator_writes_python_ci(tmp_path, monkeypatch, capsys):
     workflow = tmp_path / ".github" / "workflows" / "python-ci.yml"
     assert workflow.exists()
     text = workflow.read_text(encoding="utf-8")
-    assert "branches: [develop]" in text
+    assert "branches: [feature/demo]" in text
     assert f"actions/checkout@{workflow_generator.CHECKOUT_REF}" in text
     assert "workflow written to" in capsys.readouterr().out
 
