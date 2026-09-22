@@ -1,0 +1,105 @@
+version: 1
+
+definitions:
+  supported: >
+    Public surface intended to remain compatible within the current major
+    release. Changes require regression coverage and should not break
+    documented inputs, outputs, secrets, or expected behaviour.
+  reference: >
+    Useful reusable automation with examples or static validation, but without
+    enough direct behavioural coverage to be part of the v1 compatibility
+    promise yet.
+  experimental: >
+    Automation that performs publishing, deployment, migration, or other
+    environment-dependent operations and has not yet earned stable v1 status.
+  internal: >
+    Repository-maintenance workflows that are not part of the consumer API.
+
+composite_actions:
+  supported:
+    - apm-integration
+    - aws-lambda-build
+    - benchmark-smoke
+    - check-imports
+    - gradle-build
+    - markdown-lint
+    - pr-template-enforcer
+    - python-lint
+    - python-type-check
+    - r-lint
+    - r-testthat
+    - secret-scan
+    - setup-poetry
+    - setup-r
+    - setup-yarn
+    - smart-dependency-update
+  reference: []
+  experimental: []
+
+workflows:
+  supported:
+    python-test-matrix.yml:
+      evidence:
+        - tests/python/test_python_test_matrix_workflow.py
+        - .github/workflows/test-python-test-matrix.yml
+    security-scan.yml:
+      evidence:
+        - tests/python/test_security_scan_workflow.py
+        - examples/security-scan
+  reference:
+    - api-testing.yml
+    - artifact-management.yml
+    - changelog-auto-pr.yml
+    - ci-monorepo-matrix.yml
+    - ci-monorepo-runner.yml
+    - codeql-analysis.yml
+    - concurrency-caching.yml
+    - conventional-commits.yml
+    - coverage-report.yml
+    - deno-ci.yml
+    - dependency-review.yml
+    - dotnet-ci.yml
+    - go-ci.yml
+    - helm-chart-lint-test.yml
+    - infra-lint.yml
+    - java-ci.yml
+    - k8s-manifests-lint.yml
+    - lockfile-consistency.yml
+    - node-ci.yml
+    - permissions-template.yml
+    - pr-policy.yml
+    - python-lint.yml
+    - release-drafter.yml
+    - ruby-ci.yml
+    - rust-ci.yml
+  experimental:
+    - aws-lambda-deploy.yml
+    - canary-release.yml
+    - database-migration.yml
+    - docker-build-push.yml
+    - multi-cloud-deploy.yml
+    - npm-publish.yml
+    - publish-docker-on-tag.yml
+    - publish-to-npm.yml
+    - publish-to-pypi.yml
+    - pypi-publish.yml
+    - pytorch-train-deploy.yml
+    - release-container.yml
+    - release.yml
+    - terraform-aws.yml
+    - terraform-plan-comment.yml
+    - vercel-nextjs.yml
+  internal:
+    - auto-upgrade-pyproject.yml
+    - bash-unit-tests.yml
+    - ci-tests.yml
+    - examples-smoke.yml
+    - js-unit-tests.yml
+    - python-type-check.yml
+    - python-unit-tests.yml
+    - r-cmd-check.yml
+    - r-lint.yml
+    - r-testthat.yml
+    - repository-release.yml
+    - test-python-test-matrix.yml
+    - tests.yml
