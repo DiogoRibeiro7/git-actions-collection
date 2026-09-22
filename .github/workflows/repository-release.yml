@@ -1,0 +1,92 @@
+name: Repository Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Semantic version without the v prefix (for example 1.0.0)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Mark the GitHub Release as a prerelease'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repository-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate version
+        shell: bash
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Version must be a semantic version without the v prefix." >&2
+            exit 1
+          fi
+
+      - name: Checkout main
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Ensure release tag does not already exist
+        shell: bash
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          tag="v$VERSION"
+          if git rev-parse "$tag" >/dev/null 2>&1; then
+            echo "Tag $tag already exists." >&2
+            exit 1
+          fi
+
+      - name: Create version tag
+        shell: bash
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          tag="v$VERSION"
+          git tag -a "$tag" -m "Release $tag"
+          git push origin "$tag"
+
+      - name: Create GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+          PRERELEASE: ${{ inputs.prerelease }}
+        run: |
+          set -euo pipefail
+          tag="v$VERSION"
+          args=(release create "$tag" --verify-tag --generate-notes --title "$tag")
+          if [ "$PRERELEASE" = "true" ]; then
+            args+=(--prerelease)
+          fi
+          gh "${args[@]}"
+
+      - name: Update moving major tag
+        if: ${{ !inputs.prerelease }}
+        shell: bash
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          major="${VERSION%%.*}"
+          moving_tag="v$major"
+          git tag -fa "$moving_tag" -m "Latest v$major release"
+          git push --force origin "$moving_tag"

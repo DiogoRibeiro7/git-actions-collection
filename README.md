@@ -170,12 +170,12 @@ Where a workflow performs a privileged operation, prefer:
 
 The first stable release will be cut only after the repository has a smaller, explicit support contract. The current hardening sequence is:
 
-1. clean repository identity and generated artefacts;
-2. classify workflows and actions as supported, reference, or experimental;
-4. remove or consolidate duplicate workflow variants;
-5. audit third-party action pins and permissions;
-6. ensure every advertised supported example is exercised in CI;
-7. publish the first versioned GitHub release and stable major tag.
+1. classify workflows and actions as supported, reference, or experimental;
+2. audit third-party action pins and permissions;
+3. ensure every advertised supported example is exercised in CI;
+4. publish the first versioned GitHub release and stable major tag.
+
+The release procedure and compatibility rules are documented in [RELEASES.md](RELEASES.md). Repository releases are manual and do not trigger the reusable package/container publishing workflows.
 
 That sequence deliberately favours a smaller reliable surface over a larger catalogue of unchecked snippets.
 
