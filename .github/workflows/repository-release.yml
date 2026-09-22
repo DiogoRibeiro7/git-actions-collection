@@ -25,42 +25,39 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - name: Validate version
-        shell: bash
-        env:
-          VERSION: ${{ inputs.version }}
-        run: |
-          set -euo pipefail
-          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
-            echo "Version must be a semantic version without the v prefix." >&2
-            exit 1
-          fi
-
       - name: Checkout main
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
         with:
           ref: main
           fetch-depth: 0
 
-      - name: Validate stable version against pyproject.toml
-        if: ${{ !inputs.prerelease }}
+      - name: Read GitHub default branch
+        id: repository
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          default_branch="$(gh api "repos/${GITHUB_REPOSITORY}" --jq '.default_branch')"
+          echo "default-branch=$default_branch" >> "$GITHUB_OUTPUT"
+
+      - name: Run release preflight
         shell: bash
         env:
           VERSION: ${{ inputs.version }}
+          DEFAULT_BRANCH: ${{ steps.repository.outputs.default-branch }}
+          PRERELEASE: ${{ inputs.prerelease }}
         run: |
           set -euo pipefail
-          project_version="$(python - <<'PY'
-          import tomllib
-          from pathlib import Path
-
-          data = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
-          print(data["project"]["version"])
-          PY
-          )"
-          if [ "$project_version" != "$VERSION" ]; then
-            echo "pyproject.toml declares $project_version but release input is $VERSION." >&2
-            exit 1
+          args=(
+            scripts/release_preflight.py
+            --version "$VERSION"
+            --default-branch "$DEFAULT_BRANCH"
+          )
+          if [ "$PRERELEASE" = "true" ]; then
+            args+=(--prerelease)
           fi
+          python "${args[@]}"
 
       - name: Ensure release tag does not already exist
         shell: bash

@@ -36,7 +36,8 @@ Repository releases are intentionally manual.
 4. Update `pyproject.toml` so its project version matches the stable version to be released.
 5. Run **Repository Release** from GitHub Actions on `main`.
 6. Supply the semantic version without the `v` prefix, for example `1.0.0`.
-7. The workflow validates the stable release version against `pyproject.toml`, creates the annotated exact tag, publishes a GitHub Release with generated notes, and updates the moving major tag.
+7. The workflow runs a release preflight that requires GitHub's default branch to be `main`, rejects stale `develop` consumer references, and validates stable release metadata against `pyproject.toml`.
+8. Only after the preflight passes does it create the annotated exact tag, publish a GitHub Release with generated notes, and update the moving major tag.
 
 The release workflow does not publish containers, Python packages, npm packages, Marketplace listings, or other registry artifacts for this repository. Publishing workflows in this collection are reusable building blocks for consumer repositories.
 
