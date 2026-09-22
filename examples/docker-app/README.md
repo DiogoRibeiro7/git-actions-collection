@@ -18,15 +18,15 @@ and `linux/arm64` platforms.
 
 ## Canary Release
 
-Use `.github/workflows/canary.yml` to build an image tagged `:rc` when pushing to `develop` or tagging an `*-rc` version.
+Use `.github/workflows/canary.yml` to build an image tagged `:rc` when pushing to `main` or tagging an `*-rc` version.
 
 ```yaml
 jobs:
   release:
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/canary-release.yml@develop
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/canary-release.yml@main
     with:
       project-type: docker
       image: ghcr.io/${{ github.repository }}
 ```
 
-Until the first stable release is cut, examples use `@develop`. For production adoption, pin an exact commit SHA.
+Until the first stable release is cut, examples use `@main`. For production adoption, pin an exact commit SHA.
