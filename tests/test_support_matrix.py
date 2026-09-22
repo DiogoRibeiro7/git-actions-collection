@@ -95,3 +95,39 @@ def test_supported_workflow_evidence_exists() -> None:
         assert evidence, f"supported workflow {workflow} must declare evidence"
         for relative in evidence:
             assert (ROOT / relative).exists(), f"missing support evidence for {workflow}: {relative}"
+
+
+def test_supported_workflows_pin_external_dependencies() -> None:
+    matrix = _load_matrix()
+
+    for workflow in matrix["workflows"]["supported"]:
+        path = ROOT / ".github" / "workflows" / workflow
+        document = yaml.safe_load(path.read_text(encoding="utf-8"))
+
+        for job in document.get("jobs", {}).values():
+            for step in job.get("steps", []):
+                uses = step.get("uses")
+                if not isinstance(uses, str):
+                    continue
+                if uses.startswith("./") or uses.startswith("DiogoRibeiro7/git-actions-collection/"):
+                    continue
+
+                assert "@" in uses, f"{path}: external action reference has no ref: {uses}"
+                _, ref = uses.rsplit("@", 1)
+                assert SHA_REF.fullmatch(ref), (
+                    f"{path}: supported workflows must pin external dependencies "
+                    f"to a 40-char SHA: {uses}"
+                )
+
+
+def test_supported_workflows_declare_permissions() -> None:
+    matrix = _load_matrix()
+
+    for workflow in matrix["workflows"]["supported"]:
+        path = ROOT / ".github" / "workflows" / workflow
+        document = yaml.safe_load(path.read_text(encoding="utf-8"))
+
+        permissions = document.get("permissions")
+        assert isinstance(permissions, dict) and permissions, (
+            f"{path}: supported workflows must declare explicit top-level permissions"
+        )
