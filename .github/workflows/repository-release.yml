@@ -42,6 +42,26 @@ jobs:
           ref: main
           fetch-depth: 0
 
+      - name: Validate stable version against pyproject.toml
+        if: ${{ !inputs.prerelease }}
+        shell: bash
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          project_version="$(python - <<'PY'
+          import tomllib
+          from pathlib import Path
+
+          data = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+          print(data["project"]["version"])
+          PY
+          )"
+          if [ "$project_version" != "$VERSION" ]; then
+            echo "pyproject.toml declares $project_version but release input is $VERSION." >&2
+            exit 1
+          fi
+
       - name: Ensure release tag does not already exist
         shell: bash
         env:
