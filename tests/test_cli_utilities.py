@@ -419,10 +419,10 @@ def test_pypi_wizard_creates_workflow(tmp_path, monkeypatch, capsys):
 
     pypi_wizard.main()
 
-    workflow = tmp_path / ".github" / "workflows" / "publish-to-pypi.yml"
+    workflow = tmp_path / ".github" / "workflows" / "pypi-release.yml"
     assert workflow.exists()
-    assert "publish-to-pypi.yml@main" in workflow.read_text(encoding="utf-8")
-    expected_path = str(Path(".github") / "workflows" / "publish-to-pypi.yml")
+    assert "pypi-publish.yml@main" in workflow.read_text(encoding="utf-8")
+    expected_path = str(Path(".github") / "workflows" / "pypi-release.yml")
     assert f"Created {expected_path}" in capsys.readouterr().out
 
 
@@ -434,7 +434,7 @@ def test_pypi_wizard_aborts_on_existing_workflow(tmp_path, monkeypatch, capsys):
         "check_output",
         lambda *args, **kwargs: "acme/demo\n",
     )
-    workflow = tmp_path / ".github" / "workflows" / "publish-to-pypi.yml"
+    workflow = tmp_path / ".github" / "workflows" / "pypi-release.yml"
     workflow.parent.mkdir(parents=True)
     workflow.write_text("existing", encoding="utf-8")
 
