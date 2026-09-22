@@ -26,21 +26,21 @@ and builds a container image using reusable workflows.
 ```yaml
 jobs:
   lint:
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/python-lint.yml@develop
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/python-lint.yml@main
   test:
     needs: lint
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/python-test-matrix.yml@develop
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/python-test-matrix.yml@main
     with:
       test-command: python manage.py test
   docker:
     needs: test
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/docker-build-push.yml@develop
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/docker-build-push.yml@main
     with:
       image: ghcr.io/${{ github.repository }}
     secrets: inherit
 ```
 
-Until the first stable release is cut, examples use `@develop`. For production adoption, pin an exact commit SHA.
+Until the first stable release is cut, examples use `@main`. For production adoption, pin an exact commit SHA.
 
 ## Database configuration
 
