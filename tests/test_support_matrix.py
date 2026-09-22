@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 MATRIX_PATH = ROOT / ".github" / "support-matrix.yml"
+SHA_REF = re.compile(r"^[0-9a-f]{40}$")
 
 
 def _load_matrix() -> dict:
@@ -42,6 +44,27 @@ def test_supported_composite_actions_have_contract_tests() -> None:
         filename = exceptions.get(name, f"test_{name.replace('-', '_')}.bats")
         path = ROOT / "tests" / "bash" / "actions" / filename
         assert path.exists(), f"supported action {name} lacks contract test {path}"
+
+
+def test_supported_composite_actions_pin_external_dependencies() -> None:
+    matrix = _load_matrix()
+
+    for name in matrix["composite_actions"]["supported"]:
+        path = ROOT / ".github" / "actions" / name / "action.yml"
+        document = yaml.safe_load(path.read_text(encoding="utf-8"))
+
+        for step in document.get("runs", {}).get("steps", []):
+            uses = step.get("uses")
+            if not isinstance(uses, str):
+                continue
+            if uses.startswith("./") or uses.startswith("DiogoRibeiro7/git-actions-collection/"):
+                continue
+
+            assert "@" in uses, f"{path}: external action reference has no ref: {uses}"
+            _, ref = uses.rsplit("@", 1)
+            assert SHA_REF.fullmatch(ref), (
+                f"{path}: supported actions must pin external dependencies to a 40-char SHA: {uses}"
+            )
 
 
 def test_all_workflows_are_classified_once() -> None:
