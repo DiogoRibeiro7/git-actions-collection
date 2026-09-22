@@ -11,13 +11,13 @@ reusable workflows.
 ```yaml
 jobs:
   lint:
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/python-lint.yml@develop
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/python-lint.yml@main
   test:
     needs: lint
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/coverage-report.yml@develop
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/coverage-report.yml@main
 ```
 
-Until the first stable release is cut, examples use `@develop`. For production adoption, pin an exact commit SHA.
+Until the first stable release is cut, examples use `@main`. For production adoption, pin an exact commit SHA.
 
 ## Security Scan
 
@@ -26,7 +26,7 @@ The workflow in `.github/workflows/security.yml` runs dependency and static anal
 ```yaml
 jobs:
   scan:
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/security-scan.yml@develop
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/security-scan.yml@main
     with:
       paths: '.'
       skip-trivy: true
@@ -54,7 +54,7 @@ It defaults to TestPyPI to keep releases safe.
 ```yaml
 jobs:
   publish:
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/pypi-publish.yml@develop
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/pypi-publish.yml@main
     with:
       build-backend: poetry
       environment: pypi
@@ -74,12 +74,12 @@ No secrets are needed; OIDC handles authentication. Flip `pre-release` to `false
 
 ## Canary Release
 
-`.github/workflows/canary.yml` publishes development builds to TestPyPI when pushing to `develop` or tagging an `*-rc` version.
+`.github/workflows/canary.yml` publishes development builds to TestPyPI when pushing to `main` or tagging an `*-rc` version.
 
 ```yaml
 jobs:
   release:
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/canary-release.yml@develop
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/canary-release.yml@main
     with:
       project-type: python
       build-backend: poetry
@@ -92,5 +92,5 @@ jobs:
 ```yaml
 steps:
   - uses: actions/checkout@v4
-  - uses: DiogoRibeiro7/git-actions-collection/.github/actions/benchmark-smoke@develop
+  - uses: DiogoRibeiro7/git-actions-collection/.github/actions/benchmark-smoke@main
 ```
