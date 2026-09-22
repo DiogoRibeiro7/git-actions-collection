@@ -1,4 +1,5 @@
-name: Publish to npm
+name: Publish to npm (compatibility alias)
+
 on:
   workflow_call:
     inputs:
@@ -7,23 +8,20 @@ on:
         required: false
         type: string
         default: '20'
+    secrets:
+      NPM_TOKEN:
+        required: true
+
 permissions:
   contents: read
   id-token: write
+
 jobs:
   publish:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
-      - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903
-        with:
-          node-version: ${{ inputs.node-version }}
-          registry-url: 'https://registry.npmjs.org'
-      - name: Install deps
-        run: npm ci
-      - name: Run tests
-        run: npm test --if-present
-      - name: Publish
-        run: npm publish --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    uses: ./.github/workflows/npm-publish.yml
+    with:
+      node-version: ${{ inputs.node-version }}
+      working-directory: .
+      tag: latest
+    secrets:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
