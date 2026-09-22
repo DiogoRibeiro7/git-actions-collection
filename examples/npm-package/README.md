@@ -11,7 +11,7 @@ jobs:
   lint-test:
     steps:
       - uses: actions/checkout@v4
-      - uses: DiogoRibeiro7/git-actions-collection/.github/actions/setup-yarn@develop
+      - uses: DiogoRibeiro7/git-actions-collection/.github/actions/setup-yarn@main
       - run: yarn lint
       - run: yarn test
 ```
@@ -30,16 +30,16 @@ Set the `NPM_TOKEN` secret with an npm token that has publish rights.
 
 ## Canary Release
 
-Use `.github/workflows/canary.yml` to publish pre-release packages under the `next` dist-tag when pushing to `develop` or tagging an `*-rc` version.
+Use `.github/workflows/canary.yml` to publish pre-release packages under the `next` dist-tag when pushing to `main` or tagging an `*-rc` version.
 
 ```yaml
 jobs:
   release:
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/canary-release.yml@develop
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/canary-release.yml@main
     with:
       project-type: npm
     secrets:
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 ```
 
-Until the first stable release is cut, examples use `@develop`. For production adoption, pin an exact commit SHA.
+Until the first stable release is cut, examples use `@main`. For production adoption, pin an exact commit SHA.
