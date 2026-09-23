@@ -2,21 +2,78 @@ name: Rust CI
 
 on:
   workflow_call:
+    inputs:
+      rust-toolchain:
+        description: Rust toolchain specification such as stable, beta, nightly, or 1.85.0
+        type: string
+        default: stable
+      working-directory:
+        description: Directory containing Cargo.toml
+        type: string
+        default: .
+      locked:
+        description: Require Cargo.lock to remain unchanged during check, Clippy, and tests
+        type: boolean
+        default: true
+      run-format:
+        description: Run cargo fmt --check
+        type: boolean
+        default: true
+      run-clippy:
+        description: Run Clippy with warnings denied
+        type: boolean
+        default: true
+      run-tests:
+        description: Run the Rust test suite
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
         with:
+          toolchain: ${{ inputs.rust-toolchain }}
           components: rustfmt, clippy
+
+      - name: Validate Rust project
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          set -euo pipefail
+          if [ ! -f Cargo.toml ]; then
+            echo "Cargo.toml not found in ${{ inputs.working-directory }}" >&2
+            exit 1
+          fi
+
       - name: Format check
+        if: inputs.run-format
+        working-directory: ${{ inputs.working-directory }}
         run: cargo fmt --all --check
+
       - name: Cargo check
-        run: cargo check --all --locked
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          LOCKED_FLAG: ${{ inputs.locked && '--locked' || '' }}
+        run: cargo check --workspace $LOCKED_FLAG
+
       - name: Clippy
-        run: cargo clippy --all -- -D warnings
+        if: inputs.run-clippy
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          LOCKED_FLAG: ${{ inputs.locked && '--locked' || '' }}
+        run: cargo clippy --workspace $LOCKED_FLAG -- -D warnings
+
+      - name: Tests
+        if: inputs.run-tests
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          LOCKED_FLAG: ${{ inputs.locked && '--locked' || '' }}
+        run: cargo test --workspace $LOCKED_FLAG
