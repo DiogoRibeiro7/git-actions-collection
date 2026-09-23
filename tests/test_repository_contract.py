@@ -68,7 +68,7 @@ def test_pypi_wizard_uses_canonical_publish_workflow() -> None:
     wizard = (ROOT / "scripts" / "pypi_trusted_publishing_wizard.py").read_text(encoding="utf-8")
     expected = (
         "uses: DiogoRibeiro7/git-actions-collection/"
-        ".github/workflows/pypi-publish.yml@main"
+        ".github/workflows/pypi-publish.yml@v1"
     )
     assert expected in wizard
 
