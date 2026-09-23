@@ -1,0 +1,92 @@
+name: Rust Security
+
+on:
+  workflow_call:
+    inputs:
+      rust-toolchain:
+        description: Rust toolchain used when resolving a missing lockfile
+        type: string
+        default: stable
+      working-directory:
+        description: Directory containing Cargo.toml
+        type: string
+        default: .
+      generate-lockfile:
+        description: Generate Cargo.lock when the repository does not commit one
+        type: boolean
+        default: true
+      ignored-advisories:
+        description: Comma-separated RustSec advisory IDs to ignore
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: RustSec cargo-audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de
+        with:
+          toolchain: ${{ inputs.rust-toolchain }}
+
+      - name: Validate Rust project
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          set -euo pipefail
+          if [ ! -f Cargo.toml ]; then
+            echo "Cargo.toml not found in ${{ inputs.working-directory }}" >&2
+            exit 1
+          fi
+
+      - name: Resolve missing lockfile
+        if: inputs.generate-lockfile
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          set -euo pipefail
+          if [ ! -f Cargo.lock ]; then
+            cargo generate-lockfile
+          fi
+
+      - name: Require Cargo.lock
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          set -euo pipefail
+          if [ ! -f Cargo.lock ]; then
+            echo "Cargo.lock is required for cargo-audit. Commit one or enable generate-lockfile." >&2
+            exit 1
+          fi
+
+      - name: Install cargo-audit
+        uses: taiki-e/install-action@7623a79cdfecb99d681017af368ca353d9f49bb5
+        with:
+          tool: cargo-audit@0.22.2
+
+      - name: Audit Rust dependencies
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          CARGO_AUDIT_IGNORE: ${{ inputs.ignored-advisories }}
+        run: |
+          set -euo pipefail
+          args=()
+
+          if [ -n "$CARGO_AUDIT_IGNORE" ]; then
+            IFS=',' read -ra advisory_ids <<< "$CARGO_AUDIT_IGNORE"
+            for raw_id in "${advisory_ids[@]}"; do
+              advisory_id="${raw_id//[[:space:]]/}"
+              if [ -n "$advisory_id" ]; then
+                args+=(--ignore "$advisory_id")
+              fi
+            done
+          fi
+
+          cargo audit "${args[@]}"

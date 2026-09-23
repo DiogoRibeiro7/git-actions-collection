@@ -32,6 +32,19 @@ jobs:
       all-features: true
 ```
 
+Rust dependency vulnerabilities can be checked independently with the security workflow:
+
+```yaml
+jobs:
+  security:
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/rust-security.yml@v1
+```
+
+The workflow runs RustSec `cargo-audit` with read-only repository permissions. Library
+crates that do not commit `Cargo.lock` can use the default temporary lockfile generation.
+Known non-applicable RustSec advisories may be passed explicitly through
+`ignored-advisories`.
+
 Projects that need explicit Cargo features can pass `features`, `all-features`, or
 `no-default-features`. Compatibility testing is opt-in so ordinary pull requests
 do not automatically multiply Actions usage:

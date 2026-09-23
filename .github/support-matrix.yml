@@ -78,6 +78,7 @@ workflows:
     - ruby-ci.yml
     - rust-ci.yml
     - rust-quality.yml
+    - rust-security.yml
   experimental:
     - aws-lambda-deploy.yml
     - canary-release.yml
@@ -106,5 +107,6 @@ workflows:
     - test-python-test-matrix.yml
     - test-rust-ci.yml
     - test-rust-quality.yml
+    - test-rust-security.yml
     - test-security-scan.yml
     - tests.yml
