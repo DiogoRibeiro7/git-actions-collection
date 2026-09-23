@@ -9,7 +9,7 @@ runs:
   using: composite
   steps:
     - name: Run gitleaks
-      uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7
+      uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e
       env:
         GITLEAKS_VERSION: 8.28.0
       with:

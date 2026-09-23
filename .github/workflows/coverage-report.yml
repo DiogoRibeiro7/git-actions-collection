@@ -23,7 +23,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
       - uses: actions/setup-python@cfd55ca82492758d853442341ad4d8010466803a
         with:
           python-version: ${{ inputs.python-version }}
@@ -46,7 +46,7 @@ jobs:
         run: ${{ inputs.test-command }}
       - name: Upload coverage.xml
         if: always()
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
           name: coverage-xml
           path: coverage.xml
