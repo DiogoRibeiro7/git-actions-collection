@@ -92,7 +92,7 @@ jobs:
 
     steps:
       - name: Download verified crate archive
-        uses: actions/download-artifact@484a0b528fb4d7bd804637ccb632e47a0e638317
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
         with:
           name: rust-crate-${{ needs.preflight.outputs.package-name }}-${{ needs.preflight.outputs.package-version }}
           path: release-assets
@@ -193,7 +193,7 @@ jobs:
           esac
 
       - name: Download prepared release assets
-        uses: actions/download-artifact@484a0b528fb4d7bd804637ccb632e47a0e638317
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
         with:
           name: rust-release-assets-${{ needs.preflight.outputs.package-name }}-${{ needs.preflight.outputs.package-version }}
           path: release-assets
