@@ -136,4 +136,7 @@ def test_python_scanners_do_not_mutate_consumer_environment():
     install = next(step for step in steps if step.get("name") == "Install Python scanners")
 
     assert ".security-scan-tools/bin/python -m pip install" in install["run"]
-    assert "python -m pip install pip-audit" not in install["run"]
+    assert not any(
+        line.strip().startswith("python -m pip install pip-audit")
+        for line in install["run"].splitlines()
+    )
