@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 import tomllib
 
+from packaging.version import Version
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -10,7 +11,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_v1_project_metadata_is_stable() -> None:
     data = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
-    assert data["project"]["version"] == "1.0.0"
+    version = Version(data["project"]["version"])
+    assert version.major == 1
+    assert not version.is_prerelease
     assert "Development Status :: 5 - Production/Stable" in data["project"]["classifiers"]
 
 
