@@ -7,7 +7,7 @@ This repository is primarily a personal library of reusable GitHub Actions and w
 - `main` is the only permanent development branch.
 - Changes reach `main` through pull requests.
 - Feature, fix, and maintenance branches are temporary.
-- `@main` is for development and evaluation. Stable consumers should use the moving major tag such as `@v1` or an exact commit SHA.
+- `@v1` is for development and evaluation. Stable consumers should use the moving major tag such as `@v1` or an exact commit SHA.
 
 ## Stable releases
 
