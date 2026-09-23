@@ -1,0 +1,239 @@
+name: Rust GitHub Release
+
+on:
+  workflow_call:
+    inputs:
+      rust-toolchain:
+        description: Rust toolchain used by the release preflight
+        type: string
+        default: stable
+      working-directory:
+        description: Directory containing Cargo.toml
+        type: string
+        default: .
+      package-name:
+        description: Package to release; required for multi-package workspaces
+        type: string
+        default: ''
+      locked:
+        description: Require Cargo.lock to remain unchanged during packaging
+        type: boolean
+        default: false
+      tag-prefix:
+        description: Prefix placed before the Cargo package version
+        type: string
+        default: v
+      tag-name:
+        description: Explicit release tag; when set it must match tag-prefix plus package version
+        type: string
+        default: ''
+      release-title:
+        description: Optional GitHub Release title; defaults to the resolved tag
+        type: string
+        default: ''
+      prerelease:
+        description: Mark the GitHub Release as a prerelease
+        type: boolean
+        default: false
+      draft:
+        description: Create the GitHub Release as a draft
+        type: boolean
+        default: false
+      generate-notes:
+        description: Generate GitHub release notes automatically
+        type: boolean
+        default: true
+      dry-run:
+        description: Prepare release assets without creating a GitHub Release
+        type: boolean
+        default: true
+      release-environment:
+        description: GitHub environment used by the mutating release job
+        type: string
+        default: release
+      artifact-retention-days:
+        description: Number of days to retain prepared release assets
+        type: number
+        default: 7
+    outputs:
+      package-name:
+        description: Resolved Cargo package name
+        value: ${{ jobs.preflight.outputs.package-name }}
+      package-version:
+        description: Resolved Cargo package version
+        value: ${{ jobs.preflight.outputs.package-version }}
+      tag-name:
+        description: Resolved Git tag expected for the GitHub Release
+        value: ${{ jobs.assets.outputs.tag-name }}
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    name: Verify release package
+    uses: ./.github/workflows/rust-release-preflight.yml
+    with:
+      rust-toolchain: ${{ inputs.rust-toolchain }}
+      working-directory: ${{ inputs.working-directory }}
+      package-name: ${{ inputs.package-name }}
+      locked: ${{ inputs.locked }}
+      upload-crate: true
+      artifact-retention-days: ${{ inputs.artifact-retention-days }}
+
+  assets:
+    name: Prepare checksummed release assets
+    needs: preflight
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      tag-name: ${{ steps.release.outputs.tag-name }}
+
+    steps:
+      - name: Download verified crate archive
+        uses: actions/download-artifact@484a0b528fb4d7bd804637ccb632e47a0e638317
+        with:
+          name: rust-crate-${{ needs.preflight.outputs.package-name }}-${{ needs.preflight.outputs.package-version }}
+          path: release-assets
+
+      - name: Generate SHA-256 checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          crate_files=(release-assets/*.crate)
+
+          if [ "${#crate_files[@]}" -ne 1 ]; then
+            echo "Expected exactly one .crate archive, found ${#crate_files[@]}" >&2
+            exit 1
+          fi
+
+          (
+            cd release-assets
+            sha256sum ./*.crate > SHA256SUMS
+          )
+
+      - name: Resolve release identity
+        id: release
+        shell: bash
+        env:
+          PACKAGE_VERSION: ${{ needs.preflight.outputs.package-version }}
+          TAG_PREFIX: ${{ inputs.tag-prefix }}
+          REQUESTED_TAG: ${{ inputs.tag-name }}
+        run: |
+          set -euo pipefail
+          expected_tag="${TAG_PREFIX}${PACKAGE_VERSION}"
+          tag_name="${REQUESTED_TAG:-$expected_tag}"
+
+          if [ "$tag_name" != "$expected_tag" ]; then
+            echo "tag-name must match Cargo package version: expected $expected_tag, got $tag_name" >&2
+            exit 1
+          fi
+
+          echo "tag-name=$tag_name" >> "$GITHUB_OUTPUT"
+
+      - name: Verify checksum file
+        shell: bash
+        run: |
+          set -euo pipefail
+          (
+            cd release-assets
+            sha256sum --check SHA256SUMS
+          )
+
+      - name: Upload prepared release assets
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: rust-release-assets-${{ needs.preflight.outputs.package-name }}-${{ needs.preflight.outputs.package-version }}
+          path: release-assets/*
+          if-no-files-found: error
+          retention-days: ${{ inputs.artifact-retention-days }}
+
+  release:
+    name: Create GitHub Release
+    needs:
+      - preflight
+      - assets
+    if: ${{ !inputs.dry-run }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.release-environment }}
+    permissions:
+      contents: write
+
+    steps:
+      - name: Validate live release context
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          GITHUB_REF_VALUE: ${{ github.ref }}
+          TAG_NAME: ${{ needs.assets.outputs.tag-name }}
+          RELEASE_ENVIRONMENT: ${{ inputs.release-environment }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "$RELEASE_ENVIRONMENT" ]; then
+            echo "release-environment must not be empty for live release creation" >&2
+            exit 1
+          fi
+
+          case "$EVENT_NAME" in
+            workflow_dispatch)
+              ;;
+            push)
+              if [ "$GITHUB_REF_VALUE" != "refs/tags/$TAG_NAME" ]; then
+                echo "Live GitHub Release creation from push requires refs/tags/$TAG_NAME" >&2
+                exit 1
+              fi
+              ;;
+            *)
+              echo "Live GitHub Release creation is blocked for event: $EVENT_NAME" >&2
+              exit 1
+              ;;
+          esac
+
+      - name: Download prepared release assets
+        uses: actions/download-artifact@484a0b528fb4d7bd804637ccb632e47a0e638317
+        with:
+          name: rust-release-assets-${{ needs.preflight.outputs.package-name }}-${{ needs.preflight.outputs.package-version }}
+          path: release-assets
+
+      - name: Verify release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          (
+            cd release-assets
+            sha256sum --check SHA256SUMS
+          )
+
+      - name: Create GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ needs.assets.outputs.tag-name }}
+          RELEASE_TITLE: ${{ inputs.release-title }}
+          GENERATE_NOTES: ${{ inputs.generate-notes }}
+          PRERELEASE: ${{ inputs.prerelease }}
+          DRAFT: ${{ inputs.draft }}
+        run: |
+          set -euo pipefail
+
+          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            echo "GitHub Release already exists for $TAG_NAME" >&2
+            exit 1
+          fi
+
+          title="${RELEASE_TITLE:-$TAG_NAME}"
+          args=(
+            release create "$TAG_NAME"
+            release-assets/*
+            --verify-tag
+            --title "$title"
+          )
+
+          [[ "$GENERATE_NOTES" == "true" ]] && args+=(--generate-notes)
+          [[ "$PRERELEASE" == "true" ]] && args+=(--prerelease)
+          [[ "$DRAFT" == "true" ]] && args+=(--draft)
+
+          gh "${args[@]}"
