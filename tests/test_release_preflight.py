@@ -103,3 +103,14 @@ def test_preflight_rejects_invalid_version(tmp_path: Path) -> None:
     )
 
     assert any("semantic version" in error for error in errors)
+
+
+def test_repository_release_configures_tag_identity() -> None:
+    workflow = Path(".github/workflows/repository-release.yml").read_text(encoding="utf-8")
+
+    assert 'git config user.name "github-actions[bot]"' in workflow
+    assert (
+        'git config user.email "41898282+github-actions[bot]@users.noreply.github.com"'
+        in workflow
+    )
+    assert workflow.index("Configure release tag identity") < workflow.index("Create version tag")
