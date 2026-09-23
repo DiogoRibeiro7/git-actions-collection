@@ -16,6 +16,7 @@ def test_security_scan_inputs_defaults():
     assert inputs["paths"]["default"] == "."
     assert inputs["skip-python-scans"]["default"] is False
     assert inputs["dependency-install-command"]["default"] == ""
+    assert inputs["bandit-args"]["default"] == "-ll -ii"
     assert inputs["skip-trivy"]["default"] is True
     assert inputs["pip-version"]["default"] == "24.3.1"
     assert inputs["skip-npm-signatures"]["default"] is False
@@ -89,3 +90,13 @@ def test_security_scan_can_audit_installed_consumer_dependencies():
 
     assert "--requirement .security-scan-audit-requirements.txt" in scans["run"]
     assert "pip-audit --strict --format sarif" in scans["run"]
+
+
+def test_security_scan_passes_configurable_bandit_args():
+    data = _load_workflow()
+    steps = data["jobs"]["security"]["steps"]
+    scans = next(step for step in steps if step.get("name") == "Python dependency scans")
+
+    assert scans["env"]["BANDIT_ARGS"] == "${{ inputs.bandit-args }}"
+    assert 'read -r -a bandit_args <<< "$BANDIT_ARGS"' in scans["run"]
+    assert '"${bandit_args[@]}"' in scans["run"]

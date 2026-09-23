@@ -15,10 +15,11 @@ jobs:
     with:
       paths: '.'
       dependency-install-command: python -m pip install -e .
+      bandit-args: '-ll -ii'
       skip-trivy: true
       skip-npm-signatures: false
       skip-java-verify: false
       skip-go-verify: false
 ```
 
-The optional `dependency-install-command` lets `pip-audit` inspect the dependency closure installed by the consumer project. Stable consumers may use `@v1`; pin an exact commit SHA when immutable reproducibility is required.
+The optional `dependency-install-command` lets `pip-audit` inspect the dependency closure installed by the consumer project. `bandit-args` controls Bandit's severity/confidence or other CLI flags while preserving `-ll -ii` as the default. Stable consumers may use `@v1`; pin an exact commit SHA when immutable reproducibility is required.

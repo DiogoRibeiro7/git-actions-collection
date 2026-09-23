@@ -18,6 +18,7 @@ jobs:
     with:
       paths: '.'
       dependency-install-command: python -m pip install -e .
+      bandit-args: '-ll -ii'
       skip-trivy: true
       skip-npm-signatures: false
       skip-java-verify: false
