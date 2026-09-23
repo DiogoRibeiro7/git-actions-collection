@@ -6,9 +6,9 @@ from textwrap import dedent
 
 import yaml
 
-CHECKOUT_REF = "08eba0b27e820071cde6df949e0beb9ba4906955"
-SETUP_PYTHON_REF = "a26af69be951a213d495a4c3e4e4022e16d87065"
-SETUP_NODE_REF = "49933ea5288caeca8642d1e84afbd3f7d6820020"
+CHECKOUT_REF = "fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09"
+SETUP_PYTHON_REF = "ece7cb06caefa5fff74198d8649806c4678c61a1"
+SETUP_NODE_REF = "249970729cb0ef3589644e2896645e5dc5ba9c38"
 REPO = "DiogoRibeiro7/git-actions-collection"
 CONSUMER_REF = "main"
 
