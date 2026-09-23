@@ -23,7 +23,7 @@ jobs:
         working-directory: ${{ inputs.working-directory }}
         shell: bash
     steps:
-      - uses: actions/checkout@5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
 
       # --- Common: actionlint for any nested workflows under this path
       - name: Install actionlint
@@ -70,13 +70,13 @@ jobs:
       # --- Kind-specific setup
       - name: Setup Python
         if: inputs.kind == 'python' || inputs.kind == 'monorepo'
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
           python-version: '3.12'
 
       - name: Setup Node.js
         if: inputs.kind == 'node' || inputs.kind == 'monorepo'
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
           node-version: '20'
 
