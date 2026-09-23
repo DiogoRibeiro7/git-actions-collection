@@ -165,8 +165,11 @@ jobs:
       - name: Validate live release context
         shell: bash
         env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           EVENT_NAME: ${{ github.event_name }}
           GITHUB_REF_VALUE: ${{ github.ref }}
+          BUILD_SHA: ${{ github.sha }}
           TAG_NAME: ${{ needs.assets.outputs.tag-name }}
           RELEASE_ENVIRONMENT: ${{ inputs.release-environment }}
         run: |
@@ -192,6 +195,17 @@ jobs:
               ;;
           esac
 
+          # The assets were packaged from github.sha, so the tag must point there.
+          if ! tag_sha="$(gh api "repos/$GH_REPO/commits/refs/tags/$TAG_NAME" --jq .sha)"; then
+            echo "Release tag $TAG_NAME does not exist or could not be resolved" >&2
+            exit 1
+          fi
+
+          if [ "$tag_sha" != "$BUILD_SHA" ]; then
+            echo "Tag $TAG_NAME points to $tag_sha, but the release assets were built from $BUILD_SHA" >&2
+            exit 1
+          fi
+
       - name: Download prepared release assets
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
         with:
@@ -211,6 +225,7 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           TAG_NAME: ${{ needs.assets.outputs.tag-name }}
           RELEASE_TITLE: ${{ inputs.release-title }}
           GENERATE_NOTES: ${{ inputs.generate-notes }}
@@ -219,8 +234,12 @@ jobs:
         run: |
           set -euo pipefail
 
-          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
-            echo "GitHub Release already exists for $TAG_NAME" >&2
+          # Only a definite "not found" may proceed; any other lookup error fails closed.
+          if lookup="$(gh release view "$TAG_NAME" --json url --jq .url 2>&1)"; then
+            echo "GitHub Release already exists for $TAG_NAME: $lookup" >&2
+            exit 1
+          elif [ "$lookup" != "release not found" ]; then
+            echo "Could not check for an existing GitHub Release for $TAG_NAME: $lookup" >&2
             exit 1
           fi
 
