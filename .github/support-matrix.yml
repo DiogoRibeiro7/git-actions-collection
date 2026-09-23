@@ -91,6 +91,7 @@ workflows:
     - multi-cloud-deploy.yml
     - npm-publish.yml
     - pypi-publish.yml
+    - rust-github-release.yml
     - rust-publish.yml
     - pytorch-train-deploy.yml
     - release.yml
@@ -114,6 +115,7 @@ workflows:
     - test-rust-ci.yml
     - test-rust-coverage.yml
     - test-rust-docs.yml
+    - test-rust-github-release.yml
     - test-rust-publish.yml
     - test-rust-quality.yml
     - test-rust-release-preflight.yml
