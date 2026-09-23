@@ -61,7 +61,7 @@ runs:
         INPUT_PATHS: ${{ inputs.paths }}
         INPUT_SMART_UPDATE: ${{ inputs.smart-update }}
     - if: inputs.update-pyproject == 'true' && inputs.create-pr == 'true' && steps.check.outputs.missing != ''
-      uses: peter-evans/create-pull-request@4e1beaa7521e8b457b572c090b25bd3db56bf1c5
+      uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1
       with:
         commit-message: "chore: add missing deps"
         title: "chore: add missing deps"
