@@ -2,6 +2,18 @@
 
 All notable changes to this repository are documented here.
 
+## 1.1.0 - 2026-09-23
+
+### Added
+
+- Added a post-v1 ecosystem expansion roadmap covering stronger workflow contracts, Rust, R, Ruby, Go, JVM, Node/TypeScript, scientific and LaTeX projects, release engineering, supply-chain controls, CI efficiency, and developer tooling.
+- Added the optional `dependency-install-command` input to the supported `security-scan.yml` reusable workflow so callers can install their real dependency set before `pip-audit` runs.
+
+### Changed
+
+- `security-scan.yml` can now freeze the consumer project's resolved dependency closure before scanner tooling is installed and audit that captured set instead of only the runner environment.
+- Updated the maintained security-scan example and contract tests for consumer dependency auditing.
+
 ## 1.0.0 - 2026-09-23
 
 First stable release of the GitHub Actions collection.
