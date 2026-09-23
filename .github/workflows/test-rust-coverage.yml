@@ -1,0 +1,30 @@
+name: Test Rust Coverage Workflow
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/rust-coverage.yml'
+      - '.github/workflows/test-rust-coverage.yml'
+      - 'examples/rust-crate/**'
+      - 'tests/python/test_rust_coverage_workflow.py'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  rust-coverage-example:
+    uses: ./.github/workflows/rust-coverage.yml
+    with:
+      rust-toolchain: stable
+      working-directory: examples/rust-crate
+      locked: false
+      features: extra
+      minimum-line-coverage: 50
+      artifact-retention-days: 1
