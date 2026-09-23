@@ -104,6 +104,7 @@ See [ROADMAP.md](ROADMAP.md) for the planned expansion of the supported workflow
 | `python-test-matrix.yml` | Configurable Python test matrix across Python and OS versions. |
 | `rust-benchmark.yml` | Criterion benchmark smoke checks with short configurable sampling. |
 | `rust-quality.yml` | Reusable Rust formatting and Clippy quality gate. |
+| `rust-release-preflight.yml` | Validate Rust release metadata and verify `cargo package` before publication. |
 | `rust-coverage.yml` | Rust test coverage with `cargo-llvm-cov`, LCOV artifacts, and optional thresholds. |
 | `rust-docs.yml` | Strict Rust documentation builds with rustdoc warnings treated as errors. |
 | `rust-security.yml` | Rust dependency vulnerability auditing with RustSec `cargo-audit`. |
