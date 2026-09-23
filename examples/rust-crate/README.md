@@ -20,6 +20,18 @@ saving is an optimisation only: cache failures are allowed to continue and there
 cannot turn a valid build into a CI failure. Set `use-cache: false` when a repository
 needs a fully cold CI run, or `cache-targets: false` to cache only Cargo registry data.
 
+For repositories that want a separate fast quality gate, use the dedicated
+`rust-quality.yml` workflow. It runs `rustfmt` and Clippy without running the
+full test suite:
+
+```yaml
+jobs:
+  quality:
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/rust-quality.yml@v1
+    with:
+      all-features: true
+```
+
 Projects that need explicit Cargo features can pass `features`, `all-features`, or
 `no-default-features`. Compatibility testing is opt-in so ordinary pull requests
 do not automatically multiply Actions usage:
