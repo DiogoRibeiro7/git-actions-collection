@@ -16,7 +16,7 @@ None
 ## Example
 
 ```yaml
-- uses: DiogoRibeiro7/git-actions-collection/.github/actions/setup-yarn@main
+- uses: DiogoRibeiro7/git-actions-collection/.github/actions/setup-yarn@v1
   with:
     node-version: '20'
     working-directory: frontend

@@ -14,7 +14,7 @@ on:
 # Pre-v1 note: @main is the canonical evaluation ref; pin an exact SHA for production.
 jobs:
   publish:
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/pypi-publish.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/pypi-publish.yml@v1
     with:
       python-version: '3.12'
 """

@@ -12,6 +12,11 @@ on:
         required: false
         type: string
         default: 'build'
+      working-directory:
+        description: 'Directory containing the Python package'
+        required: false
+        type: string
+        default: '.'
       environment:
         description: 'Deployment environment name (for protection rules)'
         required: false
@@ -34,6 +39,9 @@ jobs:
   publish:
     environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
       - uses: actions/setup-python@cfd55ca82492758d853442341ad4d8010466803a

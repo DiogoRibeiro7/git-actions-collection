@@ -10,7 +10,7 @@ on:
   pull_request:
 jobs:
   go:
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/go-ci.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/go-ci.yml@v1
 ```
 
-Until the first stable release is cut, examples use `@main`. For production adoption, pin an exact commit SHA.
+Examples use the stable `@v1` tag. Pin an exact commit SHA when immutable reproducibility is required.

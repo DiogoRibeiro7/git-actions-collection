@@ -6,12 +6,12 @@ The repository centralises automation that would otherwise be copied between pro
 
 ## Status
 
-> **Pre-v1 personal toolkit.** `main` is the canonical development and consumer branch. Distribution is directly through GitHub refs and Releases; there is no Marketplace or package-registry publication for this repository.
+> **Stable v1 personal toolkit.** `main` is the canonical development branch. Stable consumers should use the moving `@v1` tag or an exact commit SHA. Distribution is directly through GitHub refs and Releases; there is no Marketplace or package-registry publication for this repository.
 
 - All normal development targets `main` through pull requests.
-- Consumers evaluating the collection may reference `@main`.
-- Production consumers should prefer an exact commit SHA until the first stable major tag is published.
-- The remaining v1 hardening work will define the supported surface and publish versioned release tags.
+- Supported components follow the compatibility policy documented in [SUPPORT.md](SUPPORT.md).
+- Stable consumers should use `@v1`; exact commit SHAs provide the strongest reproducibility.
+- Reference and experimental workflows remain available but do not receive the same v1 compatibility guarantee.
 
 ## What is in the repository
 
@@ -60,7 +60,7 @@ The collection covers a broad set of stacks, but the most useful pieces are the 
 
 ## Using a reusable workflow
 
-During the pre-v1 period, `main` is the canonical evaluation branch:
+Stable consumers should use the moving major tag `v1`:
 
 ```yaml
 name: Python CI
@@ -71,12 +71,12 @@ on:
 
 jobs:
   tests:
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/python-test-matrix.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/python-test-matrix.yml@v1
     with:
       python-versions: '["3.11", "3.12"]'
 ```
 
-For production use before the first stable release, prefer the exact commit SHA you have validated.
+For maximum reproducibility, pin the exact commit SHA you have validated.
 
 ## Using a composite action
 
@@ -84,10 +84,10 @@ For production use before the first stable release, prefer the exact commit SHA 
 steps:
   - uses: actions/checkout@v4
   - name: Check Python imports
-    uses: DiogoRibeiro7/git-actions-collection/.github/actions/check-imports@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/actions/check-imports@v1
 ```
 
-The same pinning rule applies: use a commit SHA when reproducibility matters.
+The same rule applies to composite actions: use `@v1` for stable major-version tracking or an exact SHA for immutable reproducibility.
 
 ## Support policy
 
@@ -170,18 +170,11 @@ Where a workflow performs a privileged operation, prefer:
 4. protected environments for publication and deployment;
 5. exact repository commit or release pins for reusable workflows.
 
-## Road to v1
+## Versioning and releases
 
-The first stable release will be cut only after the repository has a smaller, explicit support contract. The current hardening sequence is:
+The v1 support surface is deliberately smaller than the full catalogue. Supported components are covered by the compatibility policy in [SUPPORT.md](SUPPORT.md), while reference and experimental workflows can continue evolving independently.
 
-1. classify workflows and actions as supported, reference, or experimental;
-2. audit third-party action pins and permissions;
-3. ensure every advertised supported example is exercised in CI;
-4. publish the first versioned GitHub release and stable major tag.
-
-The release procedure and compatibility rules are documented in [RELEASES.md](RELEASES.md). Repository releases are manual and do not trigger the reusable package/container publishing workflows.
-
-That sequence deliberately favours a smaller reliable surface over a larger catalogue of unchecked snippets.
+Repository releases are manual and follow [RELEASES.md](RELEASES.md). Stable releases publish an immutable exact tag such as `v1.0.0` and update the moving `v1` tag. Repository releases do not publish this collection to PyPI, npm, a container registry, or GitHub Marketplace.
 
 ## Contributing
 

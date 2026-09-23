@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
-      - uses: DiogoRibeiro7/git-actions-collection/.github/actions/smart-dependency-update@main
+      - uses: DiogoRibeiro7/git-actions-collection/.github/actions/smart-dependency-update@v1
         with:
           manifests: "package.json pyproject.toml"
           apply: "true"

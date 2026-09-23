@@ -10,7 +10,7 @@ CHECKOUT_REF = "fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09"
 SETUP_PYTHON_REF = "ece7cb06caefa5fff74198d8649806c4678c61a1"
 SETUP_NODE_REF = "249970729cb0ef3589644e2896645e5dc5ba9c38"
 REPO = "DiogoRibeiro7/git-actions-collection"
-CONSUMER_REF = "main"
+CONSUMER_REF = "v1"
 
 
 def python_workflow(branch: str) -> str:

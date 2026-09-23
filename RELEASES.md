@@ -7,7 +7,7 @@ This repository is primarily a personal library of reusable GitHub Actions and w
 - `main` is the only permanent development branch.
 - Changes reach `main` through pull requests.
 - Feature, fix, and maintenance branches are temporary.
-- Consumers may use `@main` for evaluation, but production consumers should prefer immutable commit SHAs until a stable release is published.
+- `@v1` is for development and evaluation. Stable consumers should use the moving major tag such as `@v1` or an exact commit SHA.
 
 ## Stable releases
 
@@ -18,7 +18,7 @@ Stable releases use semantic version tags:
 
 The exact tag is immutable. The moving major tag is advanced to the latest compatible release in that major series.
 
-Once `v1` exists, normal consumers should use one of these forms:
+Stable consumers should use one of these forms:
 
 ```yaml
 uses: DiogoRibeiro7/git-actions-collection/.github/workflows/python-test-matrix.yml@v1

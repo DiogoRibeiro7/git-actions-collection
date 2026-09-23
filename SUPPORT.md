@@ -68,9 +68,8 @@ A reference or experimental workflow can move to supported when it has:
 ## Versioning
 
 The versioning and release process are defined in [RELEASES.md](RELEASES.md).
-Once the first stable release exists, supported consumers may use the moving
-major tag such as `@v1`. Exact commit SHAs remain the strongest reproducibility
-option.
+Supported consumers should normally use the moving major tag `@v1`. Exact
+commit SHAs remain the strongest reproducibility option.
 
 Reference and experimental components do not receive the same compatibility
 guarantee merely because they are reachable through a `v1` tag.

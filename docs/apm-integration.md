@@ -18,7 +18,7 @@ details.
 ## Usage
 
 ```yaml
-- uses: DiogoRibeiro7/git-actions-collection/.github/actions/apm-integration@main
+- uses: DiogoRibeiro7/git-actions-collection/.github/actions/apm-integration@v1
   with:
     provider: newrelic
     api-key: ${{ secrets.NR_API_KEY }}
