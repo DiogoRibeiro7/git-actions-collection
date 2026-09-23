@@ -11,7 +11,7 @@ jobs:
 
   test:
     needs: lint
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/python-test-matrix.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/python-test-matrix.yml@v1
     with:
       python-versions: '["3.11","3.12"]'
       test-command: python manage.py test
