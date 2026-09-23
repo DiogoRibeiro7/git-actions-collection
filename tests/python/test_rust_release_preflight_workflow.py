@@ -23,7 +23,7 @@ def test_rust_release_preflight_inputs_are_strict_by_default() -> None:
     assert inputs["rust-toolchain"]["default"] == "stable"
     assert inputs["working-directory"]["default"] == "."
     assert inputs["package-name"]["default"] == ""
-    assert inputs["locked"]["default"] is True
+    assert inputs["locked"]["default"] is False
     assert inputs["require-description"]["default"] is True
     assert inputs["require-repository"]["default"] is True
     assert inputs["require-readme"]["default"] is True
@@ -110,6 +110,6 @@ def test_rust_release_preflight_has_executable_self_test() -> None:
         "rust-toolchain": "stable",
         "working-directory": "examples/rust-crate",
         "package-name": "rust-crate",
-        "locked": True,
+        "locked": False,
         "upload-crate": False,
     }
