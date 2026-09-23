@@ -13,7 +13,7 @@ name: API Tests
 on: [push]
 jobs:
   api-tests:
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/api-testing.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/api-testing.yml@v1
     with:
       openapi-spec: openapi.yaml
       contract-path: postman-collection.json
@@ -22,4 +22,4 @@ jobs:
       run-zap: false
 ```
 
-Until the first stable release is cut, examples use `@main`. For production adoption, pin an exact commit SHA.
+Examples use the stable `@v1` tag. Pin an exact commit SHA when immutable reproducibility is required.
