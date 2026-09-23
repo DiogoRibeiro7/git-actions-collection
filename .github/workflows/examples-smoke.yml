@@ -52,7 +52,7 @@ jobs:
             type: helm
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
       - name: Install actionlint
         run: |
           set -euo pipefail
@@ -97,13 +97,13 @@ jobs:
 
       - name: Setup Python
         if: matrix.type == 'python' || matrix.type == 'monorepo' || matrix.type == 'docker'
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
           python-version: '3.12'
 
       - name: Setup Node.js
         if: matrix.type == 'node' || matrix.type == 'monorepo'
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
           node-version: '20'
 
@@ -238,7 +238,7 @@ jobs:
   references:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
       - name: Enforce repository reference contract
         run: |
           set -euo pipefail
