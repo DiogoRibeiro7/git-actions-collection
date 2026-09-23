@@ -12,7 +12,7 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+    - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
       with:
         node-version: ${{ inputs.node-version }}
 
@@ -23,7 +23,7 @@ runs:
         INPUT_WORKING_DIRECTORY: ${{ inputs.working-directory }}
 
     - name: Cache Yarn
-      uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809
+      uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25
       with:
         path: |
           ${{ inputs.working-directory }}/.yarn/cache
