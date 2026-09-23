@@ -7,8 +7,8 @@ on:
 
 jobs:
   lint:
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/python-lint.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/python-lint.yml@v1
 
   test:
     needs: lint
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/coverage-report.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/coverage-report.yml@v1
