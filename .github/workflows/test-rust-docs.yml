@@ -1,0 +1,30 @@
+name: Test Rust Docs Workflow
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/rust-docs.yml'
+      - '.github/workflows/test-rust-docs.yml'
+      - 'examples/rust-crate/**'
+      - 'tests/python/test_rust_docs_workflow.py'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  rust-docs-example:
+    uses: ./.github/workflows/rust-docs.yml
+    with:
+      rust-toolchain: stable
+      working-directory: examples/rust-crate
+      locked: false
+      features: extra
+      document-private-items: true
+      upload-docs: false
