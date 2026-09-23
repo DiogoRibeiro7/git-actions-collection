@@ -82,7 +82,7 @@ The repository already contains `rust-ci.yml`, but it is currently a reference w
 - [x] Add `cargo-deny` checks for advisories, licences, bans, and duplicate dependency policy.
 - [x] Add `cargo-llvm-cov` coverage reporting.
 - [x] Add documentation builds with warnings treated as errors.
-- [ ] Add optional benchmark smoke checks for Criterion-based projects.
+- [x] Add optional benchmark smoke checks for Criterion-based projects.
 
 ### Rust releases
 

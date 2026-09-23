@@ -89,6 +89,21 @@ The workflow sets `RUSTDOCFLAGS=-D warnings`, so broken intra-doc links and othe
 rustdoc warnings fail CI. Dependency documentation is skipped by default, and generated
 HTML can be uploaded explicitly with `upload-docs: true`.
 
+Criterion benchmarks can be smoke-tested independently:
+
+```yaml
+jobs:
+  benchmark:
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/rust-benchmark.yml@v1
+    with:
+      bench-name: add
+```
+
+The defaults intentionally use short warm-up and measurement windows. This checks that
+benchmark targets compile and execute in CI; it is not a performance-regression threshold.
+Hosted runner timing is too noisy for that to be a reliable default. Criterion output can
+be retained explicitly with `upload-results: true`.
+
 Projects that need explicit Cargo features can pass `features`, `all-features`, or
 `no-default-features`. Compatibility testing is opt-in so ordinary pull requests
 do not automatically multiply Actions usage:

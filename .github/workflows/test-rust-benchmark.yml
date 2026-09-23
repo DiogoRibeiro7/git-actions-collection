@@ -1,0 +1,33 @@
+name: Test Rust Benchmark Workflow
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/rust-benchmark.yml'
+      - '.github/workflows/test-rust-benchmark.yml'
+      - 'examples/rust-crate/**'
+      - 'tests/python/test_rust_benchmark_workflow.py'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  rust-benchmark-example:
+    uses: ./.github/workflows/rust-benchmark.yml
+    with:
+      rust-toolchain: stable
+      working-directory: examples/rust-crate
+      locked: false
+      bench-name: add
+      benchmark-filter: add_two_numbers
+      warm-up-seconds: 0.1
+      measurement-seconds: 0.1
+      sample-size: 10
+      upload-results: false

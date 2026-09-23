@@ -1,0 +1,173 @@
+name: Rust Benchmark Smoke
+
+on:
+  workflow_call:
+    inputs:
+      rust-toolchain:
+        description: Rust toolchain used to build and run benchmarks
+        type: string
+        default: stable
+      working-directory:
+        description: Directory containing Cargo.toml
+        type: string
+        default: .
+      locked:
+        description: Require Cargo.lock to remain unchanged
+        type: boolean
+        default: true
+      features:
+        description: Comma-separated Cargo features to enable
+        type: string
+        default: ''
+      all-features:
+        description: Enable all Cargo features
+        type: boolean
+        default: false
+      no-default-features:
+        description: Disable default Cargo features
+        type: boolean
+        default: false
+      bench-name:
+        description: Optional named benchmark target passed to cargo bench --bench
+        type: string
+        default: ''
+      benchmark-filter:
+        description: Optional Criterion benchmark filter
+        type: string
+        default: ''
+      warm-up-seconds:
+        description: Criterion warm-up time in seconds
+        type: number
+        default: 0.1
+      measurement-seconds:
+        description: Criterion measurement time in seconds
+        type: number
+        default: 0.2
+      sample-size:
+        description: Criterion sample size
+        type: number
+        default: 10
+      upload-results:
+        description: Upload target/criterion as a workflow artifact
+        type: boolean
+        default: false
+      artifact-retention-days:
+        description: Number of days to retain uploaded benchmark results
+        type: number
+        default: 7
+      use-cache:
+        description: Restore and save a best-effort Cargo dependency/build cache
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    name: Rust benchmark smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de
+        with:
+          toolchain: ${{ inputs.rust-toolchain }}
+
+      - name: Restore Rust cache
+        if: inputs.use-cache
+        continue-on-error: true
+        uses: Swatinem/rust-cache@f0d9c3887740aee45f6153b24b3a6b815192ec16
+        with:
+          workspaces: ${{ inputs.working-directory }} -> target
+          cache-targets: true
+          cache-on-failure: false
+
+      - name: Validate benchmark configuration
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          CARGO_ALL_FEATURES: ${{ inputs.all-features }}
+          CARGO_NO_DEFAULT_FEATURES: ${{ inputs.no-default-features }}
+          CARGO_FEATURES: ${{ inputs.features }}
+          WARM_UP_SECONDS: ${{ inputs.warm-up-seconds }}
+          MEASUREMENT_SECONDS: ${{ inputs.measurement-seconds }}
+          SAMPLE_SIZE: ${{ inputs.sample-size }}
+          ARTIFACT_RETENTION_DAYS: ${{ inputs.artifact-retention-days }}
+        run: |
+          set -euo pipefail
+
+          if [ ! -f Cargo.toml ]; then
+            echo "Cargo.toml not found in ${{ inputs.working-directory }}" >&2
+            exit 1
+          fi
+
+          if [[ "$CARGO_ALL_FEATURES" == "true" && "$CARGO_NO_DEFAULT_FEATURES" == "true" ]]; then
+            echo "all-features and no-default-features cannot both be enabled" >&2
+            exit 1
+          fi
+
+          if [[ "$CARGO_ALL_FEATURES" == "true" && -n "$CARGO_FEATURES" ]]; then
+            echo "all-features cannot be combined with an explicit feature list" >&2
+            exit 1
+          fi
+
+          python - "$WARM_UP_SECONDS" "$MEASUREMENT_SECONDS" "$SAMPLE_SIZE" "$ARTIFACT_RETENTION_DAYS" <<'PY'
+          import sys
+
+          warm_up = float(sys.argv[1])
+          measurement = float(sys.argv[2])
+          sample_size = int(float(sys.argv[3]))
+          retention = int(float(sys.argv[4]))
+
+          if warm_up <= 0:
+              raise SystemExit("warm-up-seconds must be greater than 0")
+          if measurement <= 0:
+              raise SystemExit("measurement-seconds must be greater than 0")
+          if sample_size < 10:
+              raise SystemExit("sample-size must be at least 10 for Criterion")
+          if not 1 <= retention <= 90:
+              raise SystemExit("artifact-retention-days must be between 1 and 90")
+          PY
+
+      - name: Run Criterion smoke benchmark
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          CARGO_LOCKED: ${{ inputs.locked }}
+          CARGO_ALL_FEATURES: ${{ inputs.all-features }}
+          CARGO_NO_DEFAULT_FEATURES: ${{ inputs.no-default-features }}
+          CARGO_FEATURES: ${{ inputs.features }}
+          BENCH_NAME: ${{ inputs.bench-name }}
+          BENCHMARK_FILTER: ${{ inputs.benchmark-filter }}
+          WARM_UP_SECONDS: ${{ inputs.warm-up-seconds }}
+          MEASUREMENT_SECONDS: ${{ inputs.measurement-seconds }}
+          SAMPLE_SIZE: ${{ inputs.sample-size }}
+        run: |
+          set -euo pipefail
+
+          cargo_args=(--workspace)
+          [[ "$CARGO_LOCKED" == "true" ]] && cargo_args+=(--locked)
+          [[ "$CARGO_ALL_FEATURES" == "true" ]] && cargo_args+=(--all-features)
+          [[ "$CARGO_NO_DEFAULT_FEATURES" == "true" ]] && cargo_args+=(--no-default-features)
+          [[ -n "$CARGO_FEATURES" ]] && cargo_args+=(--features "$CARGO_FEATURES")
+          [[ -n "$BENCH_NAME" ]] && cargo_args+=(--bench "$BENCH_NAME")
+
+          criterion_args=(
+            --warm-up-time "$WARM_UP_SECONDS"
+            --measurement-time "$MEASUREMENT_SECONDS"
+            --sample-size "$SAMPLE_SIZE"
+          )
+          [[ -n "$BENCHMARK_FILTER" ]] && criterion_args=("$BENCHMARK_FILTER" "${criterion_args[@]}")
+
+          cargo bench "${cargo_args[@]}" -- "${criterion_args[@]}"
+
+      - name: Upload Criterion results
+        if: inputs.upload-results && success()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: rust-criterion-results
+          path: ${{ inputs.working-directory }}/target/criterion
+          if-no-files-found: error
+          retention-days: ${{ inputs.artifact-retention-days }}

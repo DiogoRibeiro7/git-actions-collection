@@ -76,6 +76,7 @@ workflows:
     - release-container.yml
     - release-drafter.yml
     - ruby-ci.yml
+    - rust-benchmark.yml
     - rust-ci.yml
     - rust-coverage.yml
     - rust-docs.yml
@@ -107,6 +108,7 @@ workflows:
     - r-testthat.yml
     - repository-release.yml
     - test-python-test-matrix.yml
+    - test-rust-benchmark.yml
     - test-rust-ci.yml
     - test-rust-coverage.yml
     - test-rust-docs.yml
