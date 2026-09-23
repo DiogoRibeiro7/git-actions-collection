@@ -12,7 +12,7 @@ This reusable workflow deploys infrastructure to AWS, Azure, and GCP using Terra
 ```yaml
 jobs:
   deploy:
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/multi-cloud-deploy.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/multi-cloud-deploy.yml@v1
     with:
       tool: terraform
       environment: prod
