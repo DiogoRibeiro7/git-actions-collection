@@ -15,6 +15,11 @@ jobs:
 
 The default invocation runs the primary Ubuntu/stable quality and test job only.
 
+The primary job also uses a best-effort Cargo cache by default. Cache restoration or
+saving is an optimisation only: cache failures are allowed to continue and therefore
+cannot turn a valid build into a CI failure. Set `use-cache: false` when a repository
+needs a fully cold CI run, or `cache-targets: false` to cache only Cargo registry data.
+
 Projects that need explicit Cargo features can pass `features`, `all-features`, or
 `no-default-features`. Compatibility testing is opt-in so ordinary pull requests
 do not automatically multiply Actions usage:
