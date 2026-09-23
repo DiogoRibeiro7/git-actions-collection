@@ -52,7 +52,7 @@ def test_security_scan_provenance_is_isolated_from_scanners():
 
     provenance_steps = data["jobs"]["provenance"]["steps"]
     uses = {step.get("uses") for step in provenance_steps}
-    assert "actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093" in uses
+    assert "actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131" in uses
     assert "actions/attest-build-provenance@ca0aaa1889e301c8331fbdb338d9475431b75b13" in uses
 
 
