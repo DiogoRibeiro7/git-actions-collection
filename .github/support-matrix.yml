@@ -103,5 +103,6 @@ workflows:
     - r-testthat.yml
     - repository-release.yml
     - test-python-test-matrix.yml
+    - test-rust-ci.yml
     - test-security-scan.yml
     - tests.yml
