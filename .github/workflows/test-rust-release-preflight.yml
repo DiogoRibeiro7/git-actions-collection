@@ -1,0 +1,29 @@
+name: Test Rust Release Preflight Workflow
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/rust-release-preflight.yml'
+      - '.github/workflows/test-rust-release-preflight.yml'
+      - 'examples/rust-crate/**'
+      - 'tests/python/test_rust_release_preflight_workflow.py'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  rust-release-preflight-example:
+    uses: ./.github/workflows/rust-release-preflight.yml
+    with:
+      rust-toolchain: stable
+      working-directory: examples/rust-crate
+      package-name: rust-crate
+      locked: false
+      upload-crate: false

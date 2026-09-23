@@ -1,0 +1,234 @@
+name: Rust Release Preflight
+
+on:
+  workflow_call:
+    inputs:
+      rust-toolchain:
+        description: Rust toolchain used for release verification
+        type: string
+        default: stable
+      working-directory:
+        description: Directory containing Cargo.toml
+        type: string
+        default: .
+      package-name:
+        description: Package to verify; required when multiple publishable workspace crates exist
+        type: string
+        default: ''
+      locked:
+        description: Require Cargo.lock to remain unchanged
+        type: boolean
+        default: false
+      require-description:
+        description: Require package.description
+        type: boolean
+        default: true
+      require-repository:
+        description: Require package.repository
+        type: boolean
+        default: true
+      require-readme:
+        description: Require package.readme
+        type: boolean
+        default: true
+      upload-crate:
+        description: Upload the generated .crate archive
+        type: boolean
+        default: false
+      artifact-retention-days:
+        description: Number of days to retain the generated crate archive
+        type: number
+        default: 7
+      use-cache:
+        description: Restore and save a best-effort Cargo dependency/build cache
+        type: boolean
+        default: true
+    outputs:
+      package-name:
+        description: Resolved Cargo package name
+        value: ${{ jobs.preflight.outputs.package-name }}
+      package-version:
+        description: Resolved Cargo package version
+        value: ${{ jobs.preflight.outputs.package-version }}
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    name: Rust release preflight
+    runs-on: ubuntu-latest
+    outputs:
+      package-name: ${{ steps.metadata.outputs.package-name }}
+      package-version: ${{ steps.metadata.outputs.package-version }}
+
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de
+        with:
+          toolchain: ${{ inputs.rust-toolchain }}
+
+      - name: Restore Rust cache
+        if: inputs.use-cache
+        continue-on-error: true
+        uses: Swatinem/rust-cache@f0d9c3887740aee45f6153b24b3a6b815192ec16
+        with:
+          workspaces: ${{ inputs.working-directory }} -> target
+          cache-targets: true
+          cache-on-failure: false
+
+      - name: Validate release inputs
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          ARTIFACT_RETENTION_DAYS: ${{ inputs.artifact-retention-days }}
+        run: |
+          set -euo pipefail
+
+          if [ ! -f Cargo.toml ]; then
+            echo "Cargo.toml not found in ${{ inputs.working-directory }}" >&2
+            exit 1
+          fi
+
+          python - "$ARTIFACT_RETENTION_DAYS" <<'PY'
+          import sys
+
+          retention = int(float(sys.argv[1]))
+          if not 1 <= retention <= 90:
+              raise SystemExit("artifact-retention-days must be between 1 and 90")
+          PY
+
+      - name: Validate package metadata
+        id: metadata
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          PACKAGE_NAME: ${{ inputs.package-name }}
+          REQUIRE_DESCRIPTION: ${{ inputs.require-description }}
+          REQUIRE_REPOSITORY: ${{ inputs.require-repository }}
+          REQUIRE_README: ${{ inputs.require-readme }}
+        run: |
+          set -euo pipefail
+
+          metadata_file="$RUNNER_TEMP/rust-release-metadata.json"
+          cargo metadata --no-deps --format-version 1 > "$metadata_file"
+
+          python - "$metadata_file" "$PACKAGE_NAME" "$REQUIRE_DESCRIPTION" "$REQUIRE_REPOSITORY" "$REQUIRE_README" "$GITHUB_OUTPUT" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          metadata_path = pathlib.Path(sys.argv[1])
+          requested_name = sys.argv[2].strip()
+          require_description = sys.argv[3].lower() == "true"
+          require_repository = sys.argv[4].lower() == "true"
+          require_readme = sys.argv[5].lower() == "true"
+          output_path = pathlib.Path(sys.argv[6])
+
+          data = json.loads(metadata_path.read_text(encoding="utf-8"))
+          workspace_ids = set(data["workspace_members"])
+          workspace_packages = [
+              package
+              for package in data["packages"]
+              if package["id"] in workspace_ids
+          ]
+          publishable = [
+              package
+              for package in workspace_packages
+              if package.get("publish") != []
+          ]
+
+          if requested_name:
+              matches = [
+                  package
+                  for package in workspace_packages
+                  if package["name"] == requested_name
+              ]
+              if not matches:
+                  raise SystemExit(
+                      f"package-name {requested_name!r} is not a workspace package"
+                  )
+              package = matches[0]
+              if package.get("publish") == []:
+                  raise SystemExit(
+                      f"package {requested_name!r} has publish = false"
+                  )
+          else:
+              if not publishable:
+                  raise SystemExit("no publishable workspace packages found")
+              if len(publishable) > 1:
+                  names = ", ".join(sorted(package["name"] for package in publishable))
+                  raise SystemExit(
+                      "multiple publishable workspace packages found; "
+                      f"set package-name explicitly: {names}"
+                  )
+              package = publishable[0]
+
+          missing = []
+          if not (package.get("license") or package.get("license_file")):
+              missing.append("license or license-file")
+          if require_description and not package.get("description"):
+              missing.append("description")
+          if require_repository and not package.get("repository"):
+              missing.append("repository")
+          if require_readme and not package.get("readme"):
+              missing.append("readme")
+
+          if missing:
+              raise SystemExit(
+                  f"package {package['name']!r} is missing release metadata: "
+                  + ", ".join(missing)
+              )
+
+          if package.get("readme"):
+              readme_path = pathlib.Path(package["readme"])
+              if not readme_path.is_file():
+                  raise SystemExit(
+                      f"package readme does not exist: {readme_path}"
+                  )
+
+          with output_path.open("a", encoding="utf-8") as output:
+              output.write(f"package-name={package['name']}\n")
+              output.write(f"package-version={package['version']}\n")
+          PY
+
+      - name: Package crate
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          PACKAGE_NAME: ${{ steps.metadata.outputs.package-name }}
+          CARGO_LOCKED: ${{ inputs.locked }}
+        run: |
+          set -euo pipefail
+          args=(-p "$PACKAGE_NAME")
+          [[ "$CARGO_LOCKED" == "true" ]] && args+=(--locked)
+
+          cargo package "${args[@]}"
+
+      - name: Verify package archive
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          PACKAGE_NAME: ${{ steps.metadata.outputs.package-name }}
+          PACKAGE_VERSION: ${{ steps.metadata.outputs.package-version }}
+        run: |
+          set -euo pipefail
+          crate_path="target/package/${PACKAGE_NAME}-${PACKAGE_VERSION}.crate"
+
+          if [ ! -s "$crate_path" ]; then
+            echo "Expected crate archive was not generated: $crate_path" >&2
+            exit 1
+          fi
+
+          echo "Verified package archive: $crate_path"
+
+      - name: Upload crate archive
+        if: inputs.upload-crate && success()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: rust-crate-${{ steps.metadata.outputs.package-name }}-${{ steps.metadata.outputs.package-version }}
+          path: ${{ inputs.working-directory }}/target/package/*.crate
+          if-no-files-found: error
+          retention-days: ${{ inputs.artifact-retention-days }}

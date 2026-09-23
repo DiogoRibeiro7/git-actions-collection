@@ -104,6 +104,23 @@ benchmark targets compile and execute in CI; it is not a performance-regression 
 Hosted runner timing is too noisy for that to be a reliable default. Criterion output can
 be retained explicitly with `upload-results: true`.
 
+Before publication, crate metadata and the packaged archive can be verified independently:
+
+```yaml
+jobs:
+  release-preflight:
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/rust-release-preflight.yml@v1
+    with:
+      package-name: rust-crate
+```
+
+The preflight requires release metadata such as licence, description, repository, and
+README by default, then runs a verified `cargo package`. In workspaces with multiple
+publishable crates, `package-name` must be explicit so the workflow never selects a
+release target implicitly. Uploading the generated `.crate` archive is opt-in. Lockfile
+strictness is also opt-in with `locked: true`; by default Cargo may resolve or refresh
+the package lockfile during preflight.
+
 Projects that need explicit Cargo features can pass `features`, `all-features`, or
 `no-default-features`. Compatibility testing is opt-in so ordinary pull requests
 do not automatically multiply Actions usage:
