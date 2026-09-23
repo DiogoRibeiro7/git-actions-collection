@@ -24,6 +24,10 @@ def test_rust_security_inputs_have_safe_defaults() -> None:
     assert inputs["working-directory"]["default"] == "."
     assert inputs["generate-lockfile"]["default"] is True
     assert inputs["ignored-advisories"]["default"] == ""
+    assert inputs["run-cargo-audit"]["default"] is True
+    assert inputs["run-cargo-deny"]["default"] is False
+    assert inputs["cargo-deny-config"]["default"] == "deny.toml"
+    assert inputs["cargo-deny-checks"]["default"] == "advisories,bans,licenses,sources"
 
 
 def test_rust_security_uses_read_only_permissions() -> None:
@@ -44,6 +48,11 @@ def test_rust_security_pins_tooling() -> None:
         == "taiki-e/install-action@7623a79cdfecb99d681017af368ca353d9f49bb5"
     )
     assert steps_by_name["Install cargo-audit"]["with"]["tool"] == "cargo-audit@0.22.2"
+    assert (
+        steps_by_name["Install cargo-deny"]["uses"]
+        == "taiki-e/install-action@7623a79cdfecb99d681017af368ca353d9f49bb5"
+    )
+    assert steps_by_name["Install cargo-deny"]["with"]["tool"] == "cargo-deny@0.20.2"
 
 
 def test_rust_security_handles_missing_lockfiles() -> None:
@@ -53,7 +62,7 @@ def test_rust_security_handles_missing_lockfiles() -> None:
     steps_by_name = {step.get("name"): step for step in steps if step.get("name")}
 
     resolver = steps_by_name["Resolve missing lockfile"]
-    assert resolver["if"] == "inputs.generate-lockfile"
+    assert resolver["if"] == "inputs.generate-lockfile && (inputs.run-cargo-audit || inputs.run-cargo-deny)"
     assert "cargo generate-lockfile" in resolver["run"]
 
     required = steps_by_name["Require Cargo.lock"]["run"]
@@ -71,6 +80,44 @@ def test_rust_security_builds_ignore_arguments_safely() -> None:
     assert audit["working-directory"] == "${{ inputs.working-directory }}"
 
 
+def test_rust_security_cargo_deny_is_opt_in() -> None:
+    """cargo-deny should require explicit policy adoption by the consumer."""
+    data = _load_workflow()
+    steps = data["jobs"]["audit"]["steps"]
+    steps_by_name = {step.get("name"): step for step in steps if step.get("name")}
+
+    assert steps_by_name["Validate cargo-deny policy"]["if"] == "inputs.run-cargo-deny"
+    assert steps_by_name["Install cargo-deny"]["if"] == "inputs.run-cargo-deny"
+    assert steps_by_name["Enforce Rust dependency policy"]["if"] == "inputs.run-cargo-deny"
+
+
+def test_rust_security_validates_deny_checks() -> None:
+    """Only known cargo-deny check names should be accepted."""
+    data = _load_workflow()
+    steps = data["jobs"]["audit"]["steps"]
+    validate = next(
+        step for step in steps if step.get("name") == "Validate cargo-deny policy"
+    )
+
+    for check in ("advisories", "bans", "licenses", "sources"):
+        assert check in validate["run"]
+
+    assert "Unsupported cargo-deny check" in validate["run"]
+
+
+def test_rust_security_runs_cargo_deny_with_argument_array() -> None:
+    """Policy checks should be forwarded without shell interpolation."""
+    data = _load_workflow()
+    steps = data["jobs"]["audit"]["steps"]
+    deny = next(
+        step for step in steps if step.get("name") == "Enforce Rust dependency policy"
+    )
+
+    assert 'args+=("$check")' in deny["run"]
+    assert 'cargo deny --config "$CARGO_DENY_CONFIG" check "${args[@]}"' in deny["run"]
+    assert deny["working-directory"] == "${{ inputs.working-directory }}"
+
+
 def test_rust_security_has_executable_self_test() -> None:
     """Exercise the workflow against the maintained Rust example crate."""
     path = Path(".github/workflows/test-rust-security.yml")
@@ -82,4 +129,7 @@ def test_rust_security_has_executable_self_test() -> None:
         "rust-toolchain": "stable",
         "working-directory": "examples/rust-crate",
         "generate-lockfile": True,
+        "run-cargo-deny": True,
+        "cargo-deny-config": "deny.toml",
+        "cargo-deny-checks": "advisories,bans,licenses,sources",
     }

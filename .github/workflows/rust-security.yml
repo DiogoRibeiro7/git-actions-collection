@@ -19,6 +19,22 @@ on:
         description: Comma-separated RustSec advisory IDs to ignore
         type: string
         default: ''
+      run-cargo-audit:
+        description: Run RustSec cargo-audit
+        type: boolean
+        default: true
+      run-cargo-deny:
+        description: Run cargo-deny policy checks
+        type: boolean
+        default: false
+      cargo-deny-config:
+        description: Path to cargo-deny policy file, relative to working-directory
+        type: string
+        default: deny.toml
+      cargo-deny-checks:
+        description: Comma-separated cargo-deny checks to run
+        type: string
+        default: advisories,bans,licenses,sources
 
 permissions:
   contents: read
@@ -46,7 +62,7 @@ jobs:
           fi
 
       - name: Resolve missing lockfile
-        if: inputs.generate-lockfile
+        if: inputs.generate-lockfile && (inputs.run-cargo-audit || inputs.run-cargo-deny)
         shell: bash
         working-directory: ${{ inputs.working-directory }}
         run: |
@@ -56,6 +72,7 @@ jobs:
           fi
 
       - name: Require Cargo.lock
+        if: inputs.run-cargo-audit || inputs.run-cargo-deny
         shell: bash
         working-directory: ${{ inputs.working-directory }}
         run: |
@@ -66,11 +83,13 @@ jobs:
           fi
 
       - name: Install cargo-audit
+        if: inputs.run-cargo-audit
         uses: taiki-e/install-action@7623a79cdfecb99d681017af368ca353d9f49bb5
         with:
           tool: cargo-audit@0.22.2
 
       - name: Audit Rust dependencies
+        if: inputs.run-cargo-audit
         shell: bash
         working-directory: ${{ inputs.working-directory }}
         env:
@@ -90,3 +109,62 @@ jobs:
           fi
 
           cargo audit "${args[@]}"
+
+      - name: Validate cargo-deny policy
+        if: inputs.run-cargo-deny
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          CARGO_DENY_CONFIG: ${{ inputs.cargo-deny-config }}
+          CARGO_DENY_CHECKS: ${{ inputs.cargo-deny-checks }}
+        run: |
+          set -euo pipefail
+
+          if [ ! -f "$CARGO_DENY_CONFIG" ]; then
+            echo "cargo-deny policy file not found: $CARGO_DENY_CONFIG" >&2
+            exit 1
+          fi
+
+          if [ -z "$CARGO_DENY_CHECKS" ]; then
+            echo "cargo-deny-checks cannot be empty when cargo-deny is enabled" >&2
+            exit 1
+          fi
+
+          IFS=',' read -ra checks <<< "$CARGO_DENY_CHECKS"
+          for raw_check in "${checks[@]}"; do
+            check="${raw_check//[[:space:]]/}"
+            case "$check" in
+              advisories|bans|licenses|sources) ;;
+              *)
+                echo "Unsupported cargo-deny check: $check" >&2
+                exit 1
+                ;;
+            esac
+          done
+
+      - name: Install cargo-deny
+        if: inputs.run-cargo-deny
+        uses: taiki-e/install-action@7623a79cdfecb99d681017af368ca353d9f49bb5
+        with:
+          tool: cargo-deny@0.20.2
+
+      - name: Enforce Rust dependency policy
+        if: inputs.run-cargo-deny
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          CARGO_DENY_CONFIG: ${{ inputs.cargo-deny-config }}
+          CARGO_DENY_CHECKS: ${{ inputs.cargo-deny-checks }}
+        run: |
+          set -euo pipefail
+          args=()
+
+          IFS=',' read -ra checks <<< "$CARGO_DENY_CHECKS"
+          for raw_check in "${checks[@]}"; do
+            check="${raw_check//[[:space:]]/}"
+            if [ -n "$check" ]; then
+              args+=("$check")
+            fi
+          done
+
+          cargo deny --config "$CARGO_DENY_CONFIG" check "${args[@]}"

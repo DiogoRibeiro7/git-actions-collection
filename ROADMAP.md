@@ -79,7 +79,7 @@ The repository already contains `rust-ci.yml`, but it is currently a reference w
 
 - [x] Add a reusable Rust quality workflow for `rustfmt` and Clippy.
 - [x] Add `cargo-audit` vulnerability scanning.
-- [ ] Add `cargo-deny` checks for advisories, licences, bans, and duplicate dependency policy.
+- [x] Add `cargo-deny` checks for advisories, licences, bans, and duplicate dependency policy.
 - [ ] Add `cargo-llvm-cov` coverage reporting.
 - [ ] Add documentation builds with warnings treated as errors.
 - [ ] Add optional benchmark smoke checks for Criterion-based projects.

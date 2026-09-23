@@ -45,6 +45,22 @@ crates that do not commit `Cargo.lock` can use the default temporary lockfile ge
 Known non-applicable RustSec advisories may be passed explicitly through
 `ignored-advisories`.
 
+Projects with an explicit dependency policy can additionally enable `cargo-deny`:
+
+```yaml
+jobs:
+  security:
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/rust-security.yml@v1
+    with:
+      run-cargo-deny: true
+      cargo-deny-config: deny.toml
+      cargo-deny-checks: advisories,bans,licenses,sources
+```
+
+The `deny.toml` remains owned by the consuming project because licence allowlists,
+banned crates, duplicate-version rules, and accepted sources are project policy rather
+than sensible global defaults.
+
 Projects that need explicit Cargo features can pass `features`, `all-features`, or
 `no-default-features`. Compatibility testing is opt-in so ordinary pull requests
 do not automatically multiply Actions usage:
