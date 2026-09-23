@@ -7,6 +7,6 @@ on:
 
 jobs:
   test:
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/deno-ci.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/deno-ci.yml@v1
     with:
       deno-version: '1.x'
