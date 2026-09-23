@@ -1,9 +1,10 @@
 name: Docker Build & Push
+
 on:
   workflow_call:
     inputs:
       image:
-        description: 'Registry image name (e.g., ghcr.io/org/app)'
+        description: 'Registry image name (e.g. ghcr.io/org/app)'
         required: true
         type: string
       context:
@@ -22,10 +23,35 @@ on:
         type: string
         default: 'linux/amd64'
       tags:
-        description: 'Comma-separated list of tags'
+        description: 'Comma- or newline-separated image tags without the image prefix'
         required: false
         type: string
         default: 'latest'
+      build-args:
+        description: 'Build arguments as multiline KEY=VALUE entries'
+        required: false
+        type: string
+        default: ''
+      target:
+        description: 'Optional Dockerfile target stage'
+        required: false
+        type: string
+        default: ''
+      labels:
+        description: 'Apply OCI source/revision/title labels'
+        required: false
+        type: boolean
+        default: true
+      registry:
+        description: 'Container registry hostname for non-ECR login'
+        required: false
+        type: string
+        default: 'ghcr.io'
+      scan:
+        description: 'Scan the published image for HIGH/CRITICAL vulnerabilities'
+        required: false
+        type: boolean
+        default: true
       aws-region:
         description: 'AWS region for ECR (optional)'
         required: false
@@ -35,12 +61,15 @@ on:
         description: 'AWS IAM role to assume for ECR push (optional)'
         required: false
         type: string
+        default: ''
     secrets:
       REGISTRY_USERNAME:
         required: false
       REGISTRY_PASSWORD:
         required: false
+
 permissions: {}
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -50,50 +79,107 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+
       - name: Validate inputs
         shell: bash
+        env:
+          IMAGE: ${{ inputs.image }}
         run: |
           set -euo pipefail
-          case "${{ inputs.image }}" in
-            (*[!a-z0-9./-]*) echo "Invalid image name" >&2; exit 1 ;;
+          if [ -z "$IMAGE" ]; then
+            echo "image is required" >&2
+            exit 1
+          fi
+          case "$IMAGE" in
+            (*[!A-Za-z0-9._/:@-]*) echo "Invalid image name" >&2; exit 1 ;;
           esac
+
       - name: Set up QEMU
         if: inputs.platforms != 'linux/amd64'
         uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435
+
       - name: Configure AWS credentials
         if: inputs.aws-role != ''
         uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502
         with:
           role-to-assume: ${{ inputs.aws-role }}
           aws-region: ${{ inputs.aws-region }}
+
       - name: Login to Amazon ECR
         if: inputs.aws-role != ''
         uses: aws-actions/amazon-ecr-login@062b18b96a7aff071d4dc91bc00c4c1a7945b076
-      - name: Login to GHCR (fallback to custom registry creds)
+
+      - name: Login to registry
         if: inputs.aws-role == ''
         uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef
         with:
-          registry: ghcr.io
+          registry: ${{ inputs.registry }}
           username: ${{ secrets.REGISTRY_USERNAME || github.actor }}
           password: ${{ secrets.REGISTRY_PASSWORD || secrets.GITHUB_TOKEN }}
-      - name: Build & Push
-        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25
+
+      - name: Normalize image tags
+        id: tags
+        shell: bash
+        env:
+          IMAGE: ${{ inputs.image }}
+          TAGS: ${{ inputs.tags }}
+        run: |
+          set -euo pipefail
+          {
+            echo 'value<<EOF'
+            printf '%s\n' "$TAGS" | tr ',' '\n' | sed '/^[[:space:]]*$/d; s/^[[:space:]]*//; s/[[:space:]]*$//' | while IFS= read -r tag; do
+              printf '%s:%s\n' "$IMAGE" "$tag"
+            done
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Generate OCI labels
+        id: metadata
+        if: ${{ inputs.labels }}
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051
+        with:
+          images: ${{ inputs.image }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.title=${{ github.repository }}
+
+      - name: Build and push
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
         with:
           context: ${{ inputs.context }}
           file: ${{ inputs.dockerfile }}
           platforms: ${{ inputs.platforms }}
           push: true
-          tags: ${{ inputs.image }}:${{ inputs.tags }}
+          tags: ${{ steps.tags.outputs.value }}
+          build-args: ${{ inputs.build-args }}
+          target: ${{ inputs.target != '' && inputs.target || '' }}
+          labels: ${{ inputs.labels && steps.metadata.outputs.labels || '' }}
           provenance: true
           sbom: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Select image for vulnerability scan
+        if: ${{ inputs.scan }}
+        id: scan-image
+        shell: bash
+        env:
+          IMAGE: ${{ inputs.image }}
+          TAGS: ${{ inputs.tags }}
+        run: |
+          set -euo pipefail
+          first_tag="$(printf '%s\n' "$TAGS" | tr ',' '\n' | sed '/^[[:space:]]*$/d; s/^[[:space:]]*//; s/[[:space:]]*$//' | head -n1)"
+          echo "ref=$IMAGE:$first_tag" >> "$GITHUB_OUTPUT"
+
       - name: Scan image for vulnerabilities
+        if: ${{ inputs.scan }}
         uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8
         with:
-          image-ref: ${{ inputs.image }}:${{ inputs.tags }}
-          format: 'table'
+          image-ref: ${{ steps.scan-image.outputs.ref }}
+          format: table
           exit-code: '1'
-          severity: 'CRITICAL,HIGH'
+          severity: CRITICAL,HIGH
