@@ -11,13 +11,13 @@ reusable workflows.
 ```yaml
 jobs:
   lint:
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/python-lint.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/python-lint.yml@v1
   test:
     needs: lint
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/coverage-report.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/coverage-report.yml@v1
 ```
 
-Until the first stable release is cut, examples use `@main`. For production adoption, pin an exact commit SHA.
+Examples use the stable `@v1` tag. Pin an exact commit SHA when immutable reproducibility is required.
 
 ## Security Scan
 
@@ -54,7 +54,7 @@ It defaults to TestPyPI to keep releases safe.
 ```yaml
 jobs:
   publish:
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/pypi-publish.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/pypi-publish.yml@v1
     with:
       build-backend: poetry
       environment: pypi
@@ -79,7 +79,7 @@ No secrets are needed; OIDC handles authentication. Flip `pre-release` to `false
 ```yaml
 jobs:
   release:
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/canary-release.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/canary-release.yml@v1
     with:
       project-type: python
       build-backend: poetry
@@ -92,5 +92,5 @@ jobs:
 ```yaml
 steps:
   - uses: actions/checkout@v4
-  - uses: DiogoRibeiro7/git-actions-collection/.github/actions/benchmark-smoke@main
+  - uses: DiogoRibeiro7/git-actions-collection/.github/actions/benchmark-smoke@v1
 ```
