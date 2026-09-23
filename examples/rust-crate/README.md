@@ -163,6 +163,8 @@ GitHub Release assets can be prepared independently from crates.io publication:
 ```yaml
 jobs:
   github-release:
+    permissions:
+      contents: write
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/rust-github-release.yml@v1
     with:
       package-name: rust-crate
@@ -179,6 +181,14 @@ Live release creation requires an existing matching tag and is limited to a manu
 workflow dispatch or a push of that exact tag. The mutating job runs through the selected
 GitHub environment with `contents: write`; dry-run mode only prepares and retains the
 checksummed release assets.
+
+GitHub checks the permissions of every job in a reusable workflow against the calling
+job before it evaluates `if:` conditions. The calling job must therefore grant
+`contents: write` for `rust-github-release.yml` and `id-token: write` for
+`rust-publish.yml` even when `dry-run: true` skips the mutating job; otherwise the run
+fails at startup without creating any jobs. The dry-run jobs themselves still request
+read-only tokens. For pull-request verification that needs no elevated grant, call
+`rust-release-preflight.yml` instead.
 
 Projects that need explicit Cargo features can pass `features`, `all-features`, or
 `no-default-features`. Compatibility testing is opt-in so ordinary pull requests
