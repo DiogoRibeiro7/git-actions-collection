@@ -71,7 +71,7 @@ The repository already contains `rust-ci.yml`, but it is currently a reference w
 - [x] Support `--all-features`, `--no-default-features`, and explicit feature lists.
 - [x] Add optional Linux, macOS, and Windows matrices.
 - [x] Add stable, beta, nightly, and MSRV testing where requested by the consumer.
-- [ ] Add dependency and build caching without making cache correctness part of the build result.
+- [x] Add dependency and build caching without making cache correctness part of the build result.
 - [x] Add Rust example projects and contract tests.
 - [ ] Promote the core Rust workflow from reference to supported after the acceptance criteria are met.
 
