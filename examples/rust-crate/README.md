@@ -177,10 +177,12 @@ The workflow reuses the release preflight, packages exactly one crate, generates
 verifies `SHA256SUMS`, and then attaches both the `.crate` archive and checksum file
 to the GitHub Release. Generated release notes are enabled by default.
 
-Live release creation requires an existing matching tag and is limited to a manual
-workflow dispatch or a push of that exact tag. The mutating job runs through the selected
-GitHub environment with `contents: write`; dry-run mode only prepares and retains the
-checksummed release assets.
+Live release creation requires an existing tag that matches the package version and
+points at the commit the workflow packaged. It is limited to a push of that exact tag or
+a manual workflow dispatch run from the tagged commit, and it never overwrites an existing
+GitHub Release for the tag. The mutating job runs through the selected GitHub environment
+with `contents: write`; dry-run mode only prepares and retains the checksummed release
+assets.
 
 GitHub checks the permissions of every job in a reusable workflow against the calling
 job before it evaluates `if:` conditions. The calling job must therefore grant
