@@ -16,7 +16,7 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+    - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
       with:
         python-version: ${{ inputs.python-version }}
         cache: "pip"
@@ -32,7 +32,7 @@ runs:
       run: bash "${{ github.action_path }}/../../../scripts/setup-poetry/configure-cache.sh"
 
     - name: Cache Poetry virtualenvs
-      uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809
+      uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25
       with:
         path: |
           ~/.cache/pypoetry
