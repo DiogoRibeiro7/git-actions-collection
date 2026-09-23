@@ -1,0 +1,27 @@
+name: Test Rust Security Workflow
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/rust-security.yml'
+      - '.github/workflows/test-rust-security.yml'
+      - 'examples/rust-crate/**'
+      - 'tests/python/test_rust_security_workflow.py'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  rust-security-example:
+    uses: ./.github/workflows/rust-security.yml
+    with:
+      rust-toolchain: stable
+      working-directory: examples/rust-crate
+      generate-lockfile: true
