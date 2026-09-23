@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       rust-toolchain:
-        description: Rust toolchain specification such as stable, beta, nightly, or 1.85.0
+        description: Rust toolchain for the primary quality and test job
         type: string
         default: stable
       working-directory:
@@ -12,27 +12,52 @@ on:
         type: string
         default: .
       locked:
-        description: Require Cargo.lock to remain unchanged during check, Clippy, and tests
+        description: Require Cargo.lock to remain unchanged during Cargo commands
         type: boolean
         default: true
+      features:
+        description: Comma-separated Cargo features to enable
+        type: string
+        default: ''
+      all-features:
+        description: Enable all Cargo features
+        type: boolean
+        default: false
+      no-default-features:
+        description: Disable default Cargo features
+        type: boolean
+        default: false
       run-format:
-        description: Run cargo fmt --check
+        description: Run cargo fmt --check in the primary job
         type: boolean
         default: true
       run-clippy:
-        description: Run Clippy with warnings denied
+        description: Run Clippy with warnings denied in the primary job
         type: boolean
         default: true
       run-tests:
         description: Run the Rust test suite
         type: boolean
         default: true
+      run-compatibility:
+        description: Run the optional OS and toolchain compatibility matrix
+        type: boolean
+        default: false
+      compatibility-toolchains:
+        description: JSON array of toolchains such as stable, beta, nightly, or an MSRV
+        type: string
+        default: '["stable"]'
+      compatibility-os:
+        description: JSON array of GitHub-hosted runner labels for compatibility testing
+        type: string
+        default: '["ubuntu-latest"]'
 
 permissions:
   contents: read
 
 jobs:
   build:
+    name: Primary Rust CI
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
@@ -55,25 +80,122 @@ jobs:
 
       - name: Format check
         if: inputs.run-format
+        shell: bash
         working-directory: ${{ inputs.working-directory }}
         run: cargo fmt --all --check
 
       - name: Cargo check
+        shell: bash
         working-directory: ${{ inputs.working-directory }}
         env:
-          LOCKED_FLAG: ${{ inputs.locked && '--locked' || '' }}
-        run: cargo check --workspace $LOCKED_FLAG
+          CARGO_LOCKED: ${{ inputs.locked }}
+          CARGO_ALL_FEATURES: ${{ inputs.all-features }}
+          CARGO_NO_DEFAULT_FEATURES: ${{ inputs.no-default-features }}
+          CARGO_FEATURES: ${{ inputs.features }}
+        run: |
+          set -euo pipefail
+          args=(--workspace)
+          [[ "$CARGO_LOCKED" == "true" ]] && args+=(--locked)
+          [[ "$CARGO_ALL_FEATURES" == "true" ]] && args+=(--all-features)
+          [[ "$CARGO_NO_DEFAULT_FEATURES" == "true" ]] && args+=(--no-default-features)
+          [[ -n "$CARGO_FEATURES" ]] && args+=(--features "$CARGO_FEATURES")
+          cargo check "${args[@]}"
 
       - name: Clippy
         if: inputs.run-clippy
+        shell: bash
         working-directory: ${{ inputs.working-directory }}
         env:
-          LOCKED_FLAG: ${{ inputs.locked && '--locked' || '' }}
-        run: cargo clippy --workspace $LOCKED_FLAG -- -D warnings
+          CARGO_LOCKED: ${{ inputs.locked }}
+          CARGO_ALL_FEATURES: ${{ inputs.all-features }}
+          CARGO_NO_DEFAULT_FEATURES: ${{ inputs.no-default-features }}
+          CARGO_FEATURES: ${{ inputs.features }}
+        run: |
+          set -euo pipefail
+          args=(--workspace)
+          [[ "$CARGO_LOCKED" == "true" ]] && args+=(--locked)
+          [[ "$CARGO_ALL_FEATURES" == "true" ]] && args+=(--all-features)
+          [[ "$CARGO_NO_DEFAULT_FEATURES" == "true" ]] && args+=(--no-default-features)
+          [[ -n "$CARGO_FEATURES" ]] && args+=(--features "$CARGO_FEATURES")
+          cargo clippy "${args[@]}" -- -D warnings
 
       - name: Tests
         if: inputs.run-tests
+        shell: bash
         working-directory: ${{ inputs.working-directory }}
         env:
-          LOCKED_FLAG: ${{ inputs.locked && '--locked' || '' }}
-        run: cargo test --workspace $LOCKED_FLAG
+          CARGO_LOCKED: ${{ inputs.locked }}
+          CARGO_ALL_FEATURES: ${{ inputs.all-features }}
+          CARGO_NO_DEFAULT_FEATURES: ${{ inputs.no-default-features }}
+          CARGO_FEATURES: ${{ inputs.features }}
+        run: |
+          set -euo pipefail
+          args=(--workspace)
+          [[ "$CARGO_LOCKED" == "true" ]] && args+=(--locked)
+          [[ "$CARGO_ALL_FEATURES" == "true" ]] && args+=(--all-features)
+          [[ "$CARGO_NO_DEFAULT_FEATURES" == "true" ]] && args+=(--no-default-features)
+          [[ -n "$CARGO_FEATURES" ]] && args+=(--features "$CARGO_FEATURES")
+          cargo test "${args[@]}"
+
+  compatibility:
+    name: Compatibility / ${{ matrix.os }} / Rust ${{ matrix.rust }}
+    if: inputs.run-compatibility
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJSON(inputs.compatibility-os) }}
+        rust: ${{ fromJSON(inputs.compatibility-toolchains) }}
+
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de
+        with:
+          toolchain: ${{ matrix.rust }}
+
+      - name: Validate Rust project
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          set -euo pipefail
+          if [ ! -f Cargo.toml ]; then
+            echo "Cargo.toml not found in ${{ inputs.working-directory }}" >&2
+            exit 1
+          fi
+
+      - name: Compatibility check
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          CARGO_LOCKED: ${{ inputs.locked }}
+          CARGO_ALL_FEATURES: ${{ inputs.all-features }}
+          CARGO_NO_DEFAULT_FEATURES: ${{ inputs.no-default-features }}
+          CARGO_FEATURES: ${{ inputs.features }}
+        run: |
+          set -euo pipefail
+          args=(--workspace)
+          [[ "$CARGO_LOCKED" == "true" ]] && args+=(--locked)
+          [[ "$CARGO_ALL_FEATURES" == "true" ]] && args+=(--all-features)
+          [[ "$CARGO_NO_DEFAULT_FEATURES" == "true" ]] && args+=(--no-default-features)
+          [[ -n "$CARGO_FEATURES" ]] && args+=(--features "$CARGO_FEATURES")
+          cargo check "${args[@]}"
+
+      - name: Compatibility tests
+        if: inputs.run-tests
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          CARGO_LOCKED: ${{ inputs.locked }}
+          CARGO_ALL_FEATURES: ${{ inputs.all-features }}
+          CARGO_NO_DEFAULT_FEATURES: ${{ inputs.no-default-features }}
+          CARGO_FEATURES: ${{ inputs.features }}
+        run: |
+          set -euo pipefail
+          args=(--workspace)
+          [[ "$CARGO_LOCKED" == "true" ]] && args+=(--locked)
+          [[ "$CARGO_ALL_FEATURES" == "true" ]] && args+=(--all-features)
+          [[ "$CARGO_NO_DEFAULT_FEATURES" == "true" ]] && args+=(--no-default-features)
+          [[ -n "$CARGO_FEATURES" ]] && args+=(--features "$CARGO_FEATURES")
+          cargo test "${args[@]}"
