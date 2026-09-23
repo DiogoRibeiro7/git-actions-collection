@@ -102,6 +102,7 @@ See [ROADMAP.md](ROADMAP.md) for the planned expansion of the supported workflow
 | Workflow | Purpose |
 | --- | --- |
 | `python-test-matrix.yml` | Configurable Python test matrix across Python and OS versions. |
+| `rust-quality.yml` | Reusable Rust formatting and Clippy quality gate. |
 | `security-scan.yml` | Dependency and static-analysis security checks with SARIF/artifact output. |
 | `pypi-publish.yml` | PyPI publication using trusted publishing/OIDC. |
 | `docker-build-push.yml` | Multi-platform container builds and registry publication. |
