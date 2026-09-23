@@ -31,6 +31,13 @@ jobs:
           ref: main
           fetch-depth: 0
 
+      - name: Configure release tag identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
       - name: Read GitHub default branch
         id: repository
         shell: bash
