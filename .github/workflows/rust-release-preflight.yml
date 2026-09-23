@@ -18,7 +18,7 @@ on:
       locked:
         description: Require Cargo.lock to remain unchanged
         type: boolean
-        default: true
+        default: false
       require-description:
         description: Require package.description
         type: boolean
