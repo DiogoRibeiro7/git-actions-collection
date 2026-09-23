@@ -117,7 +117,8 @@ jobs:
 The preflight requires release metadata such as licence, description, repository, and
 README by default, then runs a verified `cargo package`. In workspaces with multiple
 publishable crates, `package-name` must be explicit so the workflow never selects a
-release target implicitly. Uploading the generated `.crate` archive is opt-in. Lockfile
+release target implicitly; see [`../rust-workspace`](../rust-workspace) for releasing
+several workspace crates together. Uploading the generated `.crate` archive is opt-in. Lockfile
 strictness is also opt-in with `locked: true`; by default Cargo may resolve or refresh
 the package lockfile during preflight.
 
@@ -154,7 +155,8 @@ For a brand-new crate name, the first publication still has to establish ownersh
 before Trusted Publishing can be configured. After that first publish, configure the
 trusted publisher and consider enabling crates.io's Trusted Publishing Only mode.
 
-The reusable publish workflow defaults to `dry-run: true`. Live publishing is allowed
+The reusable publish workflow defaults to `dry-run: true`, which runs only the release
+preflight and requests no OIDC token. Live publishing is allowed
 only from a GitHub Release event, a manual workflow dispatch, or a tag push. Protect
 the caller's `release` environment with the approval rules appropriate to the repository.
 
