@@ -61,6 +61,20 @@ The `deny.toml` remains owned by the consuming project because licence allowlist
 banned crates, duplicate-version rules, and accepted sources are project policy rather
 than sensible global defaults.
 
+Coverage can be run independently with `cargo-llvm-cov`:
+
+```yaml
+jobs:
+  coverage:
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/rust-coverage.yml@v1
+    with:
+      all-features: true
+      minimum-line-coverage: 80
+```
+
+The workflow emits a terminal summary and uploads `lcov.info`. The minimum is
+caller-defined; a value of `0` disables threshold enforcement.
+
 Projects that need explicit Cargo features can pass `features`, `all-features`, or
 `no-default-features`. Compatibility testing is opt-in so ordinary pull requests
 do not automatically multiply Actions usage:
