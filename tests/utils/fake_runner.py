@@ -280,3 +280,67 @@ def run_action(
             stderr="".join(stderr_all),
             outputs=_read_outputs(gh_output),
         )
+
+
+def run_workflow_step(
+    workflow_path: str | Path,
+    job: str,
+    step_name: str,
+    context: Mapping[str, str],
+    env: Mapping[str, str] | None = None,
+    workdir: Path | None = None,
+) -> ActionResult:
+    """Execute one named shell step from a reusable-workflow job.
+
+    Every ``${{ ... }}`` expression in the step must be supplied through
+    *context*, keyed by its expression text (for example ``github.sha``), so a
+    test can never silently run the step with empty values.
+    """
+    data = yaml.safe_load(Path(workflow_path).read_text(encoding="utf-8"))
+    step = next(
+        item for item in data["jobs"][job]["steps"] if item.get("name") == step_name
+    )
+
+    def resolve(value: object) -> str:
+        def replacement(match: re.Match[str]) -> str:
+            expression = match.group(1)
+            if expression not in context:
+                raise KeyError(f"unresolved expression in {step_name!r}: {expression}")
+            return context[expression]
+
+        return re.sub(r"\$\{\{\s*([^}]+?)\s*\}\}", replacement, str(value))
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        cwd = Path(workdir) if workdir else Path(tmpdir)
+        if step.get("working-directory") is not None:
+            cwd = cwd / resolve(step["working-directory"])
+        gh_output = Path(tmpdir) / "github_output"
+        gh_summary = Path(tmpdir) / "github_step_summary"
+        gh_output.write_text("", encoding="utf-8")
+        gh_summary.write_text("", encoding="utf-8")
+
+        run_env = os.environ.copy()
+        run_env.update(
+            {
+                "GITHUB_OUTPUT": str(gh_output),
+                "GITHUB_STEP_SUMMARY": str(gh_summary),
+                "RUNNER_TEMP": tmpdir,
+            }
+        )
+        run_env.update(env or {})
+        run_env.update({key: resolve(value) for key, value in (step.get("env") or {}).items()})
+
+        proc = subprocess.run(
+            ["bash", "-c", resolve(step["run"])],
+            cwd=cwd,
+            env=run_env,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        return ActionResult(
+            code=proc.returncode,
+            stdout=proc.stdout,
+            stderr=proc.stderr,
+            outputs=_read_outputs(gh_output),
+        )
