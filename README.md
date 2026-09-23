@@ -93,6 +93,10 @@ The same rule applies to composite actions: use `@v1` for stable major-version t
 
 The public support surface is intentionally smaller than the full catalogue. See [SUPPORT.md](SUPPORT.md) for the compatibility promise and `.github/support-matrix.yml` for the machine-readable classification of supported, reference, experimental, and internal components.
 
+## Roadmap
+
+See [ROADMAP.md](ROADMAP.md) for the planned expansion of the supported workflow surface, including Rust, R, Ruby, Go, JVM, Node/TypeScript, scientific and LaTeX workflows, release engineering, software-supply-chain controls, CI efficiency, and developer tooling.
+
 ## Selected reusable workflows
 
 | Workflow | Purpose |
