@@ -298,6 +298,19 @@ jobs:
         with:
           sarif_file: trivy.sarif
 
+      - name: Fail on Python scanner findings
+        if: ${{ inputs['skip-python-scans'] == false && always() }}
+        shell: bash
+        env:
+          PIP_AUDIT_STATUS: ${{ steps.python-scans.outputs.pip-audit-status }}
+          BANDIT_STATUS: ${{ steps.python-scans.outputs.bandit-status }}
+        run: |
+          set -euo pipefail
+          if [ "$PIP_AUDIT_STATUS" != "0" ] || [ "$BANDIT_STATUS" != "0" ]; then
+            echo "Python security scan failed: pip-audit=$PIP_AUDIT_STATUS bandit=$BANDIT_STATUS" >&2
+            exit 1
+          fi
+
   provenance:
     name: Generate provenance
     needs: security
