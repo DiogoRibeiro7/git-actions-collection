@@ -9,7 +9,7 @@ jobs:
   lint-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
       - uses: DiogoRibeiro7/git-actions-collection/.github/actions/setup-yarn@main
       - run: yarn lint
       - run: yarn test
