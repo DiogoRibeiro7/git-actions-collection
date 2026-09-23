@@ -20,6 +20,12 @@ permissions:
 
 jobs:
   rust-publish-dry-run:
+    # GitHub checks nested job permissions before evaluating if:, so the
+    # skipped live publish job's id-token grant must be allowed here. The
+    # dry-run job itself still requests only contents: read.
+    permissions:
+      contents: read
+      id-token: write
     uses: ./.github/workflows/rust-publish.yml
     with:
       rust-toolchain: stable

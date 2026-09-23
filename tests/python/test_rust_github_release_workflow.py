@@ -126,6 +126,8 @@ def test_rust_github_release_has_executable_dry_run_self_test() -> None:
 
     smoke = data["jobs"]["rust-github-release-dry-run"]
     assert smoke["uses"] == "./.github/workflows/rust-github-release.yml"
+    # The skipped release job's grant must be allowed or the run fails at startup.
+    assert smoke["permissions"] == {"contents": "write"}
     assert smoke["with"] == {
         "rust-toolchain": "stable",
         "working-directory": "examples/rust-crate",
