@@ -12,7 +12,11 @@ on:
         type: string
         default: .
       package-name:
-        description: Optional package selected with cargo publish -p
+        description: Optional single package selected with cargo publish -p
+        type: string
+        default: ''
+      packages:
+        description: Ordered whitespace- or comma-separated workspace packages to publish; dependencies must be listed before dependents
         type: string
         default: ''
       locked:
@@ -20,59 +24,41 @@ on:
         type: boolean
         default: false
       dry-run:
-        description: Run cargo publish --dry-run instead of uploading to crates.io
+        description: Only verify the publication plan instead of uploading to crates.io
         type: boolean
         default: true
       release-environment:
         description: GitHub environment registered with the crates.io trusted publisher
         type: string
         default: release
+    outputs:
+      packages:
+        description: Space-separated packages verified for publication, in publication order
+        value: ${{ jobs.preflight.outputs.packages }}
 
 permissions:
   contents: read
 
 jobs:
-  dry-run:
-    name: crates.io publish dry run
-    if: inputs.dry-run
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
-
-      - name: Set up Rust
-        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de
-        with:
-          toolchain: ${{ inputs.rust-toolchain }}
-
-      - name: Validate publish inputs
-        shell: bash
-        working-directory: ${{ inputs.working-directory }}
-        run: |
-          set -euo pipefail
-          if [ ! -f Cargo.toml ]; then
-            echo "Cargo.toml not found in ${{ inputs.working-directory }}" >&2
-            exit 1
-          fi
-
-      - name: Dry-run crates.io publish
-        shell: bash
-        working-directory: ${{ inputs.working-directory }}
-        env:
-          PACKAGE_NAME: ${{ inputs.package-name }}
-          CARGO_LOCKED: ${{ inputs.locked }}
-        run: |
-          set -euo pipefail
-          args=(--dry-run)
-          [[ "$CARGO_LOCKED" == "true" ]] && args+=(--locked)
-          [[ -n "$PACKAGE_NAME" ]] && args+=(-p "$PACKAGE_NAME")
-
-          cargo publish "${args[@]}"
+  # Read-only verification of every selected package runs before any upload,
+  # so the protected environment only approves an already-verified plan.
+  preflight:
+    name: Verify crates.io publication plan
+    uses: ./.github/workflows/rust-release-preflight.yml
+    with:
+      rust-toolchain: ${{ inputs.rust-toolchain }}
+      working-directory: ${{ inputs.working-directory }}
+      package-name: ${{ inputs.package-name }}
+      packages: ${{ inputs.packages }}
+      locked: ${{ inputs.locked }}
+      require-description: true
+      require-repository: false
+      require-readme: false
+      use-cache: false
 
   publish:
     name: Publish to crates.io
+    needs: preflight
     if: ${{ !inputs.dry-run }}
     runs-on: ubuntu-latest
     environment: ${{ inputs.release-environment }}
@@ -95,6 +81,7 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           GITHUB_REF_VALUE: ${{ github.ref }}
           RELEASE_ENVIRONMENT: ${{ inputs.release-environment }}
+          PACKAGES: ${{ needs.preflight.outputs.packages }}
         run: |
           set -euo pipefail
 
@@ -105,6 +92,11 @@ jobs:
 
           if [ -z "$RELEASE_ENVIRONMENT" ]; then
             echo "release-environment must not be empty for live publication" >&2
+            exit 1
+          fi
+
+          if [ -z "$PACKAGES" ]; then
+            echo "The preflight did not resolve any packages to publish" >&2
             exit 1
           fi
 
@@ -131,13 +123,17 @@ jobs:
         shell: bash
         working-directory: ${{ inputs.working-directory }}
         env:
-          PACKAGE_NAME: ${{ inputs.package-name }}
+          PACKAGES: ${{ needs.preflight.outputs.packages }}
           CARGO_LOCKED: ${{ inputs.locked }}
           CARGO_REGISTRY_TOKEN: ${{ steps.crates-io-auth.outputs.token }}
         run: |
           set -euo pipefail
+          read -ra names <<< "$PACKAGES"
           args=()
+          for name in "${names[@]}"; do
+            args+=(-p "$name")
+          done
           [[ "$CARGO_LOCKED" == "true" ]] && args+=(--locked)
-          [[ -n "$PACKAGE_NAME" ]] && args+=(-p "$PACKAGE_NAME")
 
+          # Cargo packages and verifies every selected crate before the first upload.
           cargo publish "${args[@]}"
