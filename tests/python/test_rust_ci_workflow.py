@@ -29,6 +29,8 @@ def test_rust_ci_inputs_have_safe_defaults() -> None:
     assert inputs["run-format"]["default"] is True
     assert inputs["run-clippy"]["default"] is True
     assert inputs["run-tests"]["default"] is True
+    assert inputs["use-cache"]["default"] is True
+    assert inputs["cache-targets"]["default"] is True
     assert inputs["run-compatibility"]["default"] is False
     assert inputs["compatibility-toolchains"]["default"] == '["stable"]'
     assert inputs["compatibility-os"]["default"] == '["ubuntu-latest"]'
@@ -73,6 +75,33 @@ def test_rust_ci_honours_working_directory() -> None:
     assert all(
         step["working-directory"] == "${{ inputs.working-directory }}"
         for step in cargo_steps
+    )
+
+
+def test_rust_ci_cache_is_best_effort_and_primary_only() -> None:
+    """Cache failures must never make a correct Rust build fail."""
+    data = _load_workflow()
+    build_steps = data["jobs"]["build"]["steps"]
+    cache_steps = [
+        step
+        for step in build_steps
+        if step.get("uses")
+        == "Swatinem/rust-cache@f0d9c3887740aee45f6153b24b3a6b815192ec16"
+    ]
+
+    assert len(cache_steps) == 1
+    cache = cache_steps[0]
+    assert cache["if"] == "inputs.use-cache"
+    assert cache["continue-on-error"] is True
+    assert cache["with"]["workspaces"] == "${{ inputs.working-directory }} -> target"
+    assert cache["with"]["cache-targets"] == "${{ inputs.cache-targets }}"
+    assert cache["with"]["cache-on-failure"] is False
+
+    compatibility_steps = data["jobs"]["compatibility"]["steps"]
+    assert all(
+        step.get("uses")
+        != "Swatinem/rust-cache@f0d9c3887740aee45f6153b24b3a6b815192ec16"
+        for step in compatibility_steps
     )
 
 
