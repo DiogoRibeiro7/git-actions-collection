@@ -3,6 +3,9 @@ name = "rust-crate"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
+description = "Minimal Rust crate used to exercise reusable GitHub Actions workflows."
+repository = "https://github.com/DiogoRibeiro7/git-actions-collection"
+readme = "README.md"
 
 [features]
 default = []
