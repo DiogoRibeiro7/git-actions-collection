@@ -7,10 +7,11 @@ on:
 
 jobs:
   publish:
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/publish-docker-on-tag.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/docker-build-push.yml@main
     with:
       image: ghcr.io/${{ format('{0}', github.repository) }}
       platforms: linux/amd64,linux/arm64
+      tags: ${{ github.ref_name }},latest
       target: app
       build-args: |
         APP_MESSAGE=Hello from tag
