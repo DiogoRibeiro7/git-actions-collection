@@ -1,0 +1,155 @@
+name: Rust Coverage
+
+on:
+  workflow_call:
+    inputs:
+      rust-toolchain:
+        description: Rust toolchain used for coverage instrumentation
+        type: string
+        default: stable
+      working-directory:
+        description: Directory containing Cargo.toml
+        type: string
+        default: .
+      locked:
+        description: Require Cargo.lock to remain unchanged
+        type: boolean
+        default: true
+      features:
+        description: Comma-separated Cargo features to enable
+        type: string
+        default: ''
+      all-features:
+        description: Enable all Cargo features
+        type: boolean
+        default: false
+      no-default-features:
+        description: Disable default Cargo features
+        type: boolean
+        default: false
+      minimum-line-coverage:
+        description: Minimum total line coverage percentage; 0 disables the threshold
+        type: number
+        default: 0
+      upload-lcov:
+        description: Upload lcov.info as a workflow artifact
+        type: boolean
+        default: true
+      artifact-retention-days:
+        description: Number of days to retain the LCOV artifact
+        type: number
+        default: 7
+      use-cache:
+        description: Restore and save a best-effort Cargo dependency/build cache
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  coverage:
+    name: Rust coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de
+        with:
+          toolchain: ${{ inputs.rust-toolchain }}
+          components: llvm-tools-preview
+
+      - name: Restore Rust cache
+        if: inputs.use-cache
+        continue-on-error: true
+        uses: Swatinem/rust-cache@f0d9c3887740aee45f6153b24b3a6b815192ec16
+        with:
+          workspaces: ${{ inputs.working-directory }} -> target
+          cache-targets: true
+          cache-on-failure: false
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@7623a79cdfecb99d681017af368ca353d9f49bb5
+        with:
+          tool: cargo-llvm-cov@0.9.1
+
+      - name: Validate coverage configuration
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          CARGO_ALL_FEATURES: ${{ inputs.all-features }}
+          CARGO_NO_DEFAULT_FEATURES: ${{ inputs.no-default-features }}
+          CARGO_FEATURES: ${{ inputs.features }}
+          MINIMUM_LINE_COVERAGE: ${{ inputs.minimum-line-coverage }}
+          ARTIFACT_RETENTION_DAYS: ${{ inputs.artifact-retention-days }}
+        run: |
+          set -euo pipefail
+
+          if [ ! -f Cargo.toml ]; then
+            echo "Cargo.toml not found in ${{ inputs.working-directory }}" >&2
+            exit 1
+          fi
+
+          if [[ "$CARGO_ALL_FEATURES" == "true" && "$CARGO_NO_DEFAULT_FEATURES" == "true" ]]; then
+            echo "all-features and no-default-features cannot both be enabled" >&2
+            exit 1
+          fi
+
+          if [[ "$CARGO_ALL_FEATURES" == "true" && -n "$CARGO_FEATURES" ]]; then
+            echo "all-features cannot be combined with an explicit feature list" >&2
+            exit 1
+          fi
+
+          python - "$MINIMUM_LINE_COVERAGE" "$ARTIFACT_RETENTION_DAYS" <<'PY'
+          import sys
+
+          minimum = float(sys.argv[1])
+          retention = int(float(sys.argv[2]))
+
+          if not 0 <= minimum <= 100:
+              raise SystemExit("minimum-line-coverage must be between 0 and 100")
+          if not 1 <= retention <= 90:
+              raise SystemExit("artifact-retention-days must be between 1 and 90")
+          PY
+
+      - name: Generate LCOV coverage
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          CARGO_LOCKED: ${{ inputs.locked }}
+          CARGO_ALL_FEATURES: ${{ inputs.all-features }}
+          CARGO_NO_DEFAULT_FEATURES: ${{ inputs.no-default-features }}
+          CARGO_FEATURES: ${{ inputs.features }}
+          MINIMUM_LINE_COVERAGE: ${{ inputs.minimum-line-coverage }}
+        run: |
+          set -euo pipefail
+          args=(--workspace)
+          [[ "$CARGO_LOCKED" == "true" ]] && args+=(--locked)
+          [[ "$CARGO_ALL_FEATURES" == "true" ]] && args+=(--all-features)
+          [[ "$CARGO_NO_DEFAULT_FEATURES" == "true" ]] && args+=(--no-default-features)
+          [[ -n "$CARGO_FEATURES" ]] && args+=(--features "$CARGO_FEATURES")
+          [[ "$MINIMUM_LINE_COVERAGE" != "0" ]] && args+=(--fail-under-lines "$MINIMUM_LINE_COVERAGE")
+
+          cargo llvm-cov "${args[@]}" --lcov --output-path lcov.info
+
+      - name: Coverage summary
+        if: always()
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          set -euo pipefail
+          if [ -f lcov.info ]; then
+            cargo llvm-cov report --summary-only
+          else
+            echo "Coverage report was not generated." >&2
+          fi
+
+      - name: Upload LCOV report
+        if: inputs.upload-lcov && always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: rust-lcov
+          path: ${{ inputs.working-directory }}/lcov.info
+          if-no-files-found: ignore
+          retention-days: ${{ inputs.artifact-retention-days }}
