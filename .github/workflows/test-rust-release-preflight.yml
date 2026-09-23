@@ -25,5 +25,5 @@ jobs:
       rust-toolchain: stable
       working-directory: examples/rust-crate
       package-name: rust-crate
-      locked: true
+      locked: false
       upload-crate: false
