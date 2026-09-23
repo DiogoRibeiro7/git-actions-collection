@@ -117,7 +117,9 @@ jobs:
 The preflight requires release metadata such as licence, description, repository, and
 README by default, then runs a verified `cargo package`. In workspaces with multiple
 publishable crates, `package-name` must be explicit so the workflow never selects a
-release target implicitly. Uploading the generated `.crate` archive is opt-in.
+release target implicitly. Uploading the generated `.crate` archive is opt-in. Lockfile
+strictness is also opt-in with `locked: true`; by default Cargo may resolve or refresh
+the package lockfile during preflight.
 
 Projects that need explicit Cargo features can pass `features`, `all-features`, or
 `no-default-features`. Compatibility testing is opt-in so ordinary pull requests
