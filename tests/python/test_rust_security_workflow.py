@@ -62,7 +62,7 @@ def test_rust_security_handles_missing_lockfiles() -> None:
     steps_by_name = {step.get("name"): step for step in steps if step.get("name")}
 
     resolver = steps_by_name["Resolve missing lockfile"]
-    assert resolver["if"] == "inputs.generate-lockfile"
+    assert resolver["if"] == "inputs.generate-lockfile && (inputs.run-cargo-audit || inputs.run-cargo-deny)"
     assert "cargo generate-lockfile" in resolver["run"]
 
     required = steps_by_name["Require Cargo.lock"]["run"]
