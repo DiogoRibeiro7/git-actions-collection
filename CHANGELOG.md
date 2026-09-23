@@ -2,6 +2,15 @@
 
 All notable changes to this repository are documented here.
 
+## 1.2.1 - 2026-09-23
+
+### Fixed
+
+- Fixed the supported `security-scan.yml` workflow invoking pip-audit 2.9.0 and Bandit 1.8.6 with unsupported SARIF output flags.
+- Python scanners now emit their supported JSON formats and the workflow converts those reports to SARIF before GitHub code-scanning upload.
+- Scanner tools are installed in an isolated temporary virtual environment so pinned scanner versions no longer mutate the consumer project's environment.
+- Python scanner exit codes are captured so SARIF reports and artifacts are produced before the workflow fails on findings or scanner errors.
+
 ## 1.2.0 - 2026-09-23
 
 ### Added

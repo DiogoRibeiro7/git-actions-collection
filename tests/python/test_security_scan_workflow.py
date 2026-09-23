@@ -86,10 +86,15 @@ def test_security_scan_can_audit_installed_consumer_dependencies():
     assert ".security-scan-audit-requirements.txt" in prepare["run"]
     assert "pip freeze --exclude-editable" in prepare["run"]
 
+    assert "python -m venv .security-scan-tools" in install["run"]
     assert "pip-audit==2.9.0" in install["run"]
+    assert "bandit==1.8.6" in install["run"]
 
     assert "--requirement .security-scan-audit-requirements.txt" in scans["run"]
-    assert "pip-audit --strict --format sarif" in scans["run"]
+    assert "--format json" in scans["run"]
+    assert "-f json -o bandit.json" in scans["run"]
+    assert "--format sarif" not in scans["run"]
+    assert "-f sarif" not in scans["run"]
 
 
 def test_security_scan_passes_configurable_bandit_args():
@@ -100,3 +105,38 @@ def test_security_scan_passes_configurable_bandit_args():
     assert scans["env"]["BANDIT_ARGS"] == "${{ inputs.bandit-args }}"
     assert 'read -r -a bandit_args <<< "$BANDIT_ARGS"' in scans["run"]
     assert '"${bandit_args[@]}"' in scans["run"]
+
+
+def test_security_scan_converts_reports_before_failing_findings():
+    data = _load_workflow()
+    steps = data["jobs"]["security"]["steps"]
+    names = [step.get("name") for step in steps]
+
+    convert_index = names.index("Convert Python scanner reports to SARIF")
+    pip_upload_index = names.index("Upload pip-audit report")
+    bandit_upload_index = names.index("Upload Bandit report")
+    fail_index = names.index("Fail on Python scanner findings")
+
+    assert convert_index < pip_upload_index < fail_index
+    assert convert_index < bandit_upload_index < fail_index
+
+    convert = steps[convert_index]["run"]
+    assert 'Path("pip-audit.sarif").write_text' in convert
+    assert 'Path("bandit.sarif").write_text' in convert
+
+    fail = steps[fail_index]
+    assert fail["env"]["PIP_AUDIT_STATUS"] == "${{ steps.python-scans.outputs.pip-audit-status }}"
+    assert fail["env"]["BANDIT_STATUS"] == "${{ steps.python-scans.outputs.bandit-status }}"
+    assert "exit 1" in fail["run"]
+
+
+def test_python_scanners_do_not_mutate_consumer_environment():
+    data = _load_workflow()
+    steps = data["jobs"]["security"]["steps"]
+    install = next(step for step in steps if step.get("name") == "Install Python scanners")
+
+    assert ".security-scan-tools/bin/python -m pip install" in install["run"]
+    assert not any(
+        line.strip().startswith("python -m pip install pip-audit")
+        for line in install["run"].splitlines()
+    )
