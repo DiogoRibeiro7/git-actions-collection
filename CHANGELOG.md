@@ -2,6 +2,19 @@
 
 All notable changes to this repository are documented here.
 
+## 1.2.0 - 2026-09-23
+
+### Added
+
+- Added the optional `bandit-args` input to the supported `security-scan.yml` reusable workflow so consumers can preserve their own Bandit severity, confidence, and CLI policy while keeping the existing `-ll -ii` default unchanged.
+- Expanded the reference Rust CI workflow with configurable feature sets and compatibility matrices, together with additional example and contract coverage.
+
+### Changed
+
+- Restored readable multi-line shell formatting in the Python dependency-audit path of `security-scan.yml`.
+- Updated the maintained security-scan example and documentation to show explicit Bandit argument control.
+- Updated Rust CI tests, example metadata, documentation, and roadmap progress for the new compatibility inputs.
+
 ## 1.1.0 - 2026-09-23
 
 ### Added
