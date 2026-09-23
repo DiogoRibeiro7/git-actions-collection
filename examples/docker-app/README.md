@@ -23,10 +23,10 @@ Use `.github/workflows/canary.yml` to build an image tagged `:rc` when pushing t
 ```yaml
 jobs:
   release:
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/canary-release.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/canary-release.yml@v1
     with:
       project-type: docker
       image: ghcr.io/${{ github.repository }}
 ```
 
-Until the first stable release is cut, examples use `@main`. For production adoption, pin an exact commit SHA.
+Examples use the stable `@v1` tag. Pin an exact commit SHA when immutable reproducibility is required.
