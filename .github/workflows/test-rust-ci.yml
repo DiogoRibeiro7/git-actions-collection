@@ -25,3 +25,7 @@ jobs:
       rust-toolchain: stable
       working-directory: examples/rust-crate
       locked: false
+      features: extra
+      run-compatibility: true
+      compatibility-toolchains: '["stable"]'
+      compatibility-os: '["ubuntu-latest"]'
