@@ -29,7 +29,7 @@ jobs:
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/python-lint.yml@main
   test:
     needs: lint
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/python-test-matrix.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/python-test-matrix.yml@v1
     with:
       test-command: python manage.py test
   docker:
