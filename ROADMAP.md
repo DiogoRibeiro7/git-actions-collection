@@ -86,8 +86,8 @@ The repository already contains `rust-ci.yml`, but it is currently a reference w
 
 ### Rust releases
 
-- [ ] Validate package metadata before release.
-- [ ] Run `cargo package` as a release preflight.
+- [x] Validate package metadata before release.
+- [x] Run `cargo package` as a release preflight.
 - [ ] Add crates.io publication with protected release environments and the safest available authentication mechanism.
 - [ ] Generate GitHub Releases with checksums and release notes.
 - [ ] Support workspace crates without forcing every crate to publish.
