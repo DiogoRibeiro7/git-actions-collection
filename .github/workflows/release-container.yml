@@ -1,7 +1,12 @@
-name: Release Container
+name: Release Container (compatibility alias)
 
 on:
   workflow_call:
+    secrets:
+      GHCR_USERNAME:
+        required: false
+      GHCR_TOKEN:
+        required: false
 
 permissions:
   contents: read
@@ -10,18 +15,20 @@ permissions:
 
 jobs:
   publish:
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/publish-docker-on-tag.yml@main
+    uses: ./.github/workflows/docker-build-push.yml
     with:
-      image: ghcr.io/${{ github.repository }}
+      image: ${{ format('ghcr.io/{0}', github.repository) }}
       context: .
       dockerfile: Dockerfile
       platforms: linux/amd64,linux/arm64
+      tags: ${{ github.ref_type == 'tag' && format('{0},latest', github.ref_name) || format('{0},latest', github.sha) }}
       target: prod
       build-args: |
         NODE_ENV=production
         API_URL=https://api.example.com
       labels: true
       registry: ghcr.io
+      scan: true
     secrets:
       REGISTRY_USERNAME: ${{ secrets.GHCR_USERNAME }}
       REGISTRY_PASSWORD: ${{ secrets.GHCR_TOKEN }}

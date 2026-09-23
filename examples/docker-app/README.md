@@ -1,7 +1,7 @@
 # Docker app example
 
 This example builds and publishes a container image when a tag is pushed.
-It reuses the [`publish-docker-on-tag`](../../.github/workflows/publish-docker-on-tag.yml) workflow from
+It reuses the canonical [`docker-build-push`](../../.github/workflows/docker-build-push.yml) workflow from
 this repository.
 
 ## Usage

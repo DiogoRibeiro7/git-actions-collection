@@ -100,6 +100,8 @@ def test_legacy_publish_workflows_remain_thin_compatibility_aliases() -> None:
     aliases = {
         "publish-to-pypi.yml": "./.github/workflows/pypi-publish.yml",
         "publish-to-npm.yml": "./.github/workflows/npm-publish.yml",
+        "publish-docker-on-tag.yml": "./.github/workflows/docker-build-push.yml",
+        "release-container.yml": "./.github/workflows/docker-build-push.yml",
     }
 
     for filename, target in aliases.items():

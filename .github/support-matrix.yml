@@ -72,6 +72,8 @@ workflows:
     - python-lint.yml
     - publish-to-npm.yml
     - publish-to-pypi.yml
+    - publish-docker-on-tag.yml
+    - release-container.yml
     - release-drafter.yml
     - ruby-ci.yml
     - rust-ci.yml
@@ -82,10 +84,8 @@ workflows:
     - docker-build-push.yml
     - multi-cloud-deploy.yml
     - npm-publish.yml
-    - publish-docker-on-tag.yml
     - pypi-publish.yml
     - pytorch-train-deploy.yml
-    - release-container.yml
     - release.yml
     - terraform-aws.yml
     - terraform-plan-comment.yml
