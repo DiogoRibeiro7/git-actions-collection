@@ -81,7 +81,7 @@ on:
     branches: [ main ]
 jobs:
   ci:
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/node-ci.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/node-ci.yml@v1
     with:
       node-version: '20'
 ```
