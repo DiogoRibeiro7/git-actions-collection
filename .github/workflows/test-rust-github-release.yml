@@ -21,6 +21,11 @@ permissions:
 
 jobs:
   rust-github-release-dry-run:
+    # GitHub checks nested job permissions before evaluating if:, so the
+    # skipped release job's contents: write grant must be allowed here. The
+    # preflight and asset jobs still request only contents: read.
+    permissions:
+      contents: write
     uses: ./.github/workflows/rust-github-release.yml
     with:
       rust-toolchain: stable
