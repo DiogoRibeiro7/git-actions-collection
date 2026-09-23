@@ -15,6 +15,7 @@ def test_security_scan_inputs_defaults():
     inputs = on_block["workflow_call"]["inputs"]
     assert inputs["paths"]["default"] == "."
     assert inputs["skip-python-scans"]["default"] is False
+    assert inputs["dependency-install-command"]["default"] == ""
     assert inputs["skip-trivy"]["default"] is True
     assert inputs["pip-version"]["default"] == "24.3.1"
     assert inputs["skip-npm-signatures"]["default"] is False
@@ -70,3 +71,21 @@ def test_security_scan_has_executable_self_test():
         "skip-java-verify": True,
         "skip-go-verify": True,
     }
+
+
+def test_security_scan_can_audit_installed_consumer_dependencies():
+    data = _load_workflow()
+    steps = data["jobs"]["security"]["steps"]
+
+    prepare = next(step for step in steps if step.get("name") == "Prepare Python dependency audit target")
+    install = next(step for step in steps if step.get("name") == "Install Python scanners")
+    scans = next(step for step in steps if step.get("name") == "Python dependency scans")
+
+    assert prepare["env"]["DEPENDENCY_INSTALL_COMMAND"] == "${{ inputs.dependency-install-command }}"
+    assert ".security-scan-audit-requirements.txt" in prepare["run"]
+    assert "pip freeze --exclude-editable" in prepare["run"]
+
+    assert "pip-audit==2.9.0" in install["run"]
+
+    assert "--requirement .security-scan-audit-requirements.txt" in scans["run"]
+    assert "pip-audit --strict --format sarif" in scans["run"]

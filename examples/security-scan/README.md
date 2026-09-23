@@ -14,10 +14,11 @@ jobs:
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/security-scan.yml@v1
     with:
       paths: '.'
+      dependency-install-command: python -m pip install -e .
       skip-trivy: true
       skip-npm-signatures: false
       skip-java-verify: false
       skip-go-verify: false
 ```
 
-Until the first stable release is cut, examples use `@main`. For production adoption, pin an exact commit SHA.
+The optional `dependency-install-command` lets `pip-audit` inspect the dependency closure installed by the consumer project. Stable consumers may use `@v1`; pin an exact commit SHA when immutable reproducibility is required.
