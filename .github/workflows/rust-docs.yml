@@ -1,0 +1,139 @@
+name: Rust Docs
+
+on:
+  workflow_call:
+    inputs:
+      rust-toolchain:
+        description: Rust toolchain used to build documentation
+        type: string
+        default: stable
+      working-directory:
+        description: Directory containing Cargo.toml
+        type: string
+        default: .
+      locked:
+        description: Require Cargo.lock to remain unchanged
+        type: boolean
+        default: true
+      features:
+        description: Comma-separated Cargo features to enable
+        type: string
+        default: ''
+      all-features:
+        description: Enable all Cargo features
+        type: boolean
+        default: false
+      no-default-features:
+        description: Disable default Cargo features
+        type: boolean
+        default: false
+      include-dependencies:
+        description: Build documentation for dependencies as well as workspace crates
+        type: boolean
+        default: false
+      document-private-items:
+        description: Include private items in generated documentation
+        type: boolean
+        default: false
+      upload-docs:
+        description: Upload generated HTML documentation as a workflow artifact
+        type: boolean
+        default: false
+      artifact-retention-days:
+        description: Number of days to retain uploaded documentation
+        type: number
+        default: 7
+      use-cache:
+        description: Restore and save a best-effort Cargo dependency/build cache
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  docs:
+    name: Rust documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de
+        with:
+          toolchain: ${{ inputs.rust-toolchain }}
+
+      - name: Restore Rust cache
+        if: inputs.use-cache
+        continue-on-error: true
+        uses: Swatinem/rust-cache@f0d9c3887740aee45f6153b24b3a6b815192ec16
+        with:
+          workspaces: ${{ inputs.working-directory }} -> target
+          cache-targets: true
+          cache-on-failure: false
+
+      - name: Validate documentation configuration
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          CARGO_ALL_FEATURES: ${{ inputs.all-features }}
+          CARGO_NO_DEFAULT_FEATURES: ${{ inputs.no-default-features }}
+          CARGO_FEATURES: ${{ inputs.features }}
+          ARTIFACT_RETENTION_DAYS: ${{ inputs.artifact-retention-days }}
+        run: |
+          set -euo pipefail
+
+          if [ ! -f Cargo.toml ]; then
+            echo "Cargo.toml not found in ${{ inputs.working-directory }}" >&2
+            exit 1
+          fi
+
+          if [[ "$CARGO_ALL_FEATURES" == "true" && "$CARGO_NO_DEFAULT_FEATURES" == "true" ]]; then
+            echo "all-features and no-default-features cannot both be enabled" >&2
+            exit 1
+          fi
+
+          if [[ "$CARGO_ALL_FEATURES" == "true" && -n "$CARGO_FEATURES" ]]; then
+            echo "all-features cannot be combined with an explicit feature list" >&2
+            exit 1
+          fi
+
+          python - "$ARTIFACT_RETENTION_DAYS" <<'PY'
+          import sys
+
+          retention = int(float(sys.argv[1]))
+          if not 1 <= retention <= 90:
+              raise SystemExit("artifact-retention-days must be between 1 and 90")
+          PY
+
+      - name: Build documentation
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          RUSTDOCFLAGS: -D warnings
+          CARGO_LOCKED: ${{ inputs.locked }}
+          CARGO_ALL_FEATURES: ${{ inputs.all-features }}
+          CARGO_NO_DEFAULT_FEATURES: ${{ inputs.no-default-features }}
+          CARGO_FEATURES: ${{ inputs.features }}
+          INCLUDE_DEPENDENCIES: ${{ inputs.include-dependencies }}
+          DOCUMENT_PRIVATE_ITEMS: ${{ inputs.document-private-items }}
+        run: |
+          set -euo pipefail
+          args=(--workspace)
+          [[ "$CARGO_LOCKED" == "true" ]] && args+=(--locked)
+          [[ "$CARGO_ALL_FEATURES" == "true" ]] && args+=(--all-features)
+          [[ "$CARGO_NO_DEFAULT_FEATURES" == "true" ]] && args+=(--no-default-features)
+          [[ -n "$CARGO_FEATURES" ]] && args+=(--features "$CARGO_FEATURES")
+          [[ "$INCLUDE_DEPENDENCIES" != "true" ]] && args+=(--no-deps)
+          [[ "$DOCUMENT_PRIVATE_ITEMS" == "true" ]] && args+=(--document-private-items)
+
+          cargo doc "${args[@]}"
+
+      - name: Upload HTML documentation
+        if: inputs.upload-docs && success()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: rust-docs
+          path: ${{ inputs.working-directory }}/target/doc
+          if-no-files-found: error
+          retention-days: ${{ inputs.artifact-retention-days }}

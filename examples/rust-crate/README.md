@@ -75,6 +75,20 @@ jobs:
 The workflow emits a terminal summary and uploads `lcov.info`. The minimum is
 caller-defined; a value of `0` disables threshold enforcement.
 
+Rust documentation can be enforced independently:
+
+```yaml
+jobs:
+  docs:
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/rust-docs.yml@v1
+    with:
+      all-features: true
+```
+
+The workflow sets `RUSTDOCFLAGS=-D warnings`, so broken intra-doc links and other
+rustdoc warnings fail CI. Dependency documentation is skipped by default, and generated
+HTML can be uploaded explicitly with `upload-docs: true`.
+
 Projects that need explicit Cargo features can pass `features`, `all-features`, or
 `no-default-features`. Compatibility testing is opt-in so ordinary pull requests
 do not automatically multiply Actions usage:
