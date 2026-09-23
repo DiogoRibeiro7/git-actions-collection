@@ -46,7 +46,7 @@ name: Python package
 on: [push]
 jobs:
   ci:
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/python-test-matrix.yml@main
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/python-test-matrix.yml@v1
     with:
       python-versions: '["3.x"]'
 ```
