@@ -158,6 +158,28 @@ The reusable publish workflow defaults to `dry-run: true`. Live publishing is al
 only from a GitHub Release event, a manual workflow dispatch, or a tag push. Protect
 the caller's `release` environment with the approval rules appropriate to the repository.
 
+GitHub Release assets can be prepared independently from crates.io publication:
+
+```yaml
+jobs:
+  github-release:
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/rust-github-release.yml@v1
+    with:
+      package-name: rust-crate
+      tag-name: v0.1.0
+      dry-run: false
+      release-environment: release
+```
+
+The workflow reuses the release preflight, packages exactly one crate, generates and
+verifies `SHA256SUMS`, and then attaches both the `.crate` archive and checksum file
+to the GitHub Release. Generated release notes are enabled by default.
+
+Live release creation requires an existing matching tag and is limited to a manual
+workflow dispatch or a push of that exact tag. The mutating job runs through the selected
+GitHub environment with `contents: write`; dry-run mode only prepares and retains the
+checksummed release assets.
+
 Projects that need explicit Cargo features can pass `features`, `all-features`, or
 `no-default-features`. Compatibility testing is opt-in so ordinary pull requests
 do not automatically multiply Actions usage:
