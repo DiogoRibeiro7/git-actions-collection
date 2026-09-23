@@ -25,3 +25,6 @@ jobs:
       rust-toolchain: stable
       working-directory: examples/rust-crate
       generate-lockfile: true
+      run-cargo-deny: true
+      cargo-deny-config: deny.toml
+      cargo-deny-checks: advisories,bans,licenses,sources
