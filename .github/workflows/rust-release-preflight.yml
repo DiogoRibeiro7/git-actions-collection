@@ -15,6 +15,10 @@ on:
         description: Package to verify; required when multiple publishable workspace crates exist
         type: string
         default: ''
+      packages:
+        description: Ordered whitespace- or comma-separated workspace packages to verify together; dependencies must be listed before dependents
+        type: string
+        default: ''
       locked:
         description: Require Cargo.lock to remain unchanged
         type: boolean
@@ -32,11 +36,11 @@ on:
         type: boolean
         default: true
       upload-crate:
-        description: Upload the generated .crate archive
+        description: Upload the generated .crate archives of the selected packages
         type: boolean
         default: false
       artifact-retention-days:
-        description: Number of days to retain the generated crate archive
+        description: Number of days to retain the generated crate archives
         type: number
         default: 7
       use-cache:
@@ -45,11 +49,17 @@ on:
         default: true
     outputs:
       package-name:
-        description: Resolved Cargo package name
+        description: Resolved Cargo package name when exactly one package is selected
         value: ${{ jobs.preflight.outputs.package-name }}
       package-version:
-        description: Resolved Cargo package version
+        description: Resolved Cargo package version when exactly one package is selected
         value: ${{ jobs.preflight.outputs.package-version }}
+      packages:
+        description: Space-separated selected packages in publication order
+        value: ${{ jobs.preflight.outputs.packages }}
+      artifact-name:
+        description: Name of the uploaded crate archive artifact when upload-crate is true
+        value: ${{ jobs.preflight.outputs.artifact-name }}
 
 permissions:
   contents: read
@@ -61,6 +71,8 @@ jobs:
     outputs:
       package-name: ${{ steps.metadata.outputs.package-name }}
       package-version: ${{ steps.metadata.outputs.package-version }}
+      packages: ${{ steps.metadata.outputs.packages }}
+      artifact-name: ${{ steps.metadata.outputs.artifact-name }}
 
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
@@ -106,6 +118,7 @@ jobs:
         working-directory: ${{ inputs.working-directory }}
         env:
           PACKAGE_NAME: ${{ inputs.package-name }}
+          PACKAGES: ${{ inputs.packages }}
           REQUIRE_DESCRIPTION: ${{ inputs.require-description }}
           REQUIRE_REPOSITORY: ${{ inputs.require-repository }}
           REQUIRE_README: ${{ inputs.require-readme }}
@@ -115,120 +128,213 @@ jobs:
           metadata_file="$RUNNER_TEMP/rust-release-metadata.json"
           cargo metadata --no-deps --format-version 1 > "$metadata_file"
 
-          python - "$metadata_file" "$PACKAGE_NAME" "$REQUIRE_DESCRIPTION" "$REQUIRE_REPOSITORY" "$REQUIRE_README" "$GITHUB_OUTPUT" <<'PY'
+          python - "$metadata_file" "$PACKAGE_NAME" "$PACKAGES" "$REQUIRE_DESCRIPTION" "$REQUIRE_REPOSITORY" "$REQUIRE_README" "$(cargo --version)" "$GITHUB_OUTPUT" "$GITHUB_STEP_SUMMARY" <<'PY'
           import json
           import pathlib
+          import re
           import sys
 
           metadata_path = pathlib.Path(sys.argv[1])
           requested_name = sys.argv[2].strip()
-          require_description = sys.argv[3].lower() == "true"
-          require_repository = sys.argv[4].lower() == "true"
-          require_readme = sys.argv[5].lower() == "true"
-          output_path = pathlib.Path(sys.argv[6])
+          requested_list = [name for name in re.split(r"[\s,]+", sys.argv[3]) if name]
+          require_description = sys.argv[4].lower() == "true"
+          require_repository = sys.argv[5].lower() == "true"
+          require_readme = sys.argv[6].lower() == "true"
+          cargo_version = sys.argv[7]
+          output_path = pathlib.Path(sys.argv[8])
+          summary_path = pathlib.Path(sys.argv[9])
 
           data = json.loads(metadata_path.read_text(encoding="utf-8"))
           workspace_ids = set(data["workspace_members"])
-          workspace_packages = [
-              package
+          workspace = {
+              package["name"]: package
               for package in data["packages"]
               if package["id"] in workspace_ids
-          ]
-          publishable = [
-              package
-              for package in workspace_packages
-              if package.get("publish") != []
-          ]
+          }
 
-          if requested_name:
-              matches = [
-                  package
-                  for package in workspace_packages
-                  if package["name"] == requested_name
+
+          def publish_blocker(package):
+              """Explain why a package cannot go to crates.io, or return None."""
+              registries = package.get("publish")
+              if registries is None or "crates-io" in registries:
+                  return None
+              if registries == []:
+                  return f"package {package['name']!r} has publish = false"
+              return (
+                  f"package {package['name']!r} may only be published to "
+                  + ", ".join(registries)
+              )
+
+
+          if requested_name and requested_list:
+              raise SystemExit("set either package-name or packages, not both")
+
+          requested = requested_list or ([requested_name] if requested_name else [])
+          if requested:
+              duplicates = sorted({name for name in requested if requested.count(name) > 1})
+              if duplicates:
+                  raise SystemExit("packages lists duplicates: " + ", ".join(duplicates))
+              unknown = [name for name in requested if name not in workspace]
+              if unknown:
+                  raise SystemExit(
+                      "not workspace packages: "
+                      + ", ".join(unknown)
+                      + "; available: "
+                      + ", ".join(sorted(workspace))
+                  )
+              blockers = [
+                  blocker
+                  for blocker in (publish_blocker(workspace[name]) for name in requested)
+                  if blocker
               ]
-              if not matches:
-                  raise SystemExit(
-                      f"package-name {requested_name!r} is not a workspace package"
-                  )
-              package = matches[0]
-              if package.get("publish") == []:
-                  raise SystemExit(
-                      f"package {requested_name!r} has publish = false"
-                  )
+              if blockers:
+                  raise SystemExit("; ".join(blockers))
+              selected = [workspace[name] for name in requested]
           else:
+              publishable = sorted(
+                  name for name, package in workspace.items() if not publish_blocker(package)
+              )
               if not publishable:
                   raise SystemExit("no publishable workspace packages found")
               if len(publishable) > 1:
-                  names = ", ".join(sorted(package["name"] for package in publishable))
                   raise SystemExit(
                       "multiple publishable workspace packages found; "
-                      f"set package-name explicitly: {names}"
+                      "set package-name or packages explicitly: " + ", ".join(publishable)
                   )
-              package = publishable[0]
+              selected = [workspace[publishable[0]]]
 
-          missing = []
-          if not (package.get("license") or package.get("license_file")):
-              missing.append("license or license-file")
-          if require_description and not package.get("description"):
-              missing.append("description")
-          if require_repository and not package.get("repository"):
-              missing.append("repository")
-          if require_readme and not package.get("readme"):
-              missing.append("readme")
+          if len(selected) > 1:
+              match = re.search(r"cargo (\d+)\.(\d+)", cargo_version)
+              if not match or (int(match.group(1)), int(match.group(2))) < (1, 90):
+                  raise SystemExit(
+                      "verifying multiple packages together requires Cargo 1.90 or newer; "
+                      f"found {cargo_version!r}"
+                  )
 
-          if missing:
-              raise SystemExit(
-                  f"package {package['name']!r} is missing release metadata: "
-                  + ", ".join(missing)
+          # Cargo publishes a selection in dependency order; the list must say the same.
+          position = {package["name"]: index for index, package in enumerate(selected)}
+          notices = []
+          for package in selected:
+              for dependency in package["dependencies"]:
+                  name = dependency["name"]
+                  if dependency.get("kind") == "dev" or not dependency.get("path"):
+                      continue
+                  if name not in workspace:
+                      continue
+                  blocker = publish_blocker(workspace[name])
+                  if blocker:
+                      raise SystemExit(
+                          f"package {package['name']!r} depends on workspace package "
+                          f"{name!r}, which cannot be published: {blocker}"
+                      )
+                  if name not in position:
+                      notices.append(
+                          f"{package['name']} depends on workspace package {name}, which is "
+                          "not selected; its required version must already be on crates.io"
+                      )
+                  elif position[name] > position[package["name"]]:
+                      raise SystemExit(
+                          f"packages must list {name!r} before {package['name']!r}, "
+                          "which depends on it"
+                      )
+
+          for package in selected:
+              missing = []
+              if not (package.get("license") or package.get("license_file")):
+                  missing.append("license or license-file")
+              if require_description and not package.get("description"):
+                  missing.append("description")
+              if require_repository and not package.get("repository"):
+                  missing.append("repository")
+              if require_readme and not package.get("readme"):
+                  missing.append("readme")
+
+              if missing:
+                  raise SystemExit(
+                      f"package {package['name']!r} is missing release metadata: "
+                      + ", ".join(missing)
+                  )
+
+              if package.get("readme"):
+                  manifest_dir = pathlib.Path(package["manifest_path"]).parent
+                  readme_path = manifest_dir / package["readme"]
+                  if not readme_path.is_file():
+                      raise SystemExit(
+                          f"package readme does not exist: {readme_path}"
+                      )
+
+          for notice in notices:
+              print(f"::notice::{notice}")
+
+          names = [package["name"] for package in selected]
+          crate_files = [f"{package['name']}-{package['version']}.crate" for package in selected]
+          first = selected[0]
+          if len(selected) == 1:
+              artifact_name = f"rust-crate-{first['name']}-{first['version']}"
+          else:
+              artifact_name = (
+                  f"rust-crates-{first['name']}-{first['version']}-and-{len(selected) - 1}-more"
               )
 
-          if package.get("readme"):
-              readme_path = pathlib.Path(package["readme"])
-              if not readme_path.is_file():
-                  raise SystemExit(
-                      f"package readme does not exist: {readme_path}"
-                  )
-
           with output_path.open("a", encoding="utf-8") as output:
-              output.write(f"package-name={package['name']}\n")
-              output.write(f"package-version={package['version']}\n")
+              if len(selected) == 1:
+                  output.write(f"package-name={first['name']}\n")
+                  output.write(f"package-version={first['version']}\n")
+              output.write(f"packages={' '.join(names)}\n")
+              output.write(f"crate-files={' '.join(crate_files)}\n")
+              output.write(f"target-directory={data['target_directory']}\n")
+              output.write(f"artifact-name={artifact_name}\n")
+
+          with summary_path.open("a", encoding="utf-8") as summary:
+              summary.write("## Rust release plan\n\n| Order | Package | Version |\n| --- | --- | --- |\n")
+              for index, package in enumerate(selected, start=1):
+                  summary.write(f"| {index} | `{package['name']}` | `{package['version']}` |\n")
           PY
 
       - name: Package crate
         shell: bash
         working-directory: ${{ inputs.working-directory }}
         env:
-          PACKAGE_NAME: ${{ steps.metadata.outputs.package-name }}
+          PACKAGES: ${{ steps.metadata.outputs.packages }}
           CARGO_LOCKED: ${{ inputs.locked }}
         run: |
           set -euo pipefail
-          args=(-p "$PACKAGE_NAME")
+          read -ra names <<< "$PACKAGES"
+          args=()
+          for name in "${names[@]}"; do
+            args+=(-p "$name")
+          done
           [[ "$CARGO_LOCKED" == "true" ]] && args+=(--locked)
 
           cargo package "${args[@]}"
 
       - name: Verify package archive
         shell: bash
-        working-directory: ${{ inputs.working-directory }}
         env:
-          PACKAGE_NAME: ${{ steps.metadata.outputs.package-name }}
-          PACKAGE_VERSION: ${{ steps.metadata.outputs.package-version }}
+          CRATE_FILES: ${{ steps.metadata.outputs.crate-files }}
+          TARGET_DIRECTORY: ${{ steps.metadata.outputs.target-directory }}
         run: |
           set -euo pipefail
-          crate_path="target/package/${PACKAGE_NAME}-${PACKAGE_VERSION}.crate"
+          read -ra crate_files <<< "$CRATE_FILES"
+          staging_dir="$RUNNER_TEMP/rust-release-crates"
+          mkdir -p "$staging_dir"
 
-          if [ ! -s "$crate_path" ]; then
-            echo "Expected crate archive was not generated: $crate_path" >&2
-            exit 1
-          fi
+          for crate_file in "${crate_files[@]}"; do
+            crate_path="$TARGET_DIRECTORY/package/$crate_file"
+            if [ ! -s "$crate_path" ]; then
+              echo "Expected crate archive was not generated: $crate_path" >&2
+              exit 1
+            fi
 
-          echo "Verified package archive: $crate_path"
+            cp "$crate_path" "$staging_dir/"
+            echo "Verified package archive: $crate_path"
+          done
 
       - name: Upload crate archive
         if: inputs.upload-crate && success()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
-          name: rust-crate-${{ steps.metadata.outputs.package-name }}-${{ steps.metadata.outputs.package-version }}
-          path: ${{ inputs.working-directory }}/target/package/*.crate
+          name: ${{ steps.metadata.outputs.artifact-name }}
+          path: ${{ runner.temp }}/rust-release-crates/*.crate
           if-no-files-found: error
           retention-days: ${{ inputs.artifact-retention-days }}
