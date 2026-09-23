@@ -77,6 +77,7 @@ workflows:
     - release-drafter.yml
     - ruby-ci.yml
     - rust-ci.yml
+    - rust-coverage.yml
     - rust-quality.yml
     - rust-security.yml
   experimental:
@@ -106,6 +107,7 @@ workflows:
     - repository-release.yml
     - test-python-test-matrix.yml
     - test-rust-ci.yml
+    - test-rust-coverage.yml
     - test-rust-quality.yml
     - test-rust-security.yml
     - test-security-scan.yml
