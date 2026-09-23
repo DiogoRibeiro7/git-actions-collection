@@ -65,14 +65,14 @@ The repository already contains `rust-ci.yml`, but it is currently a reference w
 
 ### Core CI
 
-- [ ] Add configurable Rust toolchain inputs.
-- [ ] Add `cargo test` support.
+- [x] Add configurable Rust toolchain inputs.
+- [x] Add `cargo test` support.
 - [ ] Support workspaces and configurable feature sets.
 - [ ] Support `--all-features`, `--no-default-features`, and explicit feature lists.
 - [ ] Add optional Linux, macOS, and Windows matrices.
 - [ ] Add stable, beta, nightly, and MSRV testing where requested by the consumer.
 - [ ] Add dependency and build caching without making cache correctness part of the build result.
-- [ ] Add Rust example projects and contract tests.
+- [x] Add Rust example projects and contract tests.
 - [ ] Promote the core Rust workflow from reference to supported after the acceptance criteria are met.
 
 ### Rust quality and security
