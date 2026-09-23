@@ -103,6 +103,7 @@ See [ROADMAP.md](ROADMAP.md) for the planned expansion of the supported workflow
 | --- | --- |
 | `python-test-matrix.yml` | Configurable Python test matrix across Python and OS versions. |
 | `rust-quality.yml` | Reusable Rust formatting and Clippy quality gate. |
+| `rust-coverage.yml` | Rust test coverage with `cargo-llvm-cov`, LCOV artifacts, and optional thresholds. |
 | `rust-security.yml` | Rust dependency vulnerability auditing with RustSec `cargo-audit`. |
 | `security-scan.yml` | Dependency and static-analysis security checks with SARIF/artifact output. |
 | `pypi-publish.yml` | PyPI publication using trusted publishing/OIDC. |
