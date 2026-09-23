@@ -1,0 +1,143 @@
+name: Rust Publish
+
+on:
+  workflow_call:
+    inputs:
+      rust-toolchain:
+        description: Rust toolchain used for publication
+        type: string
+        default: stable
+      working-directory:
+        description: Directory containing Cargo.toml
+        type: string
+        default: .
+      package-name:
+        description: Optional package selected with cargo publish -p
+        type: string
+        default: ''
+      locked:
+        description: Require Cargo.lock to remain unchanged
+        type: boolean
+        default: false
+      dry-run:
+        description: Run cargo publish --dry-run instead of uploading to crates.io
+        type: boolean
+        default: true
+      release-environment:
+        description: GitHub environment registered with the crates.io trusted publisher
+        type: string
+        default: release
+
+permissions:
+  contents: read
+
+jobs:
+  dry-run:
+    name: crates.io publish dry run
+    if: inputs.dry-run
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de
+        with:
+          toolchain: ${{ inputs.rust-toolchain }}
+
+      - name: Validate publish inputs
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          set -euo pipefail
+          if [ ! -f Cargo.toml ]; then
+            echo "Cargo.toml not found in ${{ inputs.working-directory }}" >&2
+            exit 1
+          fi
+
+      - name: Dry-run crates.io publish
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          PACKAGE_NAME: ${{ inputs.package-name }}
+          CARGO_LOCKED: ${{ inputs.locked }}
+        run: |
+          set -euo pipefail
+          args=(--dry-run)
+          [[ "$CARGO_LOCKED" == "true" ]] && args+=(--locked)
+          [[ -n "$PACKAGE_NAME" ]] && args+=(-p "$PACKAGE_NAME")
+
+          cargo publish "${args[@]}"
+
+  publish:
+    name: Publish to crates.io
+    if: ${{ !inputs.dry-run }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.release-environment }}
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de
+        with:
+          toolchain: ${{ inputs.rust-toolchain }}
+
+      - name: Validate live publication context
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          GITHUB_REF_VALUE: ${{ github.ref }}
+          RELEASE_ENVIRONMENT: ${{ inputs.release-environment }}
+        run: |
+          set -euo pipefail
+
+          if [ ! -f Cargo.toml ]; then
+            echo "Cargo.toml not found in ${{ inputs.working-directory }}" >&2
+            exit 1
+          fi
+
+          if [ -z "$RELEASE_ENVIRONMENT" ]; then
+            echo "release-environment must not be empty for live publication" >&2
+            exit 1
+          fi
+
+          case "$EVENT_NAME" in
+            release|workflow_dispatch)
+              ;;
+            push)
+              if [[ "$GITHUB_REF_VALUE" != refs/tags/* ]]; then
+                echo "Live crates.io publication from push is only allowed for tags" >&2
+                exit 1
+              fi
+              ;;
+            *)
+              echo "Live crates.io publication is blocked for event: $EVENT_NAME" >&2
+              exit 1
+              ;;
+          esac
+
+      - name: Authenticate to crates.io
+        id: crates-io-auth
+        uses: rust-lang/crates-io-auth-action@4920f0933d6c80323414a03df1731d6678d52a1b
+
+      - name: Publish crate
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          PACKAGE_NAME: ${{ inputs.package-name }}
+          CARGO_LOCKED: ${{ inputs.locked }}
+          CARGO_REGISTRY_TOKEN: ${{ steps.crates-io-auth.outputs.token }}
+        run: |
+          set -euo pipefail
+          args=()
+          [[ "$CARGO_LOCKED" == "true" ]] && args+=(--locked)
+          [[ -n "$PACKAGE_NAME" ]] && args+=(-p "$PACKAGE_NAME")
+
+          cargo publish "${args[@]}"

@@ -121,6 +121,43 @@ release target implicitly. Uploading the generated `.crate` archive is opt-in. L
 strictness is also opt-in with `locked: true`; by default Cargo may resolve or refresh
 the package lockfile during preflight.
 
+After the crate already exists on crates.io, subsequent releases can use Trusted
+Publishing without storing an API token:
+
+```yaml
+# .github/workflows/publish.yml
+name: Publish Rust crate
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish:
+    permissions:
+      contents: read
+      id-token: write
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/rust-publish.yml@v1
+    with:
+      package-name: rust-crate
+      dry-run: false
+      release-environment: release
+```
+
+On crates.io, configure the trusted publisher with the consuming repository, the
+**caller workflow filename** (for example `publish.yml`), and the same environment
+name (`release`). The reusable workflow requests a short-lived token through the
+official crates.io OIDC action; it does not accept a stored crates.io token.
+
+For a brand-new crate name, the first publication still has to establish ownership
+before Trusted Publishing can be configured. After that first publish, configure the
+trusted publisher and consider enabling crates.io's Trusted Publishing Only mode.
+
+The reusable publish workflow defaults to `dry-run: true`. Live publishing is allowed
+only from a GitHub Release event, a manual workflow dispatch, or a tag push. Protect
+the caller's `release` environment with the approval rules appropriate to the repository.
+
 Projects that need explicit Cargo features can pass `features`, `all-features`, or
 `no-default-features`. Compatibility testing is opt-in so ordinary pull requests
 do not automatically multiply Actions usage:
