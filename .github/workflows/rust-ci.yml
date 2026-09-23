@@ -38,7 +38,7 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
 
       - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@8e55e3f297cba03fe1be93212606e0ef78e6f710
         with:
           toolchain: ${{ inputs.rust-toolchain }}
           components: rustfmt, clippy
