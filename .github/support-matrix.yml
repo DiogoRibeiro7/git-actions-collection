@@ -81,6 +81,7 @@ workflows:
     - rust-coverage.yml
     - rust-docs.yml
     - rust-quality.yml
+    - rust-release-preflight.yml
     - rust-security.yml
   experimental:
     - aws-lambda-deploy.yml
@@ -113,6 +114,7 @@ workflows:
     - test-rust-coverage.yml
     - test-rust-docs.yml
     - test-rust-quality.yml
+    - test-rust-release-preflight.yml
     - test-rust-security.yml
     - test-security-scan.yml
     - tests.yml
