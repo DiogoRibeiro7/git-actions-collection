@@ -44,8 +44,8 @@ Before expanding the catalogue aggressively, improve the guarantees around every
 - [ ] Add checks for overly broad `permissions` blocks.
 - [ ] Detect mutable or unpinned third-party action references.
 - [ ] Keep `.github/support-matrix.yml`, documentation, examples, and release metadata consistent automatically.
-- [ ] Add a formal deprecation policy for supported workflow inputs and outputs.
-- [ ] Add compatibility tests that fail when a supported public interface changes unexpectedly.
+- [x] Add a formal deprecation policy for supported workflow inputs and outputs.
+- [x] Add compatibility tests that fail when a supported public interface changes unexpectedly.
 - [ ] Extend release preflight checks to validate the complete supported surface.
 - [ ] Add a consumer-reference audit to find stale examples and outdated `@main` or obsolete repository references.
 
