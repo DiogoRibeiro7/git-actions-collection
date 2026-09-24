@@ -476,6 +476,542 @@
       },
       "secrets": {}
     },
+    "rust-benchmark.yml": {
+      "inputs": {
+        "all-features": {
+          "default": false,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "artifact-retention-days": {
+          "default": 7,
+          "deprecated": false,
+          "required": false,
+          "type": "number"
+        },
+        "bench-name": {
+          "default": "",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        },
+        "benchmark-filter": {
+          "default": "",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        },
+        "features": {
+          "default": "",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        },
+        "locked": {
+          "default": true,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "measurement-seconds": {
+          "default": 0.2,
+          "deprecated": false,
+          "required": false,
+          "type": "number"
+        },
+        "no-default-features": {
+          "default": false,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "rust-toolchain": {
+          "default": "stable",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        },
+        "sample-size": {
+          "default": 10,
+          "deprecated": false,
+          "required": false,
+          "type": "number"
+        },
+        "upload-results": {
+          "default": false,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "use-cache": {
+          "default": true,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "warm-up-seconds": {
+          "default": 0.1,
+          "deprecated": false,
+          "required": false,
+          "type": "number"
+        },
+        "working-directory": {
+          "default": ".",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        }
+      },
+      "outputs": [],
+      "permissions": {
+        "contents": "read"
+      },
+      "secrets": {}
+    },
+    "rust-ci.yml": {
+      "inputs": {
+        "all-features": {
+          "default": false,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "cache-targets": {
+          "default": true,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "compatibility-os": {
+          "default": "[\"ubuntu-latest\"]",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        },
+        "compatibility-toolchains": {
+          "default": "[\"stable\"]",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        },
+        "features": {
+          "default": "",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        },
+        "locked": {
+          "default": true,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "no-default-features": {
+          "default": false,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "run-clippy": {
+          "default": true,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "run-compatibility": {
+          "default": false,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "run-format": {
+          "default": true,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "run-tests": {
+          "default": true,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "rust-toolchain": {
+          "default": "stable",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        },
+        "use-cache": {
+          "default": true,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "working-directory": {
+          "default": ".",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        }
+      },
+      "outputs": [],
+      "permissions": {
+        "contents": "read"
+      },
+      "secrets": {}
+    },
+    "rust-coverage.yml": {
+      "inputs": {
+        "all-features": {
+          "default": false,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "artifact-retention-days": {
+          "default": 7,
+          "deprecated": false,
+          "required": false,
+          "type": "number"
+        },
+        "features": {
+          "default": "",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        },
+        "locked": {
+          "default": true,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "minimum-line-coverage": {
+          "default": 0,
+          "deprecated": false,
+          "required": false,
+          "type": "number"
+        },
+        "no-default-features": {
+          "default": false,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "rust-toolchain": {
+          "default": "stable",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        },
+        "upload-lcov": {
+          "default": true,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "use-cache": {
+          "default": true,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "working-directory": {
+          "default": ".",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        }
+      },
+      "outputs": [],
+      "permissions": {
+        "contents": "read"
+      },
+      "secrets": {}
+    },
+    "rust-docs.yml": {
+      "inputs": {
+        "all-features": {
+          "default": false,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "artifact-retention-days": {
+          "default": 7,
+          "deprecated": false,
+          "required": false,
+          "type": "number"
+        },
+        "document-private-items": {
+          "default": false,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "features": {
+          "default": "",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        },
+        "include-dependencies": {
+          "default": false,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "locked": {
+          "default": true,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "no-default-features": {
+          "default": false,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "rust-toolchain": {
+          "default": "stable",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        },
+        "upload-docs": {
+          "default": false,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "use-cache": {
+          "default": true,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "working-directory": {
+          "default": ".",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        }
+      },
+      "outputs": [],
+      "permissions": {
+        "contents": "read"
+      },
+      "secrets": {}
+    },
+    "rust-quality.yml": {
+      "inputs": {
+        "all-features": {
+          "default": false,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "cache-targets": {
+          "default": true,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "features": {
+          "default": "",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        },
+        "locked": {
+          "default": true,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "no-default-features": {
+          "default": false,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "run-clippy": {
+          "default": true,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "run-format": {
+          "default": true,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "rust-toolchain": {
+          "default": "stable",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        },
+        "use-cache": {
+          "default": true,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "working-directory": {
+          "default": ".",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        }
+      },
+      "outputs": [],
+      "permissions": {
+        "contents": "read"
+      },
+      "secrets": {}
+    },
+    "rust-release-preflight.yml": {
+      "inputs": {
+        "artifact-retention-days": {
+          "default": 7,
+          "deprecated": false,
+          "required": false,
+          "type": "number"
+        },
+        "locked": {
+          "default": false,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "package-name": {
+          "default": "",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        },
+        "packages": {
+          "default": "",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        },
+        "require-description": {
+          "default": true,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "require-readme": {
+          "default": true,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "require-repository": {
+          "default": true,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "rust-toolchain": {
+          "default": "stable",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        },
+        "upload-crate": {
+          "default": false,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "use-cache": {
+          "default": true,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "working-directory": {
+          "default": ".",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        }
+      },
+      "outputs": [
+        "artifact-name",
+        "package-name",
+        "package-version",
+        "packages"
+      ],
+      "permissions": {
+        "contents": "read"
+      },
+      "secrets": {}
+    },
+    "rust-security.yml": {
+      "inputs": {
+        "cargo-deny-checks": {
+          "default": "advisories,bans,licenses,sources",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        },
+        "cargo-deny-config": {
+          "default": "deny.toml",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        },
+        "generate-lockfile": {
+          "default": true,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "ignored-advisories": {
+          "default": "",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        },
+        "run-cargo-audit": {
+          "default": true,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "run-cargo-deny": {
+          "default": false,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "rust-toolchain": {
+          "default": "stable",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        },
+        "working-directory": {
+          "default": ".",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        }
+      },
+      "outputs": [],
+      "permissions": {
+        "contents": "read"
+      },
+      "secrets": {}
+    },
     "security-scan.yml": {
       "inputs": {
         "bandit-args": {
