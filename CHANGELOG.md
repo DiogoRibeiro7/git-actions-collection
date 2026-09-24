@@ -6,6 +6,8 @@ All notable changes to this repository are documented here.
 
 ### Changed
 
+- Workflow token permissions are now explicit and job-scoped. `api-testing.yml`, `concurrency-caching.yml`, and `test-python-test-matrix.yml` declare `contents: read`; `canary-release.yml` and `multi-cloud-deploy.yml` grant write scopes only to the jobs that use them, and `multi-cloud-deploy.yml` no longer requests the unused `pull-requests: write`.
+- `api-testing.yml` no longer opens GitHub issues for OWASP ZAP findings; the report remains available as the `zap_scan` artifact, and callers no longer need `issues: write`.
 - Security compatibility change: Python actions and reusable workflows now default to pip `26.2.1`, replacing the vulnerable `24.3.1` installer. The new default requires Python 3.10 or newer; explicit `pip-version` overrides remain available. The supported-interface snapshot records this change under the security exception in `SUPPORT.md`.
 - Updated the JavaScript test toolchain to patched Vitest 4, Vite 8, and ESLint 10, migrated ESLint configuration, and refreshed both Yarn lockfiles. Development tooling requires Node.js 20.19+, 22.13+, or 24+; repository CI uses Node.js 22.
 - Updated Requests, Poetry, and pytest pins used by shell actions and examples, and raised the Python build-tool security floors.

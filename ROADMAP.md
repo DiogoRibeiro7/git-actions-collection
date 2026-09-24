@@ -41,7 +41,7 @@ Before expanding the catalogue aggressively, improve the guarantees around every
 - [ ] Add contract tests for every workflow intended to become supported.
 - [ ] Add smoke-test consumer repositories or fixtures for each supported ecosystem.
 - [ ] Validate workflow syntax and semantics with dedicated GitHub Actions linters.
-- [ ] Add checks for overly broad `permissions` blocks.
+- [x] Add checks for overly broad `permissions` blocks.
 - [x] Detect mutable or unpinned third-party action references.
 - [ ] Keep `.github/support-matrix.yml`, documentation, examples, and release metadata consistent automatically.
 - [x] Add a formal deprecation policy for supported workflow inputs and outputs.
@@ -188,7 +188,7 @@ Build on the existing `security-scan.yml`, CodeQL, dependency-review, and secret
 - [ ] Add artifact provenance/attestation support to release workflows.
 - [ ] Add licence-policy validation.
 - [x] Add repository-wide third-party action pinning checks.
-- [ ] Add reusable workflow-permission audits.
+- [x] Add reusable workflow-permission audits.
 - [ ] Add workflow-security linting.
 - [ ] Add container image vulnerability scanning.
 - [ ] Add signed-container and checksum verification patterns.
