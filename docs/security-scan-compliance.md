@@ -27,4 +27,4 @@ This guide explains how the `security-scan` reusable workflow supports common co
 - Logs and artifacts provide an auditable trail demonstrating regular security scanning practices.
 - Dependency signatures are verified for supported package managers (npm, Maven, Gradle, Go modules) to guard against tampering.
 
-For setup instructions and inputs, see the [Security Scan section](../README.md#security-scan) of the main README.
+For setup instructions and inputs, see the [Security Scan example](../examples/security-scan/README.md).
