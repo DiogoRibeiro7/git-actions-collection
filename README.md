@@ -182,6 +182,8 @@ for setup, focused test commands, and the limits of local simulation.
 
 Reusable workflows should request only the permissions they need. Consumers remain responsible for reviewing permissions, secrets, environments, cloud roles, and third-party actions before adoption.
 
+Every third-party action used by the collection's workflows and composite actions is pinned to a full commit SHA, and Docker actions to an image digest; CI rejects tags and branch refs.
+
 Where a workflow performs a privileged operation, prefer:
 
 1. short-lived OIDC credentials over long-lived cloud secrets;
