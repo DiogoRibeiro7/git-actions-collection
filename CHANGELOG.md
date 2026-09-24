@@ -4,6 +4,10 @@ All notable changes to this repository are documented here.
 
 ## Unreleased
 
+### Added
+
+- The supported `python-lint` composite action accepts an optional `working-directory` input (default `.`).
+
 ### Changed
 
 - `release-drafter.yml` now runs release-drafter v7 (Node 24). Callers' `release-drafter.yml` configs can no longer use `autolabeler` (moved to the separate `release-drafter/release-drafter/autolabeler` action), `include-pre-releases` (use the `prerelease` and `prerelease-identifier` inputs), or `references` (use workflow `on:` filters). The workflow no longer passes the `GITHUB_TOKEN` environment variable, which v7 ignores in favour of its `token` input.
@@ -16,6 +20,11 @@ All notable changes to this repository are documented here.
 - Added npm/example dependency updates to Dependabot and dependency auditing to repository CI.
 
 - Promoted `rust-ci.yml`, `rust-quality.yml`, `rust-security.yml`, `rust-coverage.yml`, `rust-docs.yml`, `rust-benchmark.yml`, and `rust-release-preflight.yml` from reference to supported. Their interfaces are now covered by the v1 compatibility and deprecation policy in `SUPPORT.md`. `rust-publish.yml` and `rust-github-release.yml` remain experimental.
+
+### Fixed
+
+- `python-lint.yml`, `pr-policy.yml`, and `aws-lambda-deploy.yml` failed for every caller outside this repository: their `./.github/actions/...` steps resolved inside the caller's checkout. They now check out this collection at `job.workflow_sha`, the exact commit of the called workflow, and run the actions from there. `python-lint.yml` checks the caller's code out into `project/` and gains an optional `working-directory` input. `job.workflow_sha` is not available on GitHub Enterprise Server.
+- `ci-monorepo-matrix.yml` called `ci-monorepo-runner.yml` from a step, which GitHub rejects; it now calls it as a job.
 
 ## 1.2.1 - 2026-09-23
 

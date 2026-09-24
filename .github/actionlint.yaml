@@ -3,3 +3,12 @@ paths:
     ignore:
       # Reference workflow keeps optional scanners disabled until adopted.
       - '^constant expression "false" in condition\. remove the if: section$'
+  # These reusable workflows check out their own collection at job.workflow_sha;
+  # actionlint 1.7.12 does not know GitHub's job.workflow_repository/workflow_sha yet.
+  .github/workflows/aws-lambda-deploy.yml:
+    ignore: &job-workflow-context
+      - '^property "workflow_(repository|sha)" is not defined in object type \{check_run_id: '
+  .github/workflows/pr-policy.yml:
+    ignore: *job-workflow-context
+  .github/workflows/python-lint.yml:
+    ignore: *job-workflow-context

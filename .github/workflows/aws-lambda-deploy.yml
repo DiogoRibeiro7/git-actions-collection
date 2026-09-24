@@ -34,6 +34,15 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
         with:
           fetch-depth: 2
+      # Step-level ./ actions resolve in the caller's checkout, so fetch this collection
+      # at the exact commit of this reusable workflow to run its composite actions.
+      - name: Check out collection actions
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: .git-actions-collection
+          persist-credentials: false
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@49f33fe638c0cba4fb16037a27915a7ab7740259
         with:
@@ -57,7 +66,7 @@ jobs:
           python-version: ${{ matrix.function.python-version || '3.12' }}
       - name: Build Python package
         if: steps.changed.outputs.changed == 'true' && startsWith(matrix.function.runtime, 'python')
-        uses: ./.github/actions/aws-lambda-build
+        uses: ./.git-actions-collection/.github/actions/aws-lambda-build
         with:
           src: ${{ matrix.function.path }}
           output-zip: package.zip

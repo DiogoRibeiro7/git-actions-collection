@@ -65,13 +65,10 @@ jobs:
   run:
     needs: detect
     if: ${{ needs.detect.outputs.count != '0' }}
-    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.detect.outputs.matrix) }}
-    steps:
-      - name: Run per-path CI
-        uses: ./.github/workflows/ci-monorepo-runner.yml
-        with:
-          kind: ${{ matrix.kind }}
-          working-directory: ${{ matrix.path }}
+    uses: ./.github/workflows/ci-monorepo-runner.yml
+    with:
+      kind: ${{ matrix.kind }}
+      working-directory: ${{ matrix.path }}

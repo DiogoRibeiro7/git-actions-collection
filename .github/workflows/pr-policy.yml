@@ -9,8 +9,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      # Step-level ./ actions resolve in the caller's checkout, so fetch this collection
+      # at the exact commit of this reusable workflow to run its composite actions.
+      - name: Check out collection actions
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: .git-actions-collection
+          persist-credentials: false
       - name: Enforce PR template
-        uses: ./.github/actions/pr-template-enforcer
+        uses: ./.git-actions-collection/.github/actions/pr-template-enforcer
       - name: Label PR size
         uses: codelytv/pr-size-labeler@095a41fca88b8764fd9e008ad269bcdb82bb38b9
         with:

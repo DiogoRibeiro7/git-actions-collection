@@ -120,6 +120,28 @@ expression values. It does not evaluate jobs, matrices, permissions, or triggers
 Use assertions on important YAML contracts and small caller workflows to test
 those boundaries. Avoid snapshots of entire workflows.
 
+## Call collection actions from reusable workflows
+
+A step-level `uses: ./...` in a reusable workflow resolves inside the caller's
+checkout, where this collection's composite actions do not exist. Check out the
+collection at the called workflow's own commit and use the action from there:
+
+```yaml
+- name: Check out collection actions
+  uses: actions/checkout@<pinned-sha>
+  with:
+    repository: ${{ job.workflow_repository }}
+    ref: ${{ job.workflow_sha }}
+    path: .git-actions-collection
+    persist-credentials: false
+- uses: ./.git-actions-collection/.github/actions/python-lint
+```
+
+Keep that checkout out of anything the action scans, as `python-lint.yml` does by
+checking the caller's code out into `project/`. `tests/test_reusable_local_actions.py`
+enforces the pattern, and `.github/actionlint.yaml` lists the workflows that use
+`job.workflow_*`, which actionlint does not know yet.
+
 ## CI integration coverage
 
 `.github/workflows/ci-tests.yml` runs the local suites plus root workflow linting.

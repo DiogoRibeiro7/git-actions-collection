@@ -200,6 +200,11 @@
           "default": "3.12",
           "deprecated": false,
           "required": false
+        },
+        "working-directory": {
+          "default": ".",
+          "deprecated": false,
+          "required": false
         }
       },
       "outputs": []
