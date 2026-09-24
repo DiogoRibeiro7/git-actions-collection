@@ -39,7 +39,7 @@ jobs:
 | `aws-role` | ARN of IAM role assumed via OIDC | – |
 | `aws-region` | AWS region for operations | `us-east-1` |
 | `functions` | JSON array of function configs | – |
-| `pip-version` | pip release installed before building Python packages (`latest` tracks upstream) | `24.3.1` |
+| `pip-version` | pip release installed before building Python packages (`latest` tracks upstream) | `26.2.1` |
 
 Each function object supports:
 
@@ -66,4 +66,4 @@ No secrets required; uses AWS OIDC for authentication.
 * Skips deployment when source paths have no changes.
 * Automatically uploads oversized packages to S3.
 * Rolls back function alias on deployment failure.
-* Python functions follow the repository’s pip upgrade policy: `24.3.1` is the validated default and you can override `pip-version` (including `latest`) when you need a newer installer.
+* Python functions follow the repository’s pip upgrade policy: `26.2.1` is the validated default and you can override `pip-version` (including `latest`) when you need a newer installer.

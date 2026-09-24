@@ -19,7 +19,7 @@ on:
       pip-version:
         description: "pip release to install for Python runtimes (set to 'latest' to track upstream)"
         required: false
-        default: '24.3.1'
+        default: '26.2.1'
         type: string
 permissions:
   contents: read

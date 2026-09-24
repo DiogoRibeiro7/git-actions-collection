@@ -140,7 +140,7 @@ See `.github/workflows/` for the complete catalogue and `docs/` for detailed gui
 
 ## Local development
 
-Python 3.10+ and Node.js are required for the repository test harness. Bats is required for the shell-action tests.
+Python 3.10+ and Node.js 20.19+, 22.13+, or 24+ are required for the repository test harness. Bats is required for the shell-action tests.
 
 ```bash
 python -m venv .venv
