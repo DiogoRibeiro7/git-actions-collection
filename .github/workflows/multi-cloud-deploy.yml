@@ -88,6 +88,8 @@ jobs:
         if: inputs.env-file != ''
         run: |
           set -euo pipefail
+          # This template intentionally splits newline-separated KEY=value assignments.
+          # shellcheck disable=SC2046
           [ -f "${{ inputs.env-file }}" ] && export $(grep -v '^#' "${{ inputs.env-file }}" | xargs -d '\n')
       - name: Authenticate to AWS
         if: matrix.cloud == 'aws' && inputs.aws-role-arn != ''

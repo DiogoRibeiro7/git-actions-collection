@@ -39,7 +39,7 @@ jobs:
         run: |
           export HELM_EXPERIMENTAL_OCI=1
           helm registry login ${{ inputs.oci-registry }} -u ${{ github.actor }} -p ${{ github.token }}
-          helm push *.tgz oci://${{ inputs.oci-registry }}
+          helm push ./*.tgz oci://${{ inputs.oci-registry }}
       - name: Publish to GitHub Pages
         if: ${{ inputs.publish && inputs.oci-registry == '' }}
         uses: helm/chart-releaser-action@cae68fefc6b5f367a0275617c9f83181ba54714f
