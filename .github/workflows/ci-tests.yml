@@ -14,6 +14,23 @@ permissions:
   contents: read
 
 jobs:
+  workflow-lint:
+    name: Workflow syntax and shell lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
+        with:
+          go-version: '1.25.0'
+          cache: false
+      - name: Install actionlint and ShellCheck
+        run: |
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+      - name: Lint repository workflows
+        run: actionlint -pyflakes=
+
   python-tests:
     name: Python
     runs-on: ubuntu-latest
@@ -49,7 +66,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y bats
       - name: Run bats
-        run: bats tests/bash
+        run: bats --recursive tests/bash
 
   js-tests:
     name: JavaScript and TypeScript
@@ -70,3 +87,41 @@ jobs:
         run: yarn typecheck
       - name: Run Vitest
         run: yarn test
+
+  composite-smoke:
+    name: Composite action (apply=${{ matrix.apply }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        apply: ['false', 'true']
+    steps:
+      # Keep the collection outside the consumer's root so bundled-helper
+      # resolution is exercised exactly as it is for an external caller.
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          path: collection
+      - name: Prepare consumer fixture
+        run: cp collection/tests/fixtures/action-consumer/* .
+      - name: Update fixture dependencies
+        id: update
+        uses: ./collection/.github/actions/smart-dependency-update
+        with:
+          manifests: package.json
+          apply: ${{ matrix.apply }}
+      - name: Verify public output and consumer manifest
+        env:
+          REPORT: ${{ steps.update.outputs.report }}
+          APPLY: ${{ matrix.apply }}
+        run: python collection/tests/integration/assert_dependency_update.py
+      - name: Reject empty manifests
+        id: invalid
+        continue-on-error: true
+        uses: ./collection/.github/actions/smart-dependency-update
+        with:
+          manifests: ''
+      - name: Verify failure propagation
+        if: always()
+        env:
+          OUTCOME: ${{ steps.invalid.outcome }}
+        run: test "$OUTCOME" = failure
