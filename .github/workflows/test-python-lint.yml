@@ -1,0 +1,27 @@
+name: Test Python Lint Workflow
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/python-lint.yml'
+      - '.github/workflows/test-python-lint.yml'
+      - '.github/actions/python-lint/**'
+      - 'scripts/python-lint/**'
+      - 'examples/python-package/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Exercises the collection checkout at job.workflow_sha that consumers rely on.
+  lint-example:
+    uses: ./.github/workflows/python-lint.yml
+    with:
+      working-directory: examples/python-package
