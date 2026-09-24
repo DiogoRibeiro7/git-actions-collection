@@ -131,6 +131,7 @@ workflows:
     - auto-upgrade-pyproject.yml
     - bash-unit-tests.yml
     - ci-tests.yml
+    - docs.yml
     - examples-smoke.yml
     - js-unit-tests.yml
     - python-type-check.yml

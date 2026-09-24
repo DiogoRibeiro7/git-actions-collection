@@ -4,6 +4,8 @@ A tested collection of reusable GitHub Actions, workflows, and CI/CD utilities f
 
 The repository centralises automation that would otherwise be copied between projects: language-specific CI, packaging and release workflows, security checks, dependency governance, infrastructure automation, and small composite actions for recurring setup and quality gates.
 
+Browse the documentation at <https://diogoribeiro7.github.io/git-actions-collection/>.
+
 ## Status
 
 > **Stable v1 personal toolkit.** `main` is the canonical development branch. Stable consumers should use the moving `@v1` tag or an exact commit SHA. Distribution is directly through GitHub refs and Releases; there is no Marketplace or package-registry publication for this repository.
