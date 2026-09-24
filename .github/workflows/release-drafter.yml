@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: release-drafter/release-drafter@34d80673e067bdc0c24568d3af899c216adcfaa9
+        # release-drafter v7 reads its token input, which defaults to github.token;
+        # the GITHUB_TOKEN environment variable earlier versions used is ignored.
         with:
           config-name: release-drafter.yml
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
