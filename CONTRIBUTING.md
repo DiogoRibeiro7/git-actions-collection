@@ -38,7 +38,8 @@ yarn test
 ```
 
 CI also audits both Yarn lockfiles, the installed Python development dependencies,
-Python tool pins embedded in actions/workflows, and the Django example. To check
+Python tool pins embedded in actions/workflows, the Django example, and the
+documentation toolchain. To check
 the inline pins locally with `pip-audit` installed:
 
 ```bash
