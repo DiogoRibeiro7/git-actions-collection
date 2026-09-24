@@ -1,50 +1,114 @@
-## Testing actions locally
+# Testing actions and workflows
 
-Run the full suite (single command):
+Use Linux, macOS, or WSL for the full suite. Native Windows pytest runs skip
+tests that require POSIX Bash. Shell files use LF line endings via `.gitattributes`.
 
+## Install tools
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -e '.[dev]'
+corepack enable
+yarn install --frozen-lockfile
 ```
+
+Install Bats and ShellCheck (`sudo apt-get install bats shellcheck` on Ubuntu),
+and [actionlint](https://github.com/rhysd/actionlint/blob/main/docs/install.md).
+CI uses actionlint **1.7.12**; with Go 1.25 or newer, install it with:
+
+```bash
+go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+export PATH="$(go env GOPATH)/bin:$PATH"
+```
+
+## Run the checks
+
+Run each command from the repository root. `yarn test` runs only Vitest.
+
+```bash
+yarn lint:workflows                  # root workflows, expressions, inline shell
+python -m pytest -q                  # Python, action harness, YAML contracts
+bats --recursive tests/bash          # shell tests, including nested action tests
+yarn lint
+yarn typecheck
 yarn test
 ```
 
-Under the hood this runs:
+Pytest enforces the repository's 70% Python-script coverage threshold. For a
+focused test run, disable coverage so the entire repository threshold does not
+apply to one file:
 
-```
-pytest -q
-bats tests/bash
-```
-
-Targeted commands:
-
-```
-yarn test:py
-yarn test:bash
+```bash
+python -m pytest --no-cov -q tests/test_fake_runner_composite.py
+python -m pytest --no-cov -q tests/python/test_python_test_matrix_workflow.py
+bats tests/bash/actions/test_gradle_build.bats
 ```
 
-Run a single test file:
+## Choose the right test
 
-```
-# Pytest (fake runner harness)
-pytest tests/test_fake_runner_composite.py -q
+| Layer | What it proves | Example |
+| --- | --- | --- |
+| Unit | Script behavior, argument handling, files, errors | `tests/bash/actions.bats` |
+| Composite harness | Input mapping, conditions, step outputs, environment files | `tests/test_fake_runner_composite.py` |
+| Contract | Public YAML wiring, defaults, permission requirements | `tests/test_action_contracts.py`, `tests/test_reusable_workflow_permissions.py` |
+| Static lint | Workflow syntax, expressions, dependencies, inline shell issues | `yarn lint:workflows` |
+| GitHub integration | Actual action dependencies and workflow orchestration | `CI Tests` composite smoke job, `test-python-test-matrix.yml` |
 
-# Bats (bash scripts)
-bats tests/bash/actions/test_check_imports.bats
-```
+Keep substantial logic in scripts/functions. Test success, invalid input,
+dependency failure, and relevant side effects. Use temporary consumer directories,
+including a path with spaces. Replace tools/API calls at their boundaries and
+assert their arguments, outputs, and exit status. Unit tests must not install
+packages, contact real APIs, publish, or deploy.
 
-Local tooling:
+`tests/utils/fakebin.py` creates executable PATH stubs for Python tests.
+`tests/bash/helpers.bash` provides `make_fake` and `make_logger` for direct script
+tests. The Bats action harness copies `tests/fakebin` into a temporary directory;
+never overwrite the tracked stubs. Use the supported failure switches, for example
+`FAKEBIN_FAIL_PYTEST=1`, instead.
 
-- Python 3.11+ with a venv and `pip install -r requirements-dev.txt`
-- bats-core (Linux: `sudo apt-get install bats` or `brew install bats-core`)
-- Node 20 with corepack enabled for Yarn (`corepack enable`)
- - Windows: bats is not available by default; install bats or run tests in WSL
+## Harness boundaries
 
-Required env vars (set by the harness unless you override):
+`run_action` executes Bash steps and a small expression subset. It reports skipped
+`uses:` dependencies in `result.skipped_uses`; their effects must be stubbed.
+Unsupported expressions and shells fail explicitly. An action containing only
+external actions needs a contract test and a real GitHub run.
+`result.executed_steps` distinguishes an all-skipped conditional path from
+executed shell code.
 
-- `GITHUB_OUTPUT` and `GITHUB_ENV` (used by composite actions to expose outputs)
-- `PATH` (fake commands injected for deterministic tests)
+`result.outputs` contains only outputs declared by `action.yml`.
+`result.step_outputs` exposes internal outputs for assertions. Each step gets its
+own command files, and `$GITHUB_ENV` values reach subsequent steps. Composite
+inputs must be mapped explicitly through `env:`. The harness does not resolve
+broken caller-relative script paths for you.
 
-Notes on mocks/fakebin:
+The Bats action harness is a simpler dispatcher for the actions' single-line
+shell commands. It does not evaluate YAML conditions or run external actions;
+use Python harness tests for those supported wiring checks.
 
-- Python fake runner tests use PATH shims created by `tests/utils/fakebin.py` to avoid network calls.
-- Bash unit tests use `tests/bash/helpers.bash` to inject fake commands and capture output.
-- Set `FAKEBIN_FAIL_<tool>=1` to force a stubbed tool to fail (example: `FAKEBIN_FAIL_GIT=1`).
-- Use `FAKEBIN_PYTHON_MODE=check-imports` or `FAKEBIN_PYTHON_MODE=smart-update` to drive python stub behavior.
+`run_workflow_step` executes one named shell step with explicitly supplied
+expression values. It does not evaluate jobs, matrices, permissions, or triggers.
+Use assertions on important YAML contracts and small caller workflows to test
+those boundaries. Avoid snapshots of entire workflows.
+
+## CI integration coverage
+
+`.github/workflows/ci-tests.yml` runs the local suites plus root workflow linting.
+Its composite smoke job checks out the collection in a subdirectory and executes
+`smart-dependency-update` against a separate consumer fixture with real setup
+actions. It verifies dry-run/apply behavior, the public JSON output, and failure
+propagation. It requires no publishing or deployment secrets.
+
+The existing `test-python-test-matrix.yml` workflow calls the reusable workflow
+directly with small test fixtures. New reusable workflows should have similarly
+focused caller tests. These integration tests run on GitHub for pull requests to
+`main` or manual dispatch; local unit success does not establish runtime compatibility.
+
+`act` is optional for local integration debugging. It does not fully reproduce
+permissions, OIDC, environments, or concurrency; see its
+[limitations](https://nektosact.com/not_supported.html).
+
+Actionlint checks all root workflows, including reference templates. Its only
+configuration exception permits the deliberately disabled optional scanners in
+`infra-lint.yml`. Example-project workflows also have their existing smoke/lint
+workflow. Keep exceptions narrow and documented.

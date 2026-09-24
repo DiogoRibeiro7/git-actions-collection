@@ -144,17 +144,18 @@ python -m venv .venv
 source .venv/bin/activate
 python -m pip install -e '.[dev]'
 corepack enable
-yarn install --immutable
+yarn install --frozen-lockfile
 ```
 
 Run the main checks with:
 
 ```bash
+yarn lint:workflows
 yarn lint
 yarn typecheck
 yarn test
 pytest -q
-bats tests/bash
+bats --recursive tests/bash
 ```
 
 ## Testing approach
@@ -169,6 +170,10 @@ The test suite includes:
 - a local fake-runner harness for composite action behaviour;
 - smoke workflows for the example projects;
 - repository-contract tests for public references and generated artefacts.
+
+CI also lints root workflows with actionlint/ShellCheck and runs a real composite
+action against a separate consumer fixture. See [CONTRIBUTING.md](CONTRIBUTING.md)
+for setup, focused test commands, and the limits of local simulation.
 
 ## Security model
 
