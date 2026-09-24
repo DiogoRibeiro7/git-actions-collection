@@ -95,7 +95,8 @@ def test_check_imports_happy(tmp_path: Path):
     )
 
     assert result.code == 0
-    assert result.outputs.get("missing") == "foo bar"
+    assert result.step_outputs["check"]["missing"] == "foo bar"
+    assert result.outputs == {}  # Internal step outputs are not public action outputs.
 
 
 def test_check_imports_missing_github_output(tmp_path: Path):
@@ -229,7 +230,7 @@ def test_r_lint_package_inputs(tmp_path: Path):
         env=_env_with_path(fakebin),
         workdir=tmp_path,
     )
-    assert result.outputs.get("packages") == "lintr,testthat"
+    assert result.step_outputs["package-inputs"]["packages"] == "lintr,testthat"
 
 
 def test_r_lint_missing_github_output(tmp_path: Path):
@@ -577,6 +578,7 @@ def test_setup_r_no_packages(tmp_path: Path):
         workdir=tmp_path,
     )
     assert "Rscript" not in result.stdout
+    assert result.executed_steps == 0
 
 
 def test_setup_r_rscript_failure(tmp_path: Path):
@@ -598,7 +600,7 @@ def test_r_testthat_happy(tmp_path: Path):
         env=_env_with_path(fakebin),
         workdir=tmp_path,
     )
-    assert result.outputs.get("packages") == "remotes,testthat,devtools"
+    assert result.step_outputs["package-inputs"]["packages"] == "remotes,testthat,devtools"
     assert "Rscript" in result.stdout
 
 
@@ -623,26 +625,30 @@ def test_r_testthat_rscript_failure(tmp_path: Path):
     assert result.code == 8
 
 
-def test_secret_scan_default(tmp_path: Path):
+def test_setup_poetry_skips_dependency_install(tmp_path: Path):
+    fakebin = make_fakebin(
+        tmp_path,
+        {"python": "exit 0", "pip": "exit 0", "poetry": "exit 97"},
+    )
     result = run_action(
-        ACTIONS_DIR / "secret-scan",
+        ACTIONS_DIR / "setup-poetry",
+        inputs={"install-deps": "false"},
+        env=_env_with_path(fakebin),
         workdir=tmp_path,
     )
-    assert result.code == 0
+    assert result.code == 0, result.stderr
 
 
-def test_secret_scan_args_input(tmp_path: Path):
+def test_gradle_build_relative_directory_with_spaces(tmp_path: Path):
+    project = tmp_path / "consumer project"
+    project.mkdir()
+    gradlew = project / "gradlew"
+    gradlew.write_text('#!/usr/bin/env bash\nprintf "%s\\n" "$PWD" "$@"\n')
+    gradlew.chmod(0o755)
     result = run_action(
-        ACTIONS_DIR / "secret-scan",
-        inputs={"args": "--no-git"},
+        ACTIONS_DIR / "gradle-build",
+        inputs={"working-directory": "consumer project", "tasks": "clean build"},
         workdir=tmp_path,
     )
-    assert result.code == 0
-
-
-def test_secret_scan_outputs_empty(tmp_path: Path):
-    result = run_action(
-        ACTIONS_DIR / "secret-scan",
-        workdir=tmp_path,
-    )
-    assert result.outputs == {}
+    assert result.code == 0, result.stderr
+    assert result.stdout.splitlines() == [str(project), "clean", "build", "--build-cache"]

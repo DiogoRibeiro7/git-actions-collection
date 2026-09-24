@@ -6,7 +6,7 @@ by this repository. It is not a replacement for the GitHub Actions runtime.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import os
 from pathlib import Path
 import re
@@ -25,20 +25,9 @@ class ActionResult:
     stdout: str
     stderr: str
     outputs: dict[str, str]
-
-
-def _find_repo_root(start: Path) -> Path:
-    """Find the repository root by walking upwards from *start*."""
-    current = start.resolve()
-    for parent in [current, *current.parents]:
-        if (parent / ".git").exists():
-            return parent
-    return start.resolve()
-
-
-def _input_env_key(name: str) -> str:
-    """Convert a GitHub Action input name into its conventional env key."""
-    return "INPUT_" + re.sub(r"[^A-Za-z0-9]", "_", name).upper()
+    step_outputs: dict[str, dict[str, str]] = field(default_factory=dict)
+    skipped_uses: tuple[str, ...] = ()
+    executed_steps: int = 0
 
 
 def _lookup_expression(
@@ -51,14 +40,13 @@ def _lookup_expression(
     """Resolve the small subset of GitHub expressions used by the test suite."""
     key = expression.strip()
     if key.startswith("inputs."):
-        return inputs.get(key.removeprefix("inputs."), "")
-    if key.startswith("steps."):
-        parts = key.split(".")
-        if len(parts) == 4 and parts[2] == "outputs":
-            return step_outputs.get(parts[1], {}).get(parts[3], "")
+        return inputs[key.removeprefix("inputs.")]
+    output_reference = re.fullmatch(r"steps\.([\w-]+)\.outputs\.([\w-]+)", key)
+    if output_reference:
+        return step_outputs.get(output_reference[1], {}).get(output_reference[2], "")
     if key.startswith("github."):
-        return github.get(key.removeprefix("github."), "")
-    return ""
+        return github[key.removeprefix("github.")]
+    raise ValueError(f"Unsupported action expression: {expression}")
 
 
 def _resolve_expressions(
@@ -98,7 +86,7 @@ def _resolve_condition_value(
 ) -> str:
     """Resolve values used by the limited `if` expression evaluator."""
     if token.startswith("inputs."):
-        return inputs.get(token.split("inputs.", 1)[1], "")
+        return inputs[token.split("inputs.", 1)[1]]
     if token.startswith("steps."):
         parts = token.split(".")
         if len(parts) == 4 and parts[2] == "outputs":
@@ -107,36 +95,60 @@ def _resolve_condition_value(
 
 
 def _eval_condition(
-    expression: str,
+    expression: str | bool,
     inputs: Mapping[str, str],
     step_outputs: Mapping[str, Mapping[str, str]],
 ) -> bool:
     """Evaluate the simple boolean conditions used in local action fixtures."""
+    if isinstance(expression, bool):
+        return expression
     if not expression:
         return True
+    expression = expression.strip()
+    if expression.startswith("${{") and expression.endswith("}}"):
+        expression = expression[3:-2].strip()
+    # This harness supports comparisons joined by &&, not the full expression
+    # language. Reject anything else instead of treating it as a truthy string.
+    comparisons: list[tuple[str, str, str]] = []
     for part in (item.strip() for item in expression.split("&&")):
-        if "==" in part:
-            left, right = [item.strip() for item in part.split("==", 1)]
-            if _resolve_condition_value(left, inputs, step_outputs) != _strip_quotes(right):
-                return False
-        elif "!=" in part:
-            left, right = [item.strip() for item in part.split("!=", 1)]
-            if _resolve_condition_value(left, inputs, step_outputs) == _strip_quotes(right):
-                return False
-        elif not _resolve_condition_value(part, inputs, step_outputs):
+        match = re.fullmatch(
+            r"(inputs\.[\w-]+|steps\.[\w-]+\.outputs\.[\w-]+)\s*(==|!=)\s*'([^']*)'",
+            part,
+        )
+        if match is None:
+            raise ValueError(f"Unsupported action condition: {expression}")
+        comparisons.append((match[1], match[2], match[3]))
+    for left, operator, right in comparisons:
+        equal = _resolve_condition_value(left, inputs, step_outputs) == right
+        if equal != (operator == "=="):
             return False
     return True
 
 
 def _read_outputs(path: Path) -> dict[str, str]:
-    """Read simple `key=value` entries from a GitHub output file."""
+    """Read single-line and heredoc entries from a GitHub command file."""
     outputs: dict[str, str] = {}
     if not path.exists():
         return outputs
-    for line in path.read_text(encoding="utf-8").splitlines():
-        if line.strip() and "=" in line:
+    lines = iter(path.read_text(encoding="utf-8").splitlines())
+    for line in lines:
+        if not line:
+            continue
+        if "<<" in line and ("=" not in line or line.index("<<") < line.index("=")):
+            key, delimiter = line.split("<<", 1)
+            value_lines = []
+            for item in lines:
+                if item == delimiter:
+                    break
+                value_lines.append(item)
+            else:
+                raise ValueError(f"Unterminated command-file value: {key}")
+            outputs[key] = "\n".join(value_lines)
+        elif "=" in line:
             key, value = line.split("=", 1)
             outputs[key] = value
+        else:
+            raise ValueError(f"Invalid command-file entry: {line}")
     return outputs
 
 
@@ -146,13 +158,18 @@ def run_action(
     env: Mapping[str, str] | None = None,
     workdir: Path | None = None,
 ) -> ActionResult:
-    """Execute the shell steps of a local composite action deterministically."""
+    """Execute Bash steps, reporting skipped dependencies and public outputs.
+
+    External ``uses:`` steps are not executed. Callers must stub their effects;
+    an action containing only dependencies requires a contract/integration test.
+    """
     action_file = Path(action_path)
     if action_file.is_dir():
         action_file = action_file / "action.yml"
     data = yaml.safe_load(action_file.read_text(encoding="utf-8"))
 
-    repo_root = _find_repo_root(action_file)
+    if data.get("runs", {}).get("using") != "composite":
+        raise ValueError("The fake runner only supports composite actions")
     supplied_inputs = dict(inputs or {})
     supplied_env = dict(env or {})
 
@@ -170,14 +187,12 @@ def run_action(
     step_outputs: dict[str, dict[str, str]] = {}
     stdout_all: list[str] = []
     stderr_all: list[str] = []
+    skipped_uses: list[str] = []
+    executed_steps = 0
 
     with tempfile.TemporaryDirectory() as tmpdir:
         workspace = Path(workdir) if workdir else Path(tmpdir) / "workspace"
         workspace.mkdir(parents=True, exist_ok=True)
-        gh_output = Path(tmpdir) / "github_output"
-        gh_env = Path(tmpdir) / "github_env"
-        gh_output.write_text("", encoding="utf-8")
-        gh_env.write_text("", encoding="utf-8")
 
         github_context = {
             "workspace": str(workspace),
@@ -189,22 +204,28 @@ def run_action(
         run_env = os.environ.copy()
         run_env.update(
             {
-                "GITHUB_OUTPUT": str(gh_output),
-                "GITHUB_ENV": str(gh_env),
                 "GITHUB_WORKSPACE": str(workspace),
                 "GITHUB_ACTION_PATH": str(action_file.parent.resolve()),
             }
         )
-        for name, value in action_inputs.items():
-            run_env[_input_env_key(name)] = value
         run_env.update(supplied_env)
 
-        for step in data.get("runs", {}).get("steps", []):
+        for index, step in enumerate(data.get("runs", {}).get("steps", [])):
+            condition = step.get("if", "")
+            if not _eval_condition(condition, action_inputs, step_outputs):
+                continue
             if "uses" in step:
+                skipped_uses.append(step["uses"])
                 continue
-            condition = str(step.get("if") or "")
-            if condition and not _eval_condition(condition, action_inputs, step_outputs):
-                continue
+            if step.get("shell") != "bash":
+                raise ValueError(f"Unsupported action shell: {step.get('shell')}")
+
+            gh_output = Path(tmpdir) / f"output-{index}"
+            gh_env = Path(tmpdir) / f"env-{index}"
+            gh_output.touch()
+            gh_env.touch()
+            run_env["GITHUB_OUTPUT"] = supplied_env.get("GITHUB_OUTPUT", str(gh_output))
+            run_env["GITHUB_ENV"] = supplied_env.get("GITHUB_ENV", str(gh_env))
 
             step_env: dict[str, str] = {}
             for key, value in (step.get("env") or {}).items():
@@ -227,18 +248,6 @@ def run_action(
                 github=github_context,
             )
 
-            # Existing actions keep helper scripts at repository root. Resolve
-            # those paths explicitly so local simulation is independent of cwd.
-            if run_cmd.startswith("bash scripts/"):
-                run_cmd = run_cmd.replace("bash scripts/", f'bash "{repo_root}/scripts/', 1)
-                script_end = run_cmd.find(" ", len(f'bash "{repo_root}/scripts/'))
-                if script_end == -1:
-                    run_cmd += '"'
-                else:
-                    run_cmd = run_cmd[:script_end] + '"' + run_cmd[script_end:]
-            elif run_cmd.startswith("scripts/"):
-                run_cmd = run_cmd.replace("scripts/", f'"{repo_root}/scripts/', 1) + '"'
-
             step_cwd = workspace
             if step.get("working-directory") is not None:
                 resolved_dir = _resolve_expressions(
@@ -249,10 +258,10 @@ def run_action(
                 )
                 candidate = Path(resolved_dir)
                 step_cwd = candidate if candidate.is_absolute() else workspace / candidate
-                step_cwd.mkdir(parents=True, exist_ok=True)
 
+            executed_steps += 1
             proc = subprocess.run(
-                ["bash", "-c", run_cmd],
+                ["bash", "--noprofile", "--norc", "-e", "-o", "pipefail", "-c", run_cmd],
                 cwd=step_cwd,
                 env=merged_step_env,
                 capture_output=True,
@@ -262,23 +271,41 @@ def run_action(
             stdout_all.append(proc.stdout)
             stderr_all.append(proc.stderr)
 
-            current_outputs = _read_outputs(gh_output)
+            output_path = merged_step_env.get("GITHUB_OUTPUT")
+            current_outputs = _read_outputs(Path(output_path)) if output_path else {}
             if step.get("id"):
                 step_outputs[str(step["id"])] = current_outputs.copy()
+            env_path = merged_step_env.get("GITHUB_ENV")
+            if env_path:
+                run_env.update(_read_outputs(Path(env_path)))
 
             if proc.returncode != 0:
                 return ActionResult(
                     code=proc.returncode,
                     stdout="".join(stdout_all),
                     stderr="".join(stderr_all),
-                    outputs=current_outputs,
+                    outputs={},
+                    step_outputs=step_outputs,
+                    skipped_uses=tuple(skipped_uses),
+                    executed_steps=executed_steps,
                 )
 
+        if not any("run" in step for step in data["runs"]["steps"]):
+            raise ValueError("No shell steps executed; use a contract or GitHub integration test")
         return ActionResult(
             code=0,
             stdout="".join(stdout_all),
             stderr="".join(stderr_all),
-            outputs=_read_outputs(gh_output),
+            outputs={
+                name: _resolve_expressions(
+                    metadata["value"], inputs=action_inputs,
+                    step_outputs=step_outputs, github=github_context,
+                )
+                for name, metadata in (data.get("outputs") or {}).items()
+            },
+            step_outputs=step_outputs,
+            skipped_uses=tuple(skipped_uses),
+            executed_steps=executed_steps,
         )
 
 
