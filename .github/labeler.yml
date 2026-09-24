@@ -1,14 +1,22 @@
+# actions/labeler v5+ format: each label lists match objects.
 docker:
-  - examples/docker-app/**
+  - changed-files:
+      - any-glob-to-any-file: examples/docker-app/**
 infra:
-  - examples/infra/**
+  - changed-files:
+      - any-glob-to-any-file: examples/infra/**
 monorepo:
-  - examples/monorepo/**
+  - changed-files:
+      - any-glob-to-any-file: examples/monorepo/**
 npm:
-  - examples/npm-package/**
+  - changed-files:
+      - any-glob-to-any-file: examples/npm-package/**
 python:
-  - examples/python-package/**
+  - changed-files:
+      - any-glob-to-any-file: examples/python-package/**
 k8s:
-  - examples/k8s-manifests/**
+  - changed-files:
+      - any-glob-to-any-file: examples/k8s-manifests/**
 helm:
-  - examples/helm-chart/**
+  - changed-files:
+      - any-glob-to-any-file: examples/helm-chart/**
