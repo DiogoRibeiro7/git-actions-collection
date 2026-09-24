@@ -24,7 +24,10 @@ jobs:
         uses: codelytv/pr-size-labeler@095a41fca88b8764fd9e008ad269bcdb82bb38b9
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Auto label by paths (example)
+      # Path labels are opt-in: labeler v6 fails without a caller-owned config in the
+      # v5+ match-object format.
+      - name: Label PR by changed paths
+        if: hashFiles('.github/labeler.yml') != ''
         uses: actions/labeler@b8dd2d9be0f68b860e7dae5dae7d772984eacd6d
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
