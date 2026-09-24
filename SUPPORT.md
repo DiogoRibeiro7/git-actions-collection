@@ -27,7 +27,9 @@ The initially supported reusable workflows are:
 - `security-scan.yml`
 
 These workflows have direct repository-level contract tests in addition to
-example or self-test coverage.
+example or self-test coverage. The public interface of every supported
+component is recorded in `.github/supported-interfaces.json`; see
+[Compatibility and deprecation](#compatibility-and-deprecation).
 
 ### Reference
 
@@ -64,6 +66,40 @@ A reference or experimental workflow can move to supported when it has:
    reason;
 5. third-party actions pinned consistently with the repository security
    policy.
+
+## Compatibility and deprecation
+
+The public interface of a supported component is its inputs (name, type,
+whether required, default), outputs, secrets, and the `GITHUB_TOKEN`
+permissions a caller must grant. `.github/supported-interfaces.json` records
+it, and CI fails when a supported interface no longer matches that record.
+`python scripts/interface_snapshot.py --check` explains each difference;
+`--write` records it.
+
+Within a major version:
+
+- **Compatible:** adding an optional input, an output, or an optional secret;
+  making a required input or secret optional; needing fewer permissions.
+- **Breaking, and not allowed:** removing or renaming an input, output, or
+  secret; changing an input's type or default; making an input or secret
+  required; requiring an additional permission from callers.
+
+Defaults that pin a tool version, such as `pip-version`, may move to a newer
+compatible release of that tool. Record these under `### Changed` in
+[CHANGELOG.md](CHANGELOG.md).
+
+To retire part of a supported interface:
+
+1. Start its description with `Deprecated:` and name the replacement. The
+   snapshot records the deprecation.
+2. Keep it working for the rest of the major version, and emit a
+   `::warning::` when it is used, where the component can detect that.
+3. Record the deprecation under `### Deprecated` in the changelog.
+4. Remove it only in the next major version, with migration notes in that
+   release.
+
+A security fix may break compatibility within a major version when keeping
+the old behaviour would be unsafe. Its release notes must say so explicitly.
 
 ## Versioning
 

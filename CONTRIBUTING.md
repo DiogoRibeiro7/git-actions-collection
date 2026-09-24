@@ -45,6 +45,21 @@ python -m pytest --no-cov -q tests/python/test_python_test_matrix_workflow.py
 bats tests/bash/actions/test_gradle_build.bats
 ```
 
+## Change a supported interface
+
+The inputs, outputs, secrets, and caller permissions of supported workflows and
+actions are recorded in `.github/supported-interfaces.json`, and pytest fails
+when they drift. Explain a difference, then record a compatible change in the
+same pull request:
+
+```bash
+python scripts/interface_snapshot.py --check
+python scripts/interface_snapshot.py --write
+```
+
+Breaking changes follow the deprecation policy in
+[SUPPORT.md](SUPPORT.md#compatibility-and-deprecation).
+
 ## Choose the right test
 
 | Layer | What it proves | Example |
