@@ -42,11 +42,11 @@ run_action() {
   export FAKEBIN_LOG="$temp_dir/fakebin.log"
   : > "$FAKEBIN_LOG"
 
-  # Git does not need to preserve executable bits for these tiny test shims.
-  # Make them executable explicitly before putting them on PATH so the tests
-  # cannot silently fall through to real host commands.
-  chmod +x "$REPO_ROOT"/tests/fakebin/*
-  export PATH="$REPO_ROOT/tests/fakebin:$PATH"
+  # Each invocation owns its stubs; tests must never modify tracked fixtures.
+  mkdir -p "$temp_dir/fakebin"
+  cp "$REPO_ROOT"/tests/fakebin/* "$temp_dir/fakebin/"
+  chmod +x "$temp_dir"/fakebin/*
+  export PATH="$temp_dir/fakebin:$PATH"
 
   local kv
   for kv in "$@"; do
@@ -67,7 +67,7 @@ run_action() {
   : > "$stderr_file"
 
   local steps
-  steps=$(awk '/^[[:space:]]*run: /{sub(/^[[:space:]]*run: /,""); print}' "$action_file")
+  steps=$(awk '/^[[:space:]]*run: /{sub(/\r$/, ""); sub(/^[[:space:]]*run: /,""); print}' "$action_file")
 
   local action_path_expr='${{ github.action_path }}'
   local workspace_expr='${{ github.workspace }}'
