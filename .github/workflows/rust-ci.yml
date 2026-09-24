@@ -88,10 +88,24 @@ jobs:
       - name: Validate Rust project
         shell: bash
         working-directory: ${{ inputs.working-directory }}
+        env:
+          CARGO_ALL_FEATURES: ${{ inputs.all-features }}
+          CARGO_NO_DEFAULT_FEATURES: ${{ inputs.no-default-features }}
+          CARGO_FEATURES: ${{ inputs.features }}
         run: |
           set -euo pipefail
           if [ ! -f Cargo.toml ]; then
             echo "Cargo.toml not found in ${{ inputs.working-directory }}" >&2
+            exit 1
+          fi
+
+          if [[ "$CARGO_ALL_FEATURES" == "true" && "$CARGO_NO_DEFAULT_FEATURES" == "true" ]]; then
+            echo "all-features and no-default-features cannot both be enabled" >&2
+            exit 1
+          fi
+
+          if [[ "$CARGO_ALL_FEATURES" == "true" && -n "$CARGO_FEATURES" ]]; then
+            echo "all-features cannot be combined with an explicit feature list" >&2
             exit 1
           fi
 
@@ -175,10 +189,24 @@ jobs:
       - name: Validate Rust project
         shell: bash
         working-directory: ${{ inputs.working-directory }}
+        env:
+          CARGO_ALL_FEATURES: ${{ inputs.all-features }}
+          CARGO_NO_DEFAULT_FEATURES: ${{ inputs.no-default-features }}
+          CARGO_FEATURES: ${{ inputs.features }}
         run: |
           set -euo pipefail
           if [ ! -f Cargo.toml ]; then
             echo "Cargo.toml not found in ${{ inputs.working-directory }}" >&2
+            exit 1
+          fi
+
+          if [[ "$CARGO_ALL_FEATURES" == "true" && "$CARGO_NO_DEFAULT_FEATURES" == "true" ]]; then
+            echo "all-features and no-default-features cannot both be enabled" >&2
+            exit 1
+          fi
+
+          if [[ "$CARGO_ALL_FEATURES" == "true" && -n "$CARGO_FEATURES" ]]; then
+            echo "all-features cannot be combined with an explicit feature list" >&2
             exit 1
           fi
 

@@ -1,7 +1,14 @@
+import os
 from pathlib import Path
 from typing import Any
 
+import pytest
 import yaml
+
+from tests.utils.rust_steps import (
+    cargo_stub,
+    run_step,
+)
 
 
 def _load_workflow() -> dict[str, Any]:
@@ -133,3 +140,119 @@ def test_rust_security_has_executable_self_test() -> None:
         "cargo-deny-config": "deny.toml",
         "cargo-deny-checks": "advisories,bans,licenses,sources",
     }
+
+
+posix_only = pytest.mark.skipif(os.name != "posix", reason="Fake runner requires bash (Linux CI)")
+
+
+@posix_only
+@pytest.mark.parametrize(
+    ("ignored", "expected"),
+    [
+        ("", "audit"),
+        (
+            " RUSTSEC-2020-0001, RUSTSEC-2021-0002 ,",
+            "audit --ignore RUSTSEC-2020-0001 --ignore RUSTSEC-2021-0002",
+        ),
+    ],
+)
+def test_rust_security_passes_ignored_advisories_to_cargo_audit(
+    tmp_path: Path, ignored: str, expected: str
+) -> None:
+    log = tmp_path / "cargo.log"
+    result = run_step(
+        "rust-security.yml",
+        "audit",
+        "Audit Rust dependencies",
+        tmp_path,
+        inputs={"ignored-advisories": ignored},
+        stubs=cargo_stub(log),
+    )
+
+    assert result.code == 0, result.stderr
+    assert log.read_text(encoding="utf-8").splitlines() == [expected]
+
+
+@posix_only
+def test_rust_security_fails_when_cargo_audit_reports_vulnerabilities(tmp_path: Path) -> None:
+    result = run_step(
+        "rust-security.yml",
+        "audit",
+        "Audit Rust dependencies",
+        tmp_path,
+        stubs=cargo_stub(tmp_path / "cargo.log", exit_code=1),
+    )
+
+    assert result.code != 0
+
+
+@posix_only
+@pytest.mark.parametrize("has_lockfile", [True, False])
+def test_rust_security_generates_only_missing_lockfiles(
+    tmp_path: Path, has_lockfile: bool
+) -> None:
+    if has_lockfile:
+        (tmp_path / "Cargo.lock").write_text("version = 4\n", encoding="utf-8")
+    log = tmp_path / "cargo.log"
+
+    result = run_step(
+        "rust-security.yml", "audit", "Resolve missing lockfile", tmp_path, stubs=cargo_stub(log)
+    )
+
+    assert result.code == 0, result.stderr
+    assert log.exists() is not has_lockfile
+    if not has_lockfile:
+        assert log.read_text(encoding="utf-8").splitlines() == ["generate-lockfile"]
+
+
+@posix_only
+def test_rust_security_requires_a_lockfile_to_audit(tmp_path: Path) -> None:
+    result = run_step("rust-security.yml", "audit", "Require Cargo.lock", tmp_path)
+
+    assert result.code != 0
+    assert "Cargo.lock is required for cargo-audit" in result.stderr
+
+
+@posix_only
+@pytest.mark.parametrize(
+    ("config", "checks", "message"),
+    [
+        (False, "advisories", "cargo-deny policy file not found: deny.toml"),
+        (True, "", "cargo-deny-checks cannot be empty"),
+        (True, "advisories, unknown", "Unsupported cargo-deny check: unknown"),
+    ],
+)
+def test_rust_security_rejects_invalid_cargo_deny_policy(
+    tmp_path: Path, config: bool, checks: str, message: str
+) -> None:
+    if config:
+        (tmp_path / "deny.toml").write_text("", encoding="utf-8")
+
+    result = run_step(
+        "rust-security.yml",
+        "audit",
+        "Validate cargo-deny policy",
+        tmp_path,
+        inputs={"run-cargo-deny": True, "cargo-deny-checks": checks},
+    )
+
+    assert result.code != 0
+    assert message in result.stderr
+
+
+@posix_only
+def test_rust_security_passes_selected_checks_to_cargo_deny(tmp_path: Path) -> None:
+    log = tmp_path / "cargo.log"
+    result = run_step(
+        "rust-security.yml",
+        "audit",
+        "Enforce Rust dependency policy",
+        tmp_path,
+        inputs={"run-cargo-deny": True, "cargo-deny-checks": " advisories, bans "},
+        stubs=cargo_stub(log),
+    )
+
+    assert result.code == 0, result.stderr
+    assert log.read_text(encoding="utf-8").splitlines() == [
+        "deny --config deny.toml check advisories bans"
+    ]

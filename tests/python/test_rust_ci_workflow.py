@@ -1,7 +1,22 @@
+import os
 from pathlib import Path
 from typing import Any
 
+import pytest
 import yaml
+
+from tests.utils.rust_steps import (
+    CLEAN_LIB,
+    COMPILE_ERROR_LIB,
+    FAILING_TEST_LIB,
+    FEATURE_GATED_LIB,
+    LIB_CLIPPY_WARNING,
+    UNFORMATTED_LIB,
+    assert_gate,
+    require_rust_tools,
+    run_step,
+    write_crate,
+)
 
 
 def _load_workflow() -> dict[str, Any]:
@@ -134,3 +149,84 @@ def test_rust_ci_has_executable_self_test() -> None:
         "compatibility-toolchains": '["stable"]',
         "compatibility-os": '["ubuntu-latest"]',
     }
+
+
+posix_only = pytest.mark.skipif(os.name != "posix", reason="Fake runner requires bash (Linux CI)")
+
+CONFLICTING_FEATURES = [
+    ({"all-features": True, "no-default-features": True}, "cannot both be enabled"),
+    ({"all-features": True, "features": "extra"}, "cannot be combined with an explicit feature list"),
+]
+
+
+@posix_only
+@pytest.mark.parametrize(
+    ("step", "source", "failure"),
+    [
+        ("Format check", CLEAN_LIB, None),
+        ("Format check", UNFORMATTED_LIB, "Diff in"),
+        ("Cargo check", CLEAN_LIB, None),
+        ("Cargo check", COMPILE_ERROR_LIB, "cannot find value `missing`"),
+        ("Clippy", CLEAN_LIB, None),
+        ("Clippy", LIB_CLIPPY_WARNING, "unneeded `return` statement"),
+        ("Tests", CLEAN_LIB, None),
+        ("Tests", FAILING_TEST_LIB, "test result: FAILED"),
+    ],
+)
+def test_rust_ci_gates_fail_on_broken_crates(
+    tmp_path: Path, step: str, source: str, failure: str | None
+) -> None:
+    """Each primary CI gate must fail on the defect it exists to catch."""
+    require_rust_tools("fmt", "clippy")
+    crate = write_crate(tmp_path / "crate", source)
+
+    result = run_step("rust-ci.yml", "build", step, crate)
+
+    assert_gate(result, failure)
+
+
+@posix_only
+@pytest.mark.parametrize(
+    ("inputs", "features", "failure"),
+    [
+        ({}, {"extra": []}, "the extra feature is required"),
+        ({"features": "extra"}, {"extra": []}, None),
+        ({"all-features": True}, {"extra": []}, None),
+        ({}, {"default": ["extra"], "extra": []}, None),
+        ({"no-default-features": True}, {"default": ["extra"], "extra": []}, "the extra feature is required"),
+    ],
+)
+def test_rust_ci_passes_feature_selection_to_cargo(
+    tmp_path: Path,
+    inputs: dict[str, Any],
+    features: dict[str, list[str]],
+    failure: str | None,
+) -> None:
+    """Feature inputs must reach Cargo; the fixture only compiles with `extra` enabled."""
+    require_rust_tools()
+    crate = write_crate(tmp_path / "crate", FEATURE_GATED_LIB, features=features)
+
+    for job, step in (("build", "Cargo check"), ("compatibility", "Compatibility check")):
+        assert_gate(run_step("rust-ci.yml", job, step, crate, inputs=inputs), failure)
+
+
+@posix_only
+@pytest.mark.parametrize("job", ["build", "compatibility"])
+@pytest.mark.parametrize(("inputs", "message"), CONFLICTING_FEATURES)
+def test_rust_ci_rejects_conflicting_feature_flags(
+    tmp_path: Path, job: str, inputs: dict[str, Any], message: str
+) -> None:
+    (tmp_path / "Cargo.toml").write_text("[package]\n", encoding="utf-8")
+
+    result = run_step("rust-ci.yml", job, "Validate Rust project", tmp_path, inputs=inputs)
+
+    assert result.code != 0
+    assert message in result.stderr
+
+
+@posix_only
+def test_rust_ci_requires_a_cargo_manifest(tmp_path: Path) -> None:
+    result = run_step("rust-ci.yml", "build", "Validate Rust project", tmp_path)
+
+    assert result.code != 0
+    assert "Cargo.toml not found in ." in result.stderr

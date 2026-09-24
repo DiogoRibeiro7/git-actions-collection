@@ -1,7 +1,14 @@
+import os
 from pathlib import Path
 from typing import Any
 
+import pytest
 import yaml
+
+from tests.utils.rust_steps import (
+    cargo_stub,
+    run_step,
+)
 
 
 def _load_workflow() -> dict[str, Any]:
@@ -113,3 +120,86 @@ def test_rust_benchmark_has_executable_self_test() -> None:
         "sample-size": 10,
         "upload-results": False,
     }
+
+
+posix_only = pytest.mark.skipif(os.name != "posix", reason="Fake runner requires bash (Linux CI)")
+
+CONFLICTING_FEATURES = [
+    ({"all-features": True, "no-default-features": True}, "cannot both be enabled"),
+    ({"all-features": True, "features": "extra"}, "cannot be combined with an explicit feature list"),
+]
+
+
+@posix_only
+@pytest.mark.parametrize(
+    ("inputs", "message"),
+    [
+        *CONFLICTING_FEATURES,
+        ({"warm-up-seconds": 0}, "warm-up-seconds must be greater than 0"),
+        ({"measurement-seconds": 0}, "measurement-seconds must be greater than 0"),
+        ({"sample-size": 9}, "sample-size must be at least 10 for Criterion"),
+        ({"artifact-retention-days": 91}, "artifact-retention-days must be between 1 and 90"),
+    ],
+)
+def test_rust_benchmark_rejects_invalid_configuration(
+    tmp_path: Path, inputs: dict[str, Any], message: str
+) -> None:
+    (tmp_path / "Cargo.toml").write_text("[package]\n", encoding="utf-8")
+
+    result = run_step(
+        "rust-benchmark.yml",
+        "benchmark",
+        "Validate benchmark configuration",
+        tmp_path,
+        inputs=inputs,
+    )
+
+    assert result.code != 0
+    assert message in result.stderr
+
+
+@posix_only
+@pytest.mark.parametrize(
+    ("inputs", "expected"),
+    [
+        (
+            {},
+            "bench --workspace --locked -- "
+            "--warm-up-time 0.1 --measurement-time 0.2 --sample-size 10",
+        ),
+        (
+            {"bench-name": "add", "benchmark-filter": "add/small", "features": "extra"},
+            "bench --workspace --locked --features extra --bench add -- add/small "
+            "--warm-up-time 0.1 --measurement-time 0.2 --sample-size 10",
+        ),
+    ],
+)
+def test_rust_benchmark_passes_selection_and_timing_to_criterion(
+    tmp_path: Path, inputs: dict[str, Any], expected: str
+) -> None:
+    """The filter must precede Criterion's own options after the `--` separator."""
+    log = tmp_path / "cargo.log"
+    result = run_step(
+        "rust-benchmark.yml",
+        "benchmark",
+        "Run Criterion smoke benchmark",
+        tmp_path,
+        inputs=inputs,
+        stubs=cargo_stub(log),
+    )
+
+    assert result.code == 0, result.stderr
+    assert log.read_text(encoding="utf-8").splitlines() == [expected]
+
+
+@posix_only
+def test_rust_benchmark_propagates_benchmark_failures(tmp_path: Path) -> None:
+    result = run_step(
+        "rust-benchmark.yml",
+        "benchmark",
+        "Run Criterion smoke benchmark",
+        tmp_path,
+        stubs=cargo_stub(tmp_path / "cargo.log", exit_code=101),
+    )
+
+    assert result.code != 0
