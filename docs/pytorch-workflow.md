@@ -20,7 +20,7 @@ This reusable workflow trains a PyTorch model with GPU acceleration, tracks expe
 | `model-artifact` | string | no (default `model.pt`) | Output model file to upload |
 | `deploy` | boolean | no (default `false`) | Whether to run the deployment step |
 | `mlflow-uri` | string | no | MLflow tracking server URL |
-| `pip-version` | string | no (default `24.3.1`) | pip release installed before training; set to `latest` to follow upstream |
+| `pip-version` | string | no (default `26.2.1`) | pip release installed before training; set to `latest` to follow upstream |
 | `hf-token` | secret | no | Token used by the example deployment step |
 
 ## Example
@@ -44,4 +44,4 @@ jobs:
 - Pin all actions to commit SHAs for supply-chain security
 - Store MLflow and deployment credentials in encrypted secrets
 - Run benchmarks on isolated runners to avoid leaking model data
-- Python environments in this workflow respect the shared pip upgrade policy—the default installer (`24.3.1`) is validated by the repository test suite, and you can override `pip-version` if a newer pip is required.
+- Python environments in this workflow respect the shared pip upgrade policy—the default installer (`26.2.1`) is validated by the repository test suite, and you can override `pip-version` if a newer pip is required.

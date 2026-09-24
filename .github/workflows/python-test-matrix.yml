@@ -21,7 +21,7 @@ on:
         description: "pip release to install (set to 'latest' to track upstream)"
         required: false
         type: string
-        default: '24.3.1'
+        default: '26.2.1'
 permissions:
   contents: read
 jobs:

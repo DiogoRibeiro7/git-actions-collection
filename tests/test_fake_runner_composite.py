@@ -145,7 +145,7 @@ def test_benchmark_smoke_happy(tmp_path: Path):
 
     result = run_action(
         ACTIONS_DIR / "benchmark-smoke",
-        inputs={"pytest-args": "-k fast", "pip-version": "24.3.1"},
+        inputs={"pytest-args": "-k fast", "pip-version": "26.2.1"},
         env=_env_with_path(fakebin),
         workdir=tmp_path,
     )
@@ -329,7 +329,7 @@ def test_python_type_check_default_pip(tmp_path: Path):
         env=_env_with_path(fakebin),
         workdir=tmp_path,
     )
-    assert "pip==24.3.1" in result.stdout
+    assert "pip==26.2.1" in result.stdout
 
 
 def test_pr_template_enforcer_happy(tmp_path: Path):

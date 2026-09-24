@@ -8,7 +8,7 @@ This guide explains how the `security-scan` reusable workflow supports common co
 - Workflow permissions are limited to `contents: read` and `security-events: write` to uphold least-privilege principles.
 - SLSA Level 2 attestations are generated for scan artifacts and uploaded via the GitHub Attestation API.
 - Each shell step enables `set -euo pipefail` and quotes variables to avoid command injection.
-- Python-based scanners follow the shared pip upgrade policy: `24.3.1` is the validated default and the workflow exposes a `pip-version` input (set it to `latest` to track upstream) when you need a newer installer.
+- Python-based scanners follow the shared pip upgrade policy: `26.2.1` is the validated default and the workflow exposes a `pip-version` input (set it to `latest` to track upstream) when you need a newer installer.
 
 ## Audit Logging
 

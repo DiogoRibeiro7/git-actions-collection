@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=83.0.0", "wheel>=0.46.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -34,12 +34,12 @@ dependencies = [
     "PyYAML >=6.0.3,<7.0.0",
     "tomlkit >=0.14.0,<1.0.0",
     "packaging >=26.0,<27.0.0",
-    "requests >=2.32.5,<3.0.0",
+    "requests >=2.33.0,<3.0.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest >=9.0.2,<10.0.0",
+    "pytest >=9.0.3,<10.0.0",
     "pytest-cov >=7.0.0,<8.0.0",
     "ruff >=0.15.1,<1.0.0",
     "mypy >=1.19.1,<2.0.0",
@@ -48,7 +48,7 @@ dev = [
 ]
 
 test = [
-    "pytest>=8.0,<10.0",
+    "pytest>=9.0.3,<10.0",
     "pytest-cov>=4.0,<5.0",
 ]
 
@@ -156,7 +156,7 @@ ignore_missing_imports = true
 
 # Pytest configuration
 [tool.pytest.ini_options]
-minversion = "8.0"
+minversion = "9.0.3"
 addopts = [
     "--strict-markers",
     "--strict-config",
