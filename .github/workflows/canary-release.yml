@@ -27,12 +27,13 @@ on:
         required: false
 permissions:
   contents: read
-  packages: write
-  id-token: write
 
 jobs:
   python:
     if: inputs.project-type == 'python' && (github.ref == 'refs/heads/main' || contains(github.ref_name, '-rc'))
+    permissions:
+      contents: read
+      id-token: write
     uses: ./.github/workflows/pypi-publish.yml
     with:
       build-backend: ${{ inputs.build-backend }}
@@ -42,6 +43,9 @@ jobs:
 
   npm:
     if: inputs.project-type == 'npm' && (github.ref == 'refs/heads/main' || contains(github.ref_name, '-rc'))
+    permissions:
+      contents: read
+      id-token: write
     uses: ./.github/workflows/npm-publish.yml
     with:
       working-directory: ${{ inputs.working-directory }}
@@ -51,6 +55,10 @@ jobs:
 
   docker:
     if: inputs.project-type == 'docker' && (github.ref == 'refs/heads/main' || contains(github.ref_name, '-rc'))
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
     uses: ./.github/workflows/docker-build-push.yml
     with:
       image: ${{ inputs.image != '' && inputs.image || format('ghcr.io/{0}', github.repository) }}

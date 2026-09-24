@@ -40,6 +40,7 @@ jobs:
 - Ensure spec files are valid and accessible
 - Verify API is reachable at the provided base URL
 - ZAP scans may require longer timeouts for large APIs
+- ZAP findings are uploaded as the `zap_scan` workflow artifact; the workflow does not open issues, so callers only need to grant `contents: read`
 
 ## Performance Tips
 - Provide minimal test data to speed up runs
