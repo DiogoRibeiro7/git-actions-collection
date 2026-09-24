@@ -26,8 +26,8 @@ The repository already contains a broad workflow catalogue, but the stable compa
 
 At the current v1 baseline:
 
-- `python-test-matrix.yml` and `security-scan.yml` are supported reusable workflows;
-- Rust, Ruby, Go, Java, Node, .NET, Deno, infrastructure, publishing, and repository-governance workflows exist mainly as reference or experimental components;
+- `python-test-matrix.yml`, `security-scan.yml`, and the core Rust CI, quality, security, coverage, documentation, benchmark, and release-preflight workflows are supported reusable workflows;
+- Ruby, Go, Java, Node, .NET, Deno, infrastructure, publishing (including the Rust crates.io and GitHub Release workflows), and repository-governance workflows exist mainly as reference or experimental components;
 - reusable composite actions already cover Python, R, dependency inspection, repository policy, security scanning, AWS packaging, and common setup tasks.
 
 The next stage is therefore not simply to add more YAML. It is to promote useful workflows into well-tested, reusable products and fill the missing ecosystem-specific gaps.
@@ -61,7 +61,7 @@ Before expanding the catalogue aggressively, improve the guarantees around every
 
 ## Priority 1 — Rust as a first-class supported ecosystem
 
-The repository already contains `rust-ci.yml`, but it is currently a reference workflow and only performs formatting, `cargo check`, and Clippy. Rust should become a complete supported surface.
+Rust started as a reference `rust-ci.yml` that only ran formatting, `cargo check`, and Clippy. The core CI, quality, security, coverage, documentation, benchmark, and release-preflight workflows are now supported; crates.io publication and GitHub Releases remain experimental until they are exercised by real releases.
 
 ### Core CI
 
@@ -73,7 +73,7 @@ The repository already contains `rust-ci.yml`, but it is currently a reference w
 - [x] Add stable, beta, nightly, and MSRV testing where requested by the consumer.
 - [x] Add dependency and build caching without making cache correctness part of the build result.
 - [x] Add Rust example projects and contract tests.
-- [ ] Promote the core Rust workflow from reference to supported after the acceptance criteria are met.
+- [x] Promote the core Rust workflow from reference to supported after the acceptance criteria are met.
 
 ### Rust quality and security
 
@@ -290,7 +290,7 @@ As the supported workflows mature, maintain executable example projects for:
 - [ ] Python library;
 - [ ] scientific Python package;
 - [ ] R package;
-- [ ] Rust crate;
+- [x] Rust crate;
 - [ ] Ruby gem;
 - [ ] Go library or CLI;
 - [ ] Java/Gradle library;
