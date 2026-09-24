@@ -1,0 +1,546 @@
+{
+  "composite_actions": {
+    "apm-integration": {
+      "inputs": {
+        "api-key": {
+          "default": null,
+          "deprecated": false,
+          "required": true
+        },
+        "app-id": {
+          "default": null,
+          "deprecated": false,
+          "required": false
+        },
+        "deployment-id": {
+          "default": "${{ github.sha }}",
+          "deprecated": false,
+          "required": false
+        },
+        "environment": {
+          "default": "production",
+          "deprecated": false,
+          "required": false
+        },
+        "metrics-file": {
+          "default": null,
+          "deprecated": false,
+          "required": false
+        },
+        "provider": {
+          "default": null,
+          "deprecated": false,
+          "required": true
+        }
+      },
+      "outputs": []
+    },
+    "aws-lambda-build": {
+      "inputs": {
+        "output-zip": {
+          "default": "artifact/lambda.zip",
+          "deprecated": false,
+          "required": false
+        },
+        "pip-version": {
+          "default": "24.3.1",
+          "deprecated": false,
+          "required": false
+        },
+        "python-version": {
+          "default": "3.12",
+          "deprecated": false,
+          "required": false
+        },
+        "src": {
+          "default": "lambda/",
+          "deprecated": false,
+          "required": false
+        }
+      },
+      "outputs": []
+    },
+    "benchmark-smoke": {
+      "inputs": {
+        "pip-version": {
+          "default": "24.3.1",
+          "deprecated": false,
+          "required": false
+        },
+        "pytest-args": {
+          "default": "",
+          "deprecated": false,
+          "required": false
+        },
+        "python-version": {
+          "default": "3.11",
+          "deprecated": false,
+          "required": false
+        },
+        "working-directory": {
+          "default": ".",
+          "deprecated": false,
+          "required": false
+        }
+      },
+      "outputs": []
+    },
+    "check-imports": {
+      "inputs": {
+        "create-pr": {
+          "default": "false",
+          "deprecated": false,
+          "required": false
+        },
+        "fail-on": {
+          "default": "missing",
+          "deprecated": false,
+          "required": false
+        },
+        "format": {
+          "default": "text",
+          "deprecated": false,
+          "required": false
+        },
+        "paths": {
+          "default": "src tests",
+          "deprecated": false,
+          "required": false
+        },
+        "pip-version": {
+          "default": "24.3.1",
+          "deprecated": false,
+          "required": false
+        },
+        "pr-branch": {
+          "default": "deps/check-imports",
+          "deprecated": false,
+          "required": false
+        },
+        "python-version": {
+          "default": "3.12",
+          "deprecated": false,
+          "required": false
+        },
+        "smart-update": {
+          "default": "false",
+          "deprecated": false,
+          "required": false
+        },
+        "update-pyproject": {
+          "default": "false",
+          "deprecated": false,
+          "required": false
+        }
+      },
+      "outputs": []
+    },
+    "gradle-build": {
+      "inputs": {
+        "gradle-args": {
+          "default": "--build-cache",
+          "deprecated": false,
+          "required": false
+        },
+        "java-version": {
+          "default": "17",
+          "deprecated": false,
+          "required": false
+        },
+        "tasks": {
+          "default": "build",
+          "deprecated": false,
+          "required": false
+        },
+        "working-directory": {
+          "default": ".",
+          "deprecated": false,
+          "required": false
+        }
+      },
+      "outputs": []
+    },
+    "markdown-lint": {
+      "inputs": {
+        "config-file": {
+          "default": "",
+          "deprecated": false,
+          "required": false
+        },
+        "node-version": {
+          "default": "20",
+          "deprecated": false,
+          "required": false
+        },
+        "paths": {
+          "default": ".",
+          "deprecated": false,
+          "required": false
+        }
+      },
+      "outputs": []
+    },
+    "pr-template-enforcer": {
+      "inputs": {},
+      "outputs": []
+    },
+    "python-lint": {
+      "inputs": {
+        "enable-mypy": {
+          "default": "false",
+          "deprecated": false,
+          "required": false
+        },
+        "pip-version": {
+          "default": "24.3.1",
+          "deprecated": false,
+          "required": false
+        },
+        "python-version": {
+          "default": "3.12",
+          "deprecated": false,
+          "required": false
+        }
+      },
+      "outputs": []
+    },
+    "python-type-check": {
+      "inputs": {
+        "extra-dependencies": {
+          "default": "",
+          "deprecated": false,
+          "required": false
+        },
+        "mypy-args": {
+          "default": ".",
+          "deprecated": false,
+          "required": false
+        },
+        "pip-version": {
+          "default": "24.3.1",
+          "deprecated": false,
+          "required": false
+        },
+        "python-version": {
+          "default": "3.11",
+          "deprecated": false,
+          "required": false
+        },
+        "requirements-file": {
+          "default": "",
+          "deprecated": false,
+          "required": false
+        },
+        "working-directory": {
+          "default": ".",
+          "deprecated": false,
+          "required": false
+        }
+      },
+      "outputs": []
+    },
+    "r-lint": {
+      "inputs": {
+        "additional-packages": {
+          "default": "",
+          "deprecated": false,
+          "required": false
+        },
+        "config-file": {
+          "default": "",
+          "deprecated": false,
+          "required": false
+        },
+        "cran-mirror": {
+          "default": "https://cloud.r-project.org",
+          "deprecated": false,
+          "required": false
+        },
+        "r-version": {
+          "default": "release",
+          "deprecated": false,
+          "required": false
+        },
+        "targets": {
+          "default": "R",
+          "deprecated": false,
+          "required": false
+        },
+        "use-public-rspm": {
+          "default": "true",
+          "deprecated": false,
+          "required": false
+        },
+        "working-directory": {
+          "default": ".",
+          "deprecated": false,
+          "required": false
+        }
+      },
+      "outputs": []
+    },
+    "r-testthat": {
+      "inputs": {
+        "additional-packages": {
+          "default": "",
+          "deprecated": false,
+          "required": false
+        },
+        "cran-mirror": {
+          "default": "https://cloud.r-project.org",
+          "deprecated": false,
+          "required": false
+        },
+        "install-dependencies": {
+          "default": "true",
+          "deprecated": false,
+          "required": false
+        },
+        "r-version": {
+          "default": "release",
+          "deprecated": false,
+          "required": false
+        },
+        "test-directory": {
+          "default": "tests/testthat",
+          "deprecated": false,
+          "required": false
+        },
+        "use-devtools": {
+          "default": "true",
+          "deprecated": false,
+          "required": false
+        },
+        "use-public-rspm": {
+          "default": "true",
+          "deprecated": false,
+          "required": false
+        },
+        "working-directory": {
+          "default": ".",
+          "deprecated": false,
+          "required": false
+        }
+      },
+      "outputs": []
+    },
+    "secret-scan": {
+      "inputs": {
+        "args": {
+          "default": "--no-git -v",
+          "deprecated": false,
+          "required": false
+        }
+      },
+      "outputs": []
+    },
+    "setup-poetry": {
+      "inputs": {
+        "install-deps": {
+          "default": "true",
+          "deprecated": false,
+          "required": false
+        },
+        "pip-version": {
+          "default": "24.3.1",
+          "deprecated": false,
+          "required": false
+        },
+        "python-version": {
+          "default": "3.12",
+          "deprecated": false,
+          "required": false
+        }
+      },
+      "outputs": []
+    },
+    "setup-r": {
+      "inputs": {
+        "cran-mirror": {
+          "default": "https://cloud.r-project.org",
+          "deprecated": false,
+          "required": false
+        },
+        "packages": {
+          "default": "",
+          "deprecated": false,
+          "required": false
+        },
+        "r-version": {
+          "default": "release",
+          "deprecated": false,
+          "required": false
+        },
+        "use-public-rspm": {
+          "default": "true",
+          "deprecated": false,
+          "required": false
+        },
+        "working-directory": {
+          "default": ".",
+          "deprecated": false,
+          "required": false
+        }
+      },
+      "outputs": []
+    },
+    "setup-yarn": {
+      "inputs": {
+        "node-version": {
+          "default": "20",
+          "deprecated": false,
+          "required": false
+        },
+        "working-directory": {
+          "default": ".",
+          "deprecated": false,
+          "required": false
+        }
+      },
+      "outputs": []
+    },
+    "smart-dependency-update": {
+      "inputs": {
+        "apply": {
+          "default": "false",
+          "deprecated": false,
+          "required": false
+        },
+        "batch-size": {
+          "default": "50",
+          "deprecated": false,
+          "required": false
+        },
+        "dependabot": {
+          "default": "false",
+          "deprecated": false,
+          "required": false
+        },
+        "github-token": {
+          "default": null,
+          "deprecated": false,
+          "required": false
+        },
+        "manifests": {
+          "default": null,
+          "deprecated": false,
+          "required": true
+        },
+        "pip-version": {
+          "default": "24.3.1",
+          "deprecated": false,
+          "required": false
+        },
+        "repo": {
+          "default": null,
+          "deprecated": false,
+          "required": false
+        }
+      },
+      "outputs": [
+        "report"
+      ]
+    }
+  },
+  "workflows": {
+    "python-test-matrix.yml": {
+      "inputs": {
+        "os-matrix": {
+          "default": "[\"ubuntu-latest\",\"windows-latest\",\"macos-latest\"]",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        },
+        "pip-version": {
+          "default": "24.3.1",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        },
+        "python-versions": {
+          "default": "[\"3.10\",\"3.11\",\"3.12\"]",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        },
+        "test-command": {
+          "default": "pytest -q",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        }
+      },
+      "outputs": [],
+      "permissions": {
+        "contents": "read"
+      },
+      "secrets": {}
+    },
+    "security-scan.yml": {
+      "inputs": {
+        "bandit-args": {
+          "default": "-ll -ii",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        },
+        "dependency-install-command": {
+          "default": "",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        },
+        "paths": {
+          "default": ".",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        },
+        "pip-version": {
+          "default": "24.3.1",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        },
+        "skip-go-verify": {
+          "default": false,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "skip-java-verify": {
+          "default": false,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "skip-npm-signatures": {
+          "default": false,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "skip-python-scans": {
+          "default": false,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        },
+        "skip-trivy": {
+          "default": true,
+          "deprecated": false,
+          "required": false,
+          "type": "boolean"
+        }
+      },
+      "outputs": [],
+      "permissions": {
+        "attestations": "write",
+        "contents": "read",
+        "id-token": "write",
+        "security-events": "write"
+      },
+      "secrets": {}
+    }
+  }
+}
