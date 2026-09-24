@@ -6,7 +6,8 @@
   "scripts": {
     "test": "vitest run",
     "test:py": "pytest -q",
-    "test:bash": "bats tests/bash",
+    "test:bash": "bats --recursive tests/bash",
+    "lint:workflows": "actionlint -pyflakes=",
     "lint": "eslint . --ext .ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

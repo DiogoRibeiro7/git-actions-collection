@@ -53,4 +53,6 @@ jobs:
       - name: Coverage summary
         if: always()
         run: |
-          [ -f coverage.xml ] && grep -o 'line-rate="[^"]*' coverage.xml | head -1 || true
+          if [ -f coverage.xml ]; then
+            grep -o 'line-rate="[^"]*' coverage.xml | head -1 || true
+          fi

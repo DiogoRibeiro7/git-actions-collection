@@ -21,4 +21,4 @@ jobs:
         run: |
           npx commitlint --version >/dev/null 2>&1 || npm i -g @commitlint/{config-conventional,cli}
           range="$(git rev-parse HEAD^)..HEAD"
-          git log --format=%s $range | npx commitlint
+          git log --format=%s "$range" | npx commitlint

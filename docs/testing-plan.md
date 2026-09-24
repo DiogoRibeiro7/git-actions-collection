@@ -1,6 +1,18 @@
 # Testing Plan
 
-This document inventories composite actions and workflows, highlights high‑risk targets, and proposes a unit‑test layout that is deterministic and Linux‑friendly (no network, no real GH API calls).
+This document records the original inventory and test targets. The implemented
+testing layers and current commands are documented in
+[CONTRIBUTING.md](../CONTRIBUTING.md). Unit tests are deterministic and use stubs;
+GitHub smoke tests execute real dependencies against disposable fixtures.
+
+The canonical `CI Tests` workflow runs pytest, recursive Bats tests, Vitest,
+actionlint/ShellCheck, and a composite-action integration matrix. Existing
+`test-*.yml` caller workflows exercise reusable workflows on GitHub.
+
+Internal `$GITHUB_OUTPUT` entries are not automatically public action outputs.
+The `missing` entry in check-imports and `packages` entries in R actions are
+internal; only metadata-declared outputs such as smart-dependency-update's
+`report` are visible to callers.
 
 ## Inventory
 

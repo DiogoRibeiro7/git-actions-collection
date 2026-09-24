@@ -1,0 +1,6 @@
+# Bash scripts and executable test shims must work in Linux and WSL checkouts.
+*.sh text eol=lf
+*.bash text eol=lf
+*.bats text eol=lf
+tests/fakebin/* text eol=lf
+tests/bash/fixtures/* text eol=lf

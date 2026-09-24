@@ -58,7 +58,6 @@ jobs:
       - name: Install actionlint
         run: |
           set -euo pipefail
-          api_url="https://api.github.com/repos/rhysd/actionlint/releases/latest"
           url=$(python - <<'PY'
           import json
           import os
@@ -227,7 +226,7 @@ jobs:
         run: |
           set -euo pipefail
           cd "examples/${{ matrix.example }}"
-          kubeconform -summary *.yaml
+          kubeconform -summary ./*.yaml
 
       - name: Helm lint and template
         if: matrix.type == 'helm'
@@ -245,7 +244,6 @@ jobs:
         run: |
           set -euo pipefail
           legacy="DiogoRibeiro7/"'gh-actions-collection'
-          canonical="DiogoRibeiro7/"'git-actions-collection'
           if git grep -n -F "$legacy" -- .; then
             echo "Legacy repository references are forbidden in tracked content." >&2
             exit 1

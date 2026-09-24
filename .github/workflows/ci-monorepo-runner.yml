@@ -156,7 +156,7 @@ jobs:
 
       - name: Kubernetes manifests lint
         if: inputs.kind == 'k8s'
-        run: kubeconform -summary *.yaml || true
+        run: kubeconform -summary ./*.yaml || true
 
       - name: Helm lint and template
         if: inputs.kind == 'helm'

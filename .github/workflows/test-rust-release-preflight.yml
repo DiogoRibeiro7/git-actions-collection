@@ -73,7 +73,7 @@ jobs:
             exit 1
           fi
 
-          actual="$(cd crates && ls -1 | sort | tr '\n' ' ')"
+          actual="$(find crates -mindepth 1 -maxdepth 1 -printf '%f\n' | sort | tr '\n' ' ')"
           expected="gac-example-cli-0.1.0.crate gac-example-core-0.1.0.crate "
           if [ "$actual" != "$expected" ]; then
             echo "Unexpected crate archives: $actual" >&2

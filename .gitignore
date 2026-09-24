@@ -13,6 +13,7 @@ coverage.xml
 target/
 *.pyc
 *.pyo
+*.egg-info/
 *.env
 examples/npm-package/.yarn/
 examples/python-package/poetry.lock
