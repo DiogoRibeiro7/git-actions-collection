@@ -90,7 +90,7 @@ The repository already contains `rust-ci.yml`, but it is currently a reference w
 - [x] Run `cargo package` as a release preflight.
 - [x] Add crates.io publication with protected release environments and the safest available authentication mechanism.
 - [x] Generate GitHub Releases with checksums and release notes.
-- [ ] Support workspace crates without forcing every crate to publish.
+- [x] Support workspace crates without forcing every crate to publish.
 
 ---
 

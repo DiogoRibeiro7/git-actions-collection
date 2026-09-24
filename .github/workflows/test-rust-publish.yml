@@ -6,8 +6,10 @@ on:
       - main
     paths:
       - '.github/workflows/rust-publish.yml'
+      - '.github/workflows/rust-release-preflight.yml'
       - '.github/workflows/test-rust-publish.yml'
       - 'examples/rust-crate/**'
+      - 'examples/rust-workspace/**'
       - 'tests/python/test_rust_publish_workflow.py'
   workflow_dispatch:
 
@@ -22,7 +24,7 @@ jobs:
   rust-publish-dry-run:
     # GitHub checks nested job permissions before evaluating if:, so the
     # skipped live publish job's id-token grant must be allowed here. The
-    # dry-run job itself still requests only contents: read.
+    # preflight job itself still requests only contents: read.
     permissions:
       contents: read
       id-token: write
@@ -31,5 +33,17 @@ jobs:
       rust-toolchain: stable
       working-directory: examples/rust-crate
       package-name: rust-crate
+      locked: false
+      dry-run: true
+
+  rust-publish-workspace-dry-run:
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/rust-publish.yml
+    with:
+      rust-toolchain: stable
+      working-directory: examples/rust-workspace
+      packages: gac-example-core, gac-example-cli
       locked: false
       dry-run: true

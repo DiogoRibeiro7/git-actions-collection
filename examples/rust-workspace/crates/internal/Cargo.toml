@@ -1,0 +1,9 @@
+[package]
+name = "gac-example-internal"
+description = "Internal workspace tooling that must never be published."
+publish = false
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+gac-example-core = { path = "../core" }

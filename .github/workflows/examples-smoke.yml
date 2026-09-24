@@ -38,6 +38,8 @@ jobs:
             type: java
           - example: rust-crate
             type: rust
+          - example: rust-workspace
+            type: rust
           - example: go-module
             type: go
           - example: infra

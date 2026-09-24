@@ -1,0 +1,11 @@
+[package]
+name = "gac-example-cli"
+description = "Workspace crate that depends on the example core library."
+readme = "README.md"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+gac-example-core = { path = "../core", version = "0.1.0" }

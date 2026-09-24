@@ -1,0 +1,17 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish:
+    permissions:
+      contents: read
+      id-token: write
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/rust-publish.yml@v1
+    with:
+      packages: gac-example-core gac-example-cli
+      dry-run: false
+      release-environment: release

@@ -8,6 +8,7 @@ on:
       - '.github/workflows/rust-release-preflight.yml'
       - '.github/workflows/test-rust-release-preflight.yml'
       - 'examples/rust-crate/**'
+      - 'examples/rust-workspace/**'
       - 'tests/python/test_rust_release_preflight_workflow.py'
   workflow_dispatch:
 
@@ -27,3 +28,54 @@ jobs:
       package-name: rust-crate
       locked: false
       upload-crate: false
+
+  # Runs from a member directory so the workspace-root target directory and
+  # per-crate README paths are exercised, and packages two dependent crates.
+  rust-release-preflight-workspace:
+    uses: ./.github/workflows/rust-release-preflight.yml
+    with:
+      rust-toolchain: stable
+      working-directory: examples/rust-workspace/crates/cli
+      packages: gac-example-core gac-example-cli
+      locked: false
+      upload-crate: true
+      artifact-retention-days: 1
+
+  verify-workspace-plan:
+    name: Verify workspace release plan
+    needs: rust-release-preflight-workspace
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Download workspace crate archives
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        with:
+          name: ${{ needs.rust-release-preflight-workspace.outputs.artifact-name }}
+          path: crates
+
+      - name: Check plan outputs and archives
+        shell: bash
+        env:
+          PACKAGES: ${{ needs.rust-release-preflight-workspace.outputs.packages }}
+          PACKAGE_NAME: ${{ needs.rust-release-preflight-workspace.outputs.package-name }}
+        run: |
+          set -euo pipefail
+
+          if [ "$PACKAGES" != "gac-example-core gac-example-cli" ]; then
+            echo "Unexpected publication order: $PACKAGES" >&2
+            exit 1
+          fi
+
+          if [ -n "$PACKAGE_NAME" ]; then
+            echo "package-name must be empty when several packages are selected" >&2
+            exit 1
+          fi
+
+          actual="$(cd crates && ls -1 | sort | tr '\n' ' ')"
+          expected="gac-example-cli-0.1.0.crate gac-example-core-0.1.0.crate "
+          if [ "$actual" != "$expected" ]; then
+            echo "Unexpected crate archives: $actual" >&2
+            exit 1
+          fi
