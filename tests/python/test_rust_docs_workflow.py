@@ -1,7 +1,18 @@
+import os
 from pathlib import Path
 from typing import Any
 
+import pytest
 import yaml
+
+from tests.utils.rust_steps import (
+    BROKEN_DOC_LINK_LIB,
+    CLEAN_LIB,
+    assert_gate,
+    require_rust_tools,
+    run_step,
+    write_crate,
+)
 
 
 def _load_workflow() -> dict[str, Any]:
@@ -103,3 +114,49 @@ def test_rust_docs_has_executable_self_test() -> None:
         "document-private-items": True,
         "upload-docs": False,
     }
+
+
+posix_only = pytest.mark.skipif(os.name != "posix", reason="Fake runner requires bash (Linux CI)")
+
+CONFLICTING_FEATURES = [
+    ({"all-features": True, "no-default-features": True}, "cannot both be enabled"),
+    ({"all-features": True, "features": "extra"}, "cannot be combined with an explicit feature list"),
+]
+
+
+@posix_only
+@pytest.mark.parametrize(
+    ("source", "failure"), [(CLEAN_LIB, None), (BROKEN_DOC_LINK_LIB, "unresolved link to `Missing`")]
+)
+def test_rust_docs_treat_rustdoc_warnings_as_errors(
+    tmp_path: Path, source: str, failure: str | None
+) -> None:
+    """A broken intra-doc link is only a warning unless the gate denies warnings."""
+    require_rust_tools()
+    crate = write_crate(tmp_path / "crate", source)
+
+    result = run_step("rust-docs.yml", "docs", "Build documentation", crate)
+
+    assert_gate(result, failure)
+
+
+@posix_only
+@pytest.mark.parametrize(
+    ("inputs", "message"),
+    [
+        *CONFLICTING_FEATURES,
+        ({"artifact-retention-days": 0}, "artifact-retention-days must be between 1 and 90"),
+        ({"artifact-retention-days": 91}, "artifact-retention-days must be between 1 and 90"),
+    ],
+)
+def test_rust_docs_rejects_invalid_configuration(
+    tmp_path: Path, inputs: dict[str, Any], message: str
+) -> None:
+    (tmp_path / "Cargo.toml").write_text("[package]\n", encoding="utf-8")
+
+    result = run_step(
+        "rust-docs.yml", "docs", "Validate documentation configuration", tmp_path, inputs=inputs
+    )
+
+    assert result.code != 0
+    assert message in result.stderr
