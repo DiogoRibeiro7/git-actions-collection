@@ -1,8 +1,24 @@
 version: 2
 updates:
+  # Repository and maintained Node example lockfiles
+  - package-ecosystem: "npm"
+    directories:
+      - "/"
+      - "/examples/npm-package"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "javascript"
+
   # Python dependencies
   - package-ecosystem: "pip"
-    directory: "/"
+    directories:
+      - "/"
+      - "/examples/django-app"
+      - "/examples/smart-dependency-update"
+      - "/examples/python-package"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
@@ -16,7 +32,7 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "monthly"
+      interval: "weekly"
     reviewers:
       - "diogoribeiro7"
     labels:

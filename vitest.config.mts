@@ -18,8 +18,8 @@ export default defineConfig({
     coverage: {
       reporter: ['text', 'lcov'],
       reportsDirectory: 'coverage',
-      include: ['tests/**/*.test.ts'],
-      exclude: ['**/node_modules/**', '**/dist/**'],
+      include: ['tests/helpers/**/*.ts'],
+      exclude: ['**/node_modules/**', '**/dist/**', '**/*.test.ts'],
       thresholds: {
         lines: 70,
         functions: 70,

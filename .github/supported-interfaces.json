@@ -43,7 +43,7 @@
           "required": false
         },
         "pip-version": {
-          "default": "24.3.1",
+          "default": "26.2.1",
           "deprecated": false,
           "required": false
         },
@@ -63,7 +63,7 @@
     "benchmark-smoke": {
       "inputs": {
         "pip-version": {
-          "default": "24.3.1",
+          "default": "26.2.1",
           "deprecated": false,
           "required": false
         },
@@ -108,7 +108,7 @@
           "required": false
         },
         "pip-version": {
-          "default": "24.3.1",
+          "default": "26.2.1",
           "deprecated": false,
           "required": false
         },
@@ -192,7 +192,7 @@
           "required": false
         },
         "pip-version": {
-          "default": "24.3.1",
+          "default": "26.2.1",
           "deprecated": false,
           "required": false
         },
@@ -217,7 +217,7 @@
           "required": false
         },
         "pip-version": {
-          "default": "24.3.1",
+          "default": "26.2.1",
           "deprecated": false,
           "required": false
         },
@@ -342,7 +342,7 @@
           "required": false
         },
         "pip-version": {
-          "default": "24.3.1",
+          "default": "26.2.1",
           "deprecated": false,
           "required": false
         },
@@ -427,7 +427,7 @@
           "required": true
         },
         "pip-version": {
-          "default": "24.3.1",
+          "default": "26.2.1",
           "deprecated": false,
           "required": false
         },
@@ -452,7 +452,7 @@
           "type": "string"
         },
         "pip-version": {
-          "default": "24.3.1",
+          "default": "26.2.1",
           "deprecated": false,
           "required": false,
           "type": "string"
@@ -1033,7 +1033,7 @@
           "type": "string"
         },
         "pip-version": {
-          "default": "24.3.1",
+          "default": "26.2.1",
           "deprecated": false,
           "required": false,
           "type": "string"

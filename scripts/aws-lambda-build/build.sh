@@ -5,7 +5,7 @@ set -euo pipefail
 # empty input so validation can reject it instead of silently replacing it.
 src="${INPUT_SRC-}"
 output_zip="${INPUT_OUTPUT_ZIP-}"
-pip_version="${INPUT_PIP_VERSION:-24.3.1}"
+pip_version="${INPUT_PIP_VERSION:-26.2.1}"
 
 if [ -z "$src" ]; then
   echo "src input must not be empty" >&2

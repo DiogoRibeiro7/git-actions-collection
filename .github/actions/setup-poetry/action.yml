@@ -12,7 +12,7 @@ inputs:
   pip-version:
     description: "pip release to install (set to 'latest' to track upstream)"
     required: false
-    default: "24.3.1"
+    default: "26.2.1"
 runs:
   using: "composite"
   steps:

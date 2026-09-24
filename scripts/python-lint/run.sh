@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-pip_version="${INPUT_PIP_VERSION:-24.3.1}"
+pip_version="${INPUT_PIP_VERSION:-26.2.1}"
 enable_mypy="${INPUT_ENABLE_MYPY:-false}"
 
 if [ "$pip_version" = "latest" ]; then

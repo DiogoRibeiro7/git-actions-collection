@@ -4,7 +4,7 @@ set -euo pipefail
 requirements_file="${INPUT_REQUIREMENTS_FILE:-}"
 extra_deps="${INPUT_EXTRA_DEPENDENCIES:-}"
 mypy_args="${INPUT_MYPY_ARGS:-.}"
-pip_version="${INPUT_PIP_VERSION:-24.3.1}"
+pip_version="${INPUT_PIP_VERSION:-26.2.1}"
 
 if [ "$pip_version" = "latest" ]; then
   python -m pip install --upgrade pip

@@ -1,7 +1,7 @@
 import yaml
 from pathlib import Path
 
-DEFAULT_PIP = "24.3.1"
+DEFAULT_PIP = "26.2.1"
 
 COMPOSITE_ACTIONS = [
     Path(".github/actions/aws-lambda-build/action.yml"),

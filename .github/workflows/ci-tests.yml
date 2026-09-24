@@ -75,7 +75,7 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
-          node-version: '20'
+          node-version: '22'
           cache: yarn
       - name: Enable Corepack
         run: corepack enable
@@ -87,6 +87,45 @@ jobs:
         run: yarn typecheck
       - name: Run Vitest
         run: yarn test
+      - name: Audit repository JavaScript dependencies
+        run: yarn audit
+      - name: Validate and audit the npm example
+        working-directory: examples/npm-package
+        run: |
+          corepack yarn install --immutable
+          corepack yarn lint
+          corepack yarn test
+          corepack yarn npm audit --all --recursive
+
+  python-audit:
+    name: Python dependency vulnerabilities
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install and capture repository dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e '.[dev]'
+          python -m pip freeze --all --exclude-editable > "$RUNNER_TEMP/repository-requirements.txt"
+          python scripts/security_requirements.py > "$RUNNER_TEMP/action-requirements.txt"
+      - name: Install isolated auditor
+        run: |
+          python -m venv "$RUNNER_TEMP/audit-tools"
+          "$RUNNER_TEMP/audit-tools/bin/python" -m pip install pip-audit==2.10.1
+      - name: Audit resolved repository dependencies
+        run: |
+          "$RUNNER_TEMP/audit-tools/bin/pip-audit" --strict --no-deps --disable-pip \
+            -r "$RUNNER_TEMP/repository-requirements.txt"
+      - name: Audit action and workflow tool dependencies
+        run: |
+          "$RUNNER_TEMP/audit-tools/bin/pip-audit" --strict -r "$RUNNER_TEMP/action-requirements.txt"
+      - name: Audit Django example dependencies
+        run: |
+          "$RUNNER_TEMP/audit-tools/bin/pip-audit" --strict -r examples/django-app/requirements.txt
 
   composite-smoke:
     name: Composite action (apply=${{ matrix.apply }})

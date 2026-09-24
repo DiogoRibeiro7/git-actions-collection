@@ -31,7 +31,7 @@ on:
         description: "pip release to install for Python scanners (set to 'latest' to track upstream)"
         required: false
         type: string
-        default: '24.3.1'
+        default: '26.2.1'
       skip-npm-signatures:
         description: 'Skip npm package signature verification'
         required: false
@@ -105,7 +105,7 @@ jobs:
           set -euo pipefail
           python -m venv .security-scan-tools
           .security-scan-tools/bin/python -m pip install --upgrade pip
-          .security-scan-tools/bin/python -m pip install pip-audit==2.9.0 bandit==1.8.6
+          .security-scan-tools/bin/python -m pip install pip-audit==2.10.1 bandit==1.8.6
 
       - name: Python dependency scans
         id: python-scans

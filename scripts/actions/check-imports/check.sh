@@ -5,7 +5,7 @@ paths="${INPUT_PATHS:-src tests}"
 fail_on="${INPUT_FAIL_ON:-missing}"
 format="${INPUT_FORMAT:-text}"
 update_pyproject="${INPUT_UPDATE_PYPROJECT:-false}"
-pip_version="${INPUT_PIP_VERSION:-24.3.1}"
+pip_version="${INPUT_PIP_VERSION:-26.2.1}"
 script_dir="$(cd "$(dirname "$0")" && pwd)"
 repo_root="$(cd "$script_dir/../../.." && pwd)"
 

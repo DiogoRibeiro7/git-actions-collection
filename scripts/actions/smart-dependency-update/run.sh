@@ -6,7 +6,7 @@ apply="${INPUT_APPLY:-false}"
 batch_size="${INPUT_BATCH_SIZE:-50}"
 dependabot="${INPUT_DEPENDABOT:-false}"
 repo="${INPUT_REPO:-}"
-pip_version="${INPUT_PIP_VERSION:-24.3.1}"
+pip_version="${INPUT_PIP_VERSION:-26.2.1}"
 script_dir="$(cd "$(dirname "$0")" && pwd)"
 repo_root="$(cd "$script_dir/../../.." && pwd)"
 
@@ -20,7 +20,7 @@ if [ "$pip_version" = "latest" ]; then
 else
   python -m pip install --upgrade "pip==$pip_version"
 fi
-pip install tomlkit==0.13.3 packaging==24.2 requests==2.32.3
+pip install tomlkit==0.13.3 packaging==24.2 requests==2.34.2
 
 read -r -a manifest_args <<< "$manifests"
 args=(--manifests "${manifest_args[@]}")
