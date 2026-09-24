@@ -32,7 +32,7 @@ exit 0
 '
 
   INPUT_PATHS="src" INPUT_FAIL_ON="missing" INPUT_FORMAT="json" INPUT_UPDATE_PYPROJECT="false" \
-    INPUT_PIP_VERSION="24.3.1" bash "$REPO_ROOT/scripts/actions/check-imports/check.sh"
+    INPUT_PIP_VERSION="26.2.1" bash "$REPO_ROOT/scripts/actions/check-imports/check.sh"
 
   run grep -q "missing=foo bar" "$GITHUB_OUTPUT"
   [ "$status" -eq 0 ]
@@ -52,7 +52,7 @@ exit 0
   make_logger pip
   make_fake pytest 'echo "pytest $@" >> "$COMMAND_LOG"'
 
-  INPUT_PIP_VERSION="24.3.1" bash "$REPO_ROOT/scripts/benchmark-smoke/install.sh"
+  INPUT_PIP_VERSION="26.2.1" bash "$REPO_ROOT/scripts/benchmark-smoke/install.sh"
   INPUT_PYTEST_ARGS="-k fast" bash "$REPO_ROOT/scripts/benchmark-smoke/run.sh"
 
   run grep -q "pytest -k fast --benchmark-only --benchmark-json=benchmark.json" "$COMMAND_LOG"
@@ -113,7 +113,7 @@ exit 0
   make_logger pip
 
   INPUT_MANIFESTS="pyproject.toml" INPUT_APPLY="false" INPUT_BATCH_SIZE="5" INPUT_DEPENDABOT="false" \
-    INPUT_REPO="" INPUT_PIP_VERSION="24.3.1" bash "$REPO_ROOT/scripts/actions/smart-dependency-update/run.sh"
+    INPUT_REPO="" INPUT_PIP_VERSION="26.2.1" bash "$REPO_ROOT/scripts/actions/smart-dependency-update/run.sh"
 
   run grep -q "report={}" "$GITHUB_OUTPUT"
   [ "$status" -eq 0 ]
@@ -124,7 +124,7 @@ exit 0
   make_fake mypy 'echo "mypy $@" >> "$COMMAND_LOG"'
 
   INPUT_REQUIREMENTS_FILE="requirements.txt" INPUT_EXTRA_DEPENDENCIES="" INPUT_MYPY_ARGS="src" \
-    INPUT_PIP_VERSION="24.3.1" bash "$REPO_ROOT/scripts/python-type-check/run.sh"
+    INPUT_PIP_VERSION="26.2.1" bash "$REPO_ROOT/scripts/python-type-check/run.sh"
 
   run grep -q "python -m pip install -r requirements.txt" "$COMMAND_LOG"
   [ "$status" -eq 0 ]
@@ -178,7 +178,7 @@ EOF
   make_fake ruff 'echo "ruff $@" >> "$COMMAND_LOG"'
   make_fake mypy 'echo "mypy $@" >> "$COMMAND_LOG"'
 
-  INPUT_ENABLE_MYPY="true" INPUT_PIP_VERSION="24.3.1" bash "$REPO_ROOT/scripts/python-lint/run.sh"
+  INPUT_ENABLE_MYPY="true" INPUT_PIP_VERSION="26.2.1" bash "$REPO_ROOT/scripts/python-lint/run.sh"
 
   run grep -q "ruff check ." "$COMMAND_LOG"
   [ "$status" -eq 0 ]
@@ -316,7 +316,7 @@ EOF
   make_fake ruff 'echo "ruff $@" >> "$COMMAND_LOG"'
   make_fake mypy 'echo "mypy $@" >> "$COMMAND_LOG"'
 
-  INPUT_ENABLE_MYPY="false" INPUT_PIP_VERSION="24.3.1" bash "$REPO_ROOT/scripts/python-lint/run.sh"
+  INPUT_ENABLE_MYPY="false" INPUT_PIP_VERSION="26.2.1" bash "$REPO_ROOT/scripts/python-lint/run.sh"
 
   run grep -q "ruff check ." "$COMMAND_LOG"
   [ "$status" -eq 0 ]
@@ -329,7 +329,7 @@ EOF
   make_fake mypy 'echo "mypy $@" >> "$COMMAND_LOG"'
 
   INPUT_REQUIREMENTS_FILE="" INPUT_EXTRA_DEPENDENCIES="requests typer" INPUT_MYPY_ARGS="src" \
-    INPUT_PIP_VERSION="24.3.1" bash "$REPO_ROOT/scripts/python-type-check/run.sh"
+    INPUT_PIP_VERSION="26.2.1" bash "$REPO_ROOT/scripts/python-type-check/run.sh"
 
   run grep -q "python -m pip install requests typer" "$COMMAND_LOG"
   [ "$status" -eq 0 ]
@@ -359,9 +359,9 @@ EOF
   make_logger python
   make_logger pip
 
-  INPUT_PIP_VERSION="24.3.1" bash "$REPO_ROOT/scripts/benchmark-smoke/install.sh"
+  INPUT_PIP_VERSION="26.2.1" bash "$REPO_ROOT/scripts/benchmark-smoke/install.sh"
 
-  run grep -q "pip install pytest==8.4.1 pytest-benchmark==5.1.0" "$COMMAND_LOG"
+  run grep -q "pip install pytest==9.1.1 pytest-benchmark==5.1.0" "$COMMAND_LOG"
   [ "$status" -eq 0 ]
 }
 
@@ -428,7 +428,7 @@ EOF
   make_logger pip
 
   INPUT_PATHS="src" INPUT_FAIL_ON="missing" INPUT_FORMAT="json" INPUT_UPDATE_PYPROJECT="true" \
-    INPUT_PIP_VERSION="24.3.1" bash "$REPO_ROOT/scripts/actions/check-imports/check.sh"
+    INPUT_PIP_VERSION="26.2.1" bash "$REPO_ROOT/scripts/actions/check-imports/check.sh"
 
   run grep -q "--fail-on missing" "$COMMAND_LOG"
   [ "$status" -ne 0 ]

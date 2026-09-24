@@ -6,6 +6,12 @@ All notable changes to this repository are documented here.
 
 ### Changed
 
+- Security compatibility change: Python actions and reusable workflows now default to pip `26.2.1`, replacing the vulnerable `24.3.1` installer. The new default requires Python 3.10 or newer; explicit `pip-version` overrides remain available. The supported-interface snapshot records this change under the security exception in `SUPPORT.md`.
+- Updated the JavaScript test toolchain to patched Vitest 4, Vite 8, and ESLint 10, migrated ESLint configuration, and refreshed both Yarn lockfiles. Development tooling requires Node.js 20.19+, 22.13+, or 24+; repository CI uses Node.js 22.
+- Updated Requests, Poetry, and pytest pins used by shell actions and examples, and raised the Python build-tool security floors.
+- Raised the Django example's Django and Gunicorn minimum versions to patched releases.
+- Added npm/example dependency updates to Dependabot and dependency auditing to repository CI.
+
 - Promoted `rust-ci.yml`, `rust-quality.yml`, `rust-security.yml`, `rust-coverage.yml`, `rust-docs.yml`, `rust-benchmark.yml`, and `rust-release-preflight.yml` from reference to supported. Their interfaces are now covered by the v1 compatibility and deprecation policy in `SUPPORT.md`. `rust-publish.yml` and `rust-github-release.yml` remain experimental.
 
 ## 1.2.1 - 2026-09-23

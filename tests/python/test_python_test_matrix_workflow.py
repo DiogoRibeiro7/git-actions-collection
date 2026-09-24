@@ -19,7 +19,7 @@ def test_python_test_matrix_inputs_defaults():
     assert inputs["python-versions"]["default"] == '["3.10","3.11","3.12"]'
     assert inputs["os-matrix"]["default"] == '["ubuntu-latest","windows-latest","macos-latest"]'
     assert inputs["test-command"]["default"] == "pytest -q"
-    assert inputs["pip-version"]["default"] == "24.3.1"
+    assert inputs["pip-version"]["default"] == "26.2.1"
 
 
 def test_python_test_matrix_strategy_uses_inputs():
@@ -55,7 +55,7 @@ def test_test_command_exit_status_is_propagated(tmp_path, exit_code):
 @pytest.mark.parametrize(
     "pip_version,expected",
     [
-        ("24.3.1", "python -m pip install --upgrade pip==24.3.1"),
+        ("26.2.1", "python -m pip install --upgrade pip==26.2.1"),
         ("latest", "python -m pip install --upgrade pip"),
     ],
 )
@@ -93,7 +93,7 @@ def test_failed_install_prevents_later_commands(tmp_path):
         WORKFLOW,
         "test",
         "Install project",
-        context={"inputs.pip-version": "24.3.1"},
+        context={"inputs.pip-version": "26.2.1"},
         env={"PATH": f"{fakebin}:{os.environ['PATH']}"},
         workdir=tmp_path,
     )

@@ -24,7 +24,7 @@ on:
         description: "pip release to install when using Alembic (set to 'latest' to track upstream)"
         required: false
         type: string
-        default: '24.3.1'
+        default: '26.2.1'
     secrets:
       flyway-license-key:
         description: "Optional Flyway license key"

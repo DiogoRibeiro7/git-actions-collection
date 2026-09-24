@@ -18,7 +18,7 @@ The wizard will:
 
 ## Pip upgrade policy
 
-The `publish-to-pypi` workflow now exposes a `pip-version` input so you can choose the installer that bootstraps your build backend. By default it installs pip `24.3.1`, the latest release validated in this repository. Set `pip-version: latest` (or a specific version) when you need to test newer pip features—each bump should pass `pytest` in this repo before updating the default to keep releases reproducible.
+The `publish-to-pypi` workflow now exposes a `pip-version` input so you can choose the installer that bootstraps your build backend. By default it installs pip `26.2.1`, the latest release validated in this repository. Set `pip-version: latest` (or a specific version) when you need to test newer pip features—each bump should pass `pytest` in this repo before updating the default to keep releases reproducible.
 
 ## VS Code snippet
 

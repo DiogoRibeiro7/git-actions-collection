@@ -5,6 +5,8 @@ tests that require POSIX Bash. Shell files use LF line endings via `.gitattribut
 
 ## Install tools
 
+Use Python 3.10+ and Node.js 20.19+, 22.13+, or 24+. CI uses Node.js 22.
+
 ```bash
 python -m venv .venv
 source .venv/bin/activate
@@ -34,6 +36,18 @@ yarn lint
 yarn typecheck
 yarn test
 ```
+
+CI also audits both Yarn lockfiles, the installed Python development dependencies,
+Python tool pins embedded in actions/workflows, the Django example, and the
+documentation toolchain. To check
+the inline pins locally with `pip-audit` installed:
+
+```bash
+python scripts/security_requirements.py > /tmp/action-requirements.txt
+pip-audit --strict -r /tmp/action-requirements.txt
+```
+
+Dependabot checks the root and maintained example dependency manifests weekly.
 
 Pytest enforces the repository's 70% Python-script coverage threshold. For a
 focused test run, disable coverage so the entire repository threshold does not

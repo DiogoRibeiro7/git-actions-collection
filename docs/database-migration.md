@@ -30,7 +30,7 @@ jobs:
 | `migration-dir` | Path to migration files | – |
 | `environments` | JSON array of environment names (`["dev"]`) | – |
 | `dry-run` | Validate migrations without applying them | `false` |
-| `pip-version` | pip release to install when using Alembic-based Python migrations | `24.3.1` |
+| `pip-version` | pip release to install when using Alembic-based Python migrations | `26.2.1` |
 
 ## Secrets
 
@@ -44,4 +44,4 @@ Optional secret `flyway-license-key` enables Flyway Pro features such as `undo`.
 - On migration failure, the workflow attempts an automatic rollback (`flyway undo`, `liquibase rollbackCount 1`, or `alembic downgrade -1`).
 - Migration history is printed and uploaded as an artifact for auditing.
 - Long-running migrations can increase job duration; consider zero-downtime strategies and maintenance windows for data-heavy changes.
-- When `tool` is set to `alembic`, the workflow adheres to the repository pip upgrade policy: the default `24.3.1` installer is validated in CI, and you can override `pip-version` (or set it to `latest`) if your project requires a newer pip release.
+- When `tool` is set to `alembic`, the workflow adheres to the repository pip upgrade policy: the default `26.2.1` installer is validated in CI, and you can override `pip-version` (or set it to `latest`) if your project requires a newer pip release.

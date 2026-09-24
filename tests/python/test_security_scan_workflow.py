@@ -18,7 +18,7 @@ def test_security_scan_inputs_defaults():
     assert inputs["dependency-install-command"]["default"] == ""
     assert inputs["bandit-args"]["default"] == "-ll -ii"
     assert inputs["skip-trivy"]["default"] is True
-    assert inputs["pip-version"]["default"] == "24.3.1"
+    assert inputs["pip-version"]["default"] == "26.2.1"
     assert inputs["skip-npm-signatures"]["default"] is False
     assert inputs["skip-java-verify"]["default"] is False
     assert inputs["skip-go-verify"]["default"] is False
@@ -87,7 +87,7 @@ def test_security_scan_can_audit_installed_consumer_dependencies():
     assert "pip freeze --exclude-editable" in prepare["run"]
 
     assert "python -m venv .security-scan-tools" in install["run"]
-    assert "pip-audit==2.9.0" in install["run"]
+    assert "pip-audit==2.10.1" in install["run"]
     assert "bandit==1.8.6" in install["run"]
 
     assert "--requirement .security-scan-audit-requirements.txt" in scans["run"]

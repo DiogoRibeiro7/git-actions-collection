@@ -7,7 +7,7 @@ Automatically update dependencies across multiple ecosystems with conflict detec
 1. Reference the composite action in your workflow.
 2. Provide manifest paths (e.g., `package.json pyproject.toml`).
 3. Optionally supply a GitHub token with `security_events: read` to pull Dependabot alerts.
-4. Override `pip-version` when your Python projects require a different installer—`24.3.1` is the validated default and `latest` follows upstream releases.
+4. Override `pip-version` when your Python projects require a different installer—`26.2.1` is the validated default and `latest` follows upstream releases.
 
 ## Usage Example
 
