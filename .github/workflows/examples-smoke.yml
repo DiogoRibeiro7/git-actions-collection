@@ -110,24 +110,26 @@ jobs:
 
       - name: Setup Java
         if: matrix.type == 'java'
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6
         with:
           distribution: temurin
           java-version: '21'
 
       - name: Setup Go
         if: matrix.type == 'go'
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
         with:
           go-version: '1.22.x'
 
       - name: Setup Rust
         if: matrix.type == 'rust'
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de
+        with:
+          toolchain: stable
 
       - name: Setup Terraform
         if: matrix.type == 'terraform' || matrix.type == 'monorepo'
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd
         with:
           terraform_version: latest
 
