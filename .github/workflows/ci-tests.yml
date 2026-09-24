@@ -126,6 +126,10 @@ jobs:
       - name: Audit Django example dependencies
         run: |
           "$RUNNER_TEMP/audit-tools/bin/pip-audit" --strict -r examples/django-app/requirements.txt
+      - name: Audit documentation toolchain
+        run: |
+          "$RUNNER_TEMP/audit-tools/bin/pip-audit" --strict --require-hashes --disable-pip \
+            -r requirements-docs.txt
 
   composite-smoke:
     name: Composite action (apply=${{ matrix.apply }})
