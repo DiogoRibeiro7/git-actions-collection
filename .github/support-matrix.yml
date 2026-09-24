@@ -47,6 +47,42 @@ workflows:
         - tests/python/test_security_scan_workflow.py
         - .github/workflows/test-security-scan.yml
         - examples/security-scan
+    rust-benchmark.yml:
+      evidence:
+        - tests/python/test_rust_benchmark_workflow.py
+        - .github/workflows/test-rust-benchmark.yml
+        - examples/rust-crate
+    rust-ci.yml:
+      evidence:
+        - tests/python/test_rust_ci_workflow.py
+        - .github/workflows/test-rust-ci.yml
+        - examples/rust-crate
+    rust-coverage.yml:
+      evidence:
+        - tests/python/test_rust_coverage_workflow.py
+        - .github/workflows/test-rust-coverage.yml
+        - examples/rust-crate
+    rust-docs.yml:
+      evidence:
+        - tests/python/test_rust_docs_workflow.py
+        - .github/workflows/test-rust-docs.yml
+        - examples/rust-crate
+    rust-quality.yml:
+      evidence:
+        - tests/python/test_rust_quality_workflow.py
+        - .github/workflows/test-rust-quality.yml
+        - examples/rust-crate
+    rust-release-preflight.yml:
+      evidence:
+        - tests/python/test_rust_release_preflight_workflow.py
+        - .github/workflows/test-rust-release-preflight.yml
+        - examples/rust-crate
+        - examples/rust-workspace
+    rust-security.yml:
+      evidence:
+        - tests/python/test_rust_security_workflow.py
+        - .github/workflows/test-rust-security.yml
+        - examples/rust-crate
   reference:
     - api-testing.yml
     - artifact-management.yml
@@ -76,13 +112,6 @@ workflows:
     - release-container.yml
     - release-drafter.yml
     - ruby-ci.yml
-    - rust-benchmark.yml
-    - rust-ci.yml
-    - rust-coverage.yml
-    - rust-docs.yml
-    - rust-quality.yml
-    - rust-release-preflight.yml
-    - rust-security.yml
   experimental:
     - aws-lambda-deploy.yml
     - canary-release.yml
