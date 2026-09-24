@@ -12,6 +12,11 @@ on:
         required: false
         type: boolean
         default: false
+      working-directory:
+        description: 'Directory to lint, relative to the repository root'
+        required: false
+        type: string
+        default: '.'
       pip-version:
         description: "pip release to install (set to 'latest' to track upstream)"
         required: false
@@ -23,10 +28,23 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
+      # The caller's code goes in project/ so linting never reaches the collection checkout.
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
-      - name: Lint & Type Check
-        uses: ./.github/actions/python-lint
         with:
+          path: project
+      # Step-level ./ actions resolve in the caller's checkout, so fetch this collection
+      # at the exact commit of this reusable workflow to run its composite actions.
+      - name: Check out collection actions
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: .git-actions-collection
+          persist-credentials: false
+      - name: Lint & Type Check
+        uses: ./.git-actions-collection/.github/actions/python-lint
+        with:
+          working-directory: project/${{ inputs.working-directory }}
           python-version: ${{ inputs.python-version }}
           enable-mypy: ${{ inputs.enable-mypy }}
           pip-version: ${{ inputs.pip-version }}
