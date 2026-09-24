@@ -2,6 +2,12 @@
 
 All notable changes to this repository are documented here.
 
+## Unreleased
+
+### Changed
+
+- Promoted `rust-ci.yml`, `rust-quality.yml`, `rust-security.yml`, `rust-coverage.yml`, `rust-docs.yml`, `rust-benchmark.yml`, and `rust-release-preflight.yml` from reference to supported. Their interfaces are now covered by the v1 compatibility and deprecation policy in `SUPPORT.md`. `rust-publish.yml` and `rust-github-release.yml` remain experimental.
+
 ## 1.2.1 - 2026-09-23
 
 ### Fixed

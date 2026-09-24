@@ -21,14 +21,20 @@ coverage when practical.
 All 16 composite actions are currently supported because each has a direct
 Bats contract test under `tests/bash/actions/`.
 
-The initially supported reusable workflows are:
+The supported reusable workflows are:
 
 - `python-test-matrix.yml`
 - `security-scan.yml`
+- `rust-ci.yml`, `rust-quality.yml`, `rust-security.yml`, `rust-coverage.yml`,
+  `rust-docs.yml`, `rust-benchmark.yml`, and `rust-release-preflight.yml`
 
 These workflows have direct repository-level contract tests in addition to
-example or self-test coverage. The public interface of every supported
-component is recorded in `.github/supported-interfaces.json`; see
+example or self-test coverage. `rust-quality.yml` deliberately overlaps the
+format and Clippy steps of `rust-ci.yml`: it is a standalone fast gate that
+skips the test suite and also lints tests and other targets.
+
+The public interface of every supported component is recorded in
+`.github/supported-interfaces.json`; see
 [Compatibility and deprecation](#compatibility-and-deprecation).
 
 ### Reference
