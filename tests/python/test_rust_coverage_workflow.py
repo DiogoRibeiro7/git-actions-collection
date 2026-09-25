@@ -5,6 +5,7 @@ from typing import Any
 import pytest
 import yaml
 
+from tests.utils.action_refs import is_commit_pinned
 from tests.utils.rust_steps import (
     cargo_stub,
     run_step,
@@ -52,17 +53,15 @@ def test_rust_coverage_pins_tooling() -> None:
     steps = data["jobs"]["coverage"]["steps"]
     steps_by_name = {step.get("name"): step for step in steps if step.get("name")}
 
-    assert (
-        steps_by_name["Install cargo-llvm-cov"]["uses"]
-        == "taiki-e/install-action@7623a79cdfecb99d681017af368ca353d9f49bb5"
+    assert is_commit_pinned(
+        steps_by_name["Install cargo-llvm-cov"]["uses"], "taiki-e/install-action"
     )
     assert (
         steps_by_name["Install cargo-llvm-cov"]["with"]["tool"]
         == "cargo-llvm-cov@0.9.1"
     )
-    assert (
-        steps_by_name["Upload LCOV report"]["uses"]
-        == "actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f"
+    assert is_commit_pinned(
+        steps_by_name["Upload LCOV report"]["uses"], "actions/upload-artifact"
     )
 
 

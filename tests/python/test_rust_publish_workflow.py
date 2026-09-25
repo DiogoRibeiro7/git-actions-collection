@@ -5,6 +5,7 @@ from typing import Any
 import pytest
 import yaml
 
+from tests.utils.action_refs import is_commit_pinned
 from tests.utils.fake_runner import run_workflow_step
 from tests.utils.fakebin import make_fakebin
 
@@ -86,10 +87,7 @@ def test_rust_publish_uses_pinned_trusted_publishing_action() -> None:
     auth = _publish_step("Authenticate to crates.io")
 
     assert auth["id"] == "crates-io-auth"
-    assert (
-        auth["uses"]
-        == "rust-lang/crates-io-auth-action@4920f0933d6c80323414a03df1731d6678d52a1b"
-    )
+    assert is_commit_pinned(auth["uses"], "rust-lang/crates-io-auth-action")
 
 
 def test_rust_publish_does_not_support_long_lived_token_secrets() -> None:

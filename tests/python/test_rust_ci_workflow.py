@@ -5,6 +5,7 @@ from typing import Any
 import pytest
 import yaml
 
+from tests.utils.action_refs import action_name, is_commit_pinned
 from tests.utils.rust_steps import (
     CLEAN_LIB,
     COMPILE_ERROR_LIB,
@@ -100,12 +101,12 @@ def test_rust_ci_cache_is_best_effort_and_primary_only() -> None:
     cache_steps = [
         step
         for step in build_steps
-        if step.get("uses")
-        == "Swatinem/rust-cache@f0d9c3887740aee45f6153b24b3a6b815192ec16"
+        if action_name(step.get("uses")) == "Swatinem/rust-cache"
     ]
 
     assert len(cache_steps) == 1
     cache = cache_steps[0]
+    assert is_commit_pinned(cache["uses"], "Swatinem/rust-cache")
     assert cache["if"] == "inputs.use-cache"
     assert cache["continue-on-error"] is True
     assert cache["with"]["workspaces"] == "${{ inputs.working-directory }} -> target"
@@ -114,8 +115,7 @@ def test_rust_ci_cache_is_best_effort_and_primary_only() -> None:
 
     compatibility_steps = data["jobs"]["compatibility"]["steps"]
     assert all(
-        step.get("uses")
-        != "Swatinem/rust-cache@f0d9c3887740aee45f6153b24b3a6b815192ec16"
+        action_name(step.get("uses")) != "Swatinem/rust-cache"
         for step in compatibility_steps
     )
 

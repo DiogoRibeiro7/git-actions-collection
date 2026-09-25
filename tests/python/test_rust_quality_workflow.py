@@ -5,6 +5,7 @@ from typing import Any
 import pytest
 import yaml
 
+from tests.utils.action_refs import action_name, is_commit_pinned
 from tests.utils.rust_steps import (
     CLEAN_LIB,
     TEST_ONLY_CLIPPY_WARNING,
@@ -55,20 +56,14 @@ def test_rust_quality_pins_external_actions() -> None:
     """Public workflow dependencies should use immutable commit SHAs."""
     data = _load_workflow()
     steps = data["jobs"]["quality"]["steps"]
-    uses = {step.get("uses") for step in steps if step.get("uses")}
+    uses = {step["uses"]: action_name(step["uses"]) for step in steps if "uses" in step}
 
-    assert (
-        "actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09"
-        in uses
-    )
-    assert (
-        "dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de"
-        in uses
-    )
-    assert (
-        "Swatinem/rust-cache@f0d9c3887740aee45f6153b24b3a6b815192ec16"
-        in uses
-    )
+    assert set(uses.values()) >= {
+        "actions/checkout",
+        "dtolnay/rust-toolchain",
+        "Swatinem/rust-cache",
+    }
+    assert all(is_commit_pinned(ref, action) for ref, action in uses.items())
 
 
 def test_rust_quality_runs_fmt_and_clippy() -> None:

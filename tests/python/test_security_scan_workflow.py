@@ -2,6 +2,8 @@ from pathlib import Path
 
 import yaml
 
+from tests.utils.action_refs import action_name, is_commit_pinned
+
 
 def _load_workflow() -> dict:
     workflow_path = Path(".github/workflows/security-scan.yml")
@@ -48,14 +50,14 @@ def test_security_scan_provenance_is_isolated_from_scanners():
 
     scan_steps = data["jobs"]["security"]["steps"]
     assert all(
-        step.get("uses") != "actions/attest-build-provenance@ca0aaa1889e301c8331fbdb338d9475431b75b13"
+        action_name(step.get("uses")) != "actions/attest-build-provenance"
         for step in scan_steps
     )
 
     provenance_steps = data["jobs"]["provenance"]["steps"]
-    uses = {step.get("uses") for step in provenance_steps}
-    assert "actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131" in uses
-    assert "actions/attest-build-provenance@ca0aaa1889e301c8331fbdb338d9475431b75b13" in uses
+    uses = [step["uses"] for step in provenance_steps if "uses" in step]
+    assert any(is_commit_pinned(ref, "actions/download-artifact") for ref in uses)
+    assert any(is_commit_pinned(ref, "actions/attest-build-provenance") for ref in uses)
 
 
 def test_security_scan_has_executable_self_test():
