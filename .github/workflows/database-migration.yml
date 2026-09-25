@@ -1,5 +1,5 @@
 # Applies Flyway, Liquibase or Alembic migrations to each listed environment from per-environment
-# secrets, reporting history and rolling back on failure, with an optional dry-run SQL preview.
+# secrets, reporting history and rolling back on failure; a dry run previews the SQL instead.
 name: Database Migration
 
 on:
@@ -18,7 +18,7 @@ on:
         required: true
         type: string
       dry-run:
-        description: "Validate migrations without applying"
+        description: "Preview the migration SQL instead of applying it (Flyway needs a Teams license key)"
         type: boolean
         default: false
         required: false
@@ -89,6 +89,7 @@ jobs:
 
       - name: Apply migrations
         id: migrate
+        if: ${{ !inputs.dry-run }}
         run: |
           set -euo pipefail
           case "${{ inputs.tool }}" in
