@@ -31,3 +31,11 @@ jobs:
       python-versions: '["3.10","3.11"]'
       os-matrix: '["ubuntu-latest"]'
       test-command: 'pytest -q -o addopts="" tests/python-test-matrix/test_success.py'
+
+  # The default os-matrix includes Windows, whose runners default to PowerShell.
+  cross-platform:
+    uses: ./.github/workflows/python-test-matrix.yml
+    with:
+      python-versions: '["3.12"]'
+      os-matrix: '["windows-latest","macos-latest"]'
+      test-command: 'pytest -q -o addopts="" tests/python-test-matrix/test_success.py'
