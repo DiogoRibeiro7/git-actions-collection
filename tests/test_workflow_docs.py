@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 
 from scripts import workflow_docs as docs
 from scripts.workflow_docs import Component
@@ -113,3 +114,11 @@ def test_catalogue_groups_components_by_tier() -> None:
     assert reference < catalogue.index("[`b.yml`](link/b.yml)")
     assert "Does c \\| pipes." in catalogue
     assert "## Experimental" in catalogue  # tiers are always introduced
+
+
+def test_readme_lists_exactly_the_supported_components() -> None:
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    linked = set(re.findall(r"\]\(\.github/(?:workflows|actions)/([^)/]+)\)", readme))
+    supported = {c.name for c in docs.public_components(ROOT) if c.tier == "supported"}
+
+    assert linked == supported, "Update the README's supported component tables"
