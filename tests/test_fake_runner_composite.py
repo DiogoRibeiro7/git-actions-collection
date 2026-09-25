@@ -520,7 +520,7 @@ def test_setup_yarn_happy(tmp_path: Path):
     project = tmp_path / "project"
     project.mkdir()
     (project / "yarn.lock").write_text("")
-    fakebin = make_fakebin(tmp_path, {"corepack": 'echo "corepack $@"', "yarn": 'echo "yarn $@"'})
+    fakebin = make_fakebin(tmp_path, {"node": "echo 24", "corepack": 'echo "corepack $@"', "yarn": 'echo "yarn $@"'})
     result = run_action(
         ACTIONS_DIR / "setup-yarn",
         inputs={"working-directory": str(project)},
@@ -534,7 +534,7 @@ def test_setup_yarn_happy(tmp_path: Path):
 def test_setup_yarn_no_lockfile(tmp_path: Path):
     project = tmp_path / "project"
     project.mkdir()
-    fakebin = make_fakebin(tmp_path, {"corepack": 'echo "corepack $@"', "yarn": 'echo "yarn $@"'})
+    fakebin = make_fakebin(tmp_path, {"node": "echo 24", "corepack": 'echo "corepack $@"', "yarn": 'echo "yarn $@"'})
     result = run_action(
         ACTIONS_DIR / "setup-yarn",
         inputs={"working-directory": str(project)},
@@ -548,7 +548,7 @@ def test_setup_yarn_yarn_failure(tmp_path: Path):
     project = tmp_path / "project"
     project.mkdir()
     (project / "yarn.lock").write_text("")
-    fakebin = make_fakebin(tmp_path, {"corepack": 'echo "corepack $@"', "yarn": 'exit 9'})
+    fakebin = make_fakebin(tmp_path, {"node": "echo 24", "corepack": 'echo "corepack $@"', "yarn": 'exit 9'})
     result = run_action(
         ACTIONS_DIR / "setup-yarn",
         inputs={"working-directory": str(project)},

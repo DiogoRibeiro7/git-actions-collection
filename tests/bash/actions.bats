@@ -213,6 +213,7 @@ EOF
 }
 
 @test "setup-yarn corepack and install" {
+  make_fake node 'echo 24'
   make_fake corepack 'echo "corepack $@" >> "$COMMAND_LOG"'
   make_fake yarn 'echo "yarn $@" >> "$COMMAND_LOG"'
 
