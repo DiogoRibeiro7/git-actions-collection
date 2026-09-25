@@ -15,7 +15,7 @@ on:
         type: string
         default: '["ubuntu-latest","windows-latest","macos-latest"]'
       test-command:
-        description: 'Command to run tests'
+        description: 'Command to run tests; it runs in bash on every OS'
         required: false
         type: string
         default: 'pytest -q'
@@ -34,6 +34,10 @@ jobs:
         python: ${{ fromJson(inputs.python-versions) }}
         os: ${{ fromJson(inputs.os-matrix) }}
     runs-on: ${{ matrix.os }}
+    # Windows runners default to PowerShell; the steps below are bash on every OS.
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
@@ -41,13 +45,14 @@ jobs:
           python-version: ${{ matrix.python }}
           cache: pip
       - name: Install project
+        env:
+          PIP_VERSION: ${{ inputs.pip-version }}
         run: |
           set -euo pipefail
-          pip_version="${{ inputs.pip-version }}"
-          if [ "$pip_version" = "latest" ]; then
+          if [ "$PIP_VERSION" = "latest" ]; then
             python -m pip install --upgrade pip
           else
-            python -m pip install --upgrade "pip==$pip_version"
+            python -m pip install --upgrade "pip==$PIP_VERSION"
           fi
           if [ -f pyproject.toml ]; then
             pip install .
