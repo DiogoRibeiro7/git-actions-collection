@@ -51,6 +51,14 @@ pip-audit --strict -r /tmp/action-requirements.txt
 
 Dependabot checks the root and maintained example dependency manifests weekly.
 
+Every third-party action is pinned to the commit of a release tag. CI checks
+this against each action repository's tags (it needs network access, not a
+token):
+
+```bash
+python scripts/verify_action_pins.py
+```
+
 Pytest enforces the repository's 70% Python-script coverage threshold. For a
 focused test run, disable coverage so the entire repository threshold does not
 apply to one file:
