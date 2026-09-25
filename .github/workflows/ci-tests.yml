@@ -46,6 +46,8 @@ jobs:
           python -m pip install -e '.[dev]'
       - name: Run pytest
         run: python -m pytest -q
+      - name: Verify action pins are release commits
+        run: python scripts/verify_action_pins.py
       - name: Upload coverage
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f

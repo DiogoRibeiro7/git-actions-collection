@@ -79,7 +79,7 @@ jobs:
       - name: Restore Rust cache
         if: inputs.use-cache
         continue-on-error: true
-        uses: Swatinem/rust-cache@f0d9c3887740aee45f6153b24b3a6b815192ec16
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6
         with:
           workspaces: ${{ inputs.working-directory }} -> target
           cache-targets: ${{ inputs.cache-targets }}
