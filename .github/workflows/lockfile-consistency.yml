@@ -1,4 +1,4 @@
-# Checks that Poetry and Yarn lockfiles match their manifests, running poetry lock --check and yarn
+# Checks that Poetry and Yarn lockfiles match their manifests, running poetry check --lock and yarn
 # install --immutable when both files are present.
 name: Lockfile Consistency
 
@@ -10,6 +10,11 @@ on:
         required: false
         type: string
         default: '26.2.1'
+      poetry-version:
+        description: "Poetry release used to check poetry.lock"
+        required: false
+        type: string
+        default: '2.5.1'
 
 permissions:
   contents: read
@@ -19,18 +24,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Set up Python
+        if: hashFiles('pyproject.toml') != '' && hashFiles('poetry.lock') != ''
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12'
+      # Poetry 2 removed `poetry lock --check`; `poetry check --lock` replaces it.
       - name: Check Poetry lock
         if: hashFiles('pyproject.toml') != '' && hashFiles('poetry.lock') != ''
+        env:
+          PIP_VERSION: ${{ inputs.pip-version }}
+          POETRY_VERSION: ${{ inputs.poetry-version }}
         run: |
           set -euo pipefail
-          pip_version="${{ inputs.pip-version }}"
-          if [ "$pip_version" = "latest" ]; then
+          if [ "$PIP_VERSION" = "latest" ]; then
             python -m pip install --upgrade pip
           else
-            python -m pip install --upgrade "pip==$pip_version"
+            python -m pip install --upgrade "pip==$PIP_VERSION"
           fi
-          pip install poetry
-          poetry lock --check
+          python -m pip install "poetry==$POETRY_VERSION"
+          poetry check --lock
       - name: Check Yarn lock
         if: hashFiles('package.json') != '' && hashFiles('yarn.lock') != ''
         run: |
