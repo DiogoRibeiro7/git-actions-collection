@@ -84,6 +84,14 @@ python scripts/interface_snapshot.py --write
 Breaking changes follow the deprecation policy in
 [SUPPORT.md](SUPPORT.md#compatibility-and-deprecation).
 
+Each composite action's README lists its inputs and outputs in a section
+generated from `action.yml`, and pytest fails when the two differ. Edit the
+descriptions in `action.yml`, not the README table, then regenerate:
+
+```bash
+python scripts/action_docs.py --write
+```
+
 ## Choose the right test
 
 | Layer | What it proves | Example |
