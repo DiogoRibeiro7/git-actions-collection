@@ -26,7 +26,8 @@ jobs:
     uses: ./.github/workflows/security-scan.yml
     with:
       paths: tests/python/test_security_scan_workflow.py
-      skip-python-scans: true
+      # Audits the dependencies this repository's pyproject.toml resolves to.
+      skip-python-scans: false
       skip-trivy: true
       skip-npm-signatures: true
       skip-java-verify: true
