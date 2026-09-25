@@ -88,11 +88,12 @@ def test_security_scan_can_audit_installed_consumer_dependencies():
     assert ".security-scan-audit-requirements.txt" in prepare["run"]
     assert "pip freeze --exclude-editable" in prepare["run"]
 
-    assert "python -m venv .security-scan-tools" in install["run"]
+    assert 'python -m venv "$RUNNER_TEMP/security-scan-tools"' in install["run"]
     assert "pip-audit==2.10.1" in install["run"]
     assert "bandit==1.8.6" in install["run"]
 
-    assert "--requirement .security-scan-audit-requirements.txt" in scans["run"]
+    assert scans["env"]["AUDIT_REQUIREMENTS"] == "${{ steps.audit-target.outputs.requirements }}"
+    assert '--requirement "$AUDIT_REQUIREMENTS"' in scans["run"]
     assert "--format json" in scans["run"]
     assert "-f json -o bandit.json" in scans["run"]
     assert "--format sarif" not in scans["run"]
@@ -137,7 +138,7 @@ def test_python_scanners_do_not_mutate_consumer_environment():
     steps = data["jobs"]["security"]["steps"]
     install = next(step for step in steps if step.get("name") == "Install Python scanners")
 
-    assert ".security-scan-tools/bin/python -m pip install" in install["run"]
+    assert '"$RUNNER_TEMP/security-scan-tools/bin/python" -m pip install' in install["run"]
     assert not any(
         line.strip().startswith("python -m pip install pip-audit")
         for line in install["run"].splitlines()
