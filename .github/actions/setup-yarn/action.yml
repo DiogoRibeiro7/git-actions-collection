@@ -4,7 +4,7 @@ inputs:
   node-version:
     description: "Node version"
     required: false
-    default: "20"
+    default: "24"
   working-directory:
     description: "Project directory"
     required: false

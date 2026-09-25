@@ -21,7 +21,7 @@ jobs:
 | --- | --- | --- |
 | `vercel-org-id` | Vercel organization or team ID | – |
 | `vercel-project-id` | Vercel project ID | – |
-| `node-version` | Node.js version | `20` |
+| `node-version` | Node.js version | `24` |
 | `working-directory` | Path to Next.js app | `.` |
 | `prod` | Deploy to production (`--prod`) | `true` |
 

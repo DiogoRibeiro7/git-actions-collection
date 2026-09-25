@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "node $@" >> "${FAKEBIN_LOG:?}"
+# Answers `node -p 'process.versions.node...'` with the major version under test.
+echo "${FAKEBIN_NODE_MAJOR:-24}"

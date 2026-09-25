@@ -7,7 +7,7 @@ on:
         description: Node.js version
         required: false
         type: string
-        default: '20'
+        default: '24'
       os-matrix:
         description: JSON array of OS labels
         required: false
@@ -33,7 +33,12 @@ jobs:
           node-version: ${{ inputs.node-version }}
           cache: yarn
       - name: Enable Corepack
-        run: corepack enable
+        run: |
+          # Node.js 25 and newer no longer bundle Corepack.
+          if [ "$(node -p 'process.versions.node.split(".")[0]')" -ge 25 ]; then
+            npm install --global corepack@0.36.0
+          fi
+          corepack enable
       - name: Install dependencies
         run: yarn install --immutable
       - name: Run lint

@@ -6,7 +6,7 @@ on:
         description: 'Node version'
         required: false
         type: string
-        default: '20'
+        default: '24'
       working-directory:
         description: 'Directory where package.json lives'
         required: false
@@ -37,6 +37,10 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
       - name: Enable Corepack and install deps
         run: |
+          # Node.js 25 and newer no longer bundle Corepack.
+          if [ "$(node -p 'process.versions.node.split(".")[0]')" -ge 25 ]; then
+            npm install --global corepack@0.36.0
+          fi
           corepack enable
           if [ -f yarn.lock ]; then
             yarn install --immutable
