@@ -3,21 +3,32 @@
 MkDocs only reads `docs/`, but the repository keeps its policy files at the root
 and usage guides beside examples and composite actions. The mkdocs-gen-files
 plugin runs this module on every build: it publishes those files as site pages,
-rewrites their relative links to the published pages (or to GitHub for files
-outside the site), and writes the navigation read by mkdocs-literate-nav.
+generates a reference page for each public workflow and a catalogue of public
+components, rewrites relative links to the published pages (or to GitHub for
+files outside the site), and writes the navigation read by mkdocs-literate-nav.
 """
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 import posixpath
 import re
+import sys
 
 REPOSITORY = "https://github.com/DiogoRibeiro7/git-actions-collection"
 RAW = "https://raw.githubusercontent.com/DiogoRibeiro7/git-actions-collection/main"
 ROOT = Path(__file__).resolve().parents[1]
+
+# `mkdocs build` does not put the repository on sys.path when it runs this file.
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from scripts import workflow_docs  # noqa: E402
+
+# The catalogue is generated from the support matrix, so links to it land there.
+CATALOGUE = ".github/support-matrix.yml"
 
 # Root policy pages in navigation order: repository path -> (site path, title).
 ROOT_PAGES = {
@@ -37,11 +48,12 @@ FENCE = re.compile(r"^\s{0,3}(```|~~~)")
 
 @dataclass(frozen=True)
 class Page:
-    """A repository Markdown file published at a site path."""
+    """A repository file published at a site path."""
 
     source: str
     target: str
     title: str
+    tier: str = ""  # support tier of a generated workflow page
 
 
 def _title(path: Path, fallback: str) -> str:
@@ -68,6 +80,17 @@ def discover_pages(root: Path) -> list[Page]:
             )
             for path in sorted((root / directory).glob("*/README.md"))
         ]
+    pages.append(Page(CATALOGUE, "catalogue.md", "Catalogue"))
+    pages += [
+        Page(
+            f"{workflow_docs.WORKFLOWS.as_posix()}/{component.name}",
+            f"workflows/{component.name.rsplit('.', 1)[0]}.md",
+            component.title,
+            component.tier,
+        )
+        for component in workflow_docs.public_components(root)
+        if component.kind == "workflow"
+    ]
     return pages
 
 
@@ -126,21 +149,66 @@ def rewrite_links(text: str, page: Page, pages: Mapping[str, Page], root: Path) 
 
 
 def render_nav(pages: Iterable[Page]) -> str:
-    """Write the literate-nav SUMMARY: policy pages first, then grouped sections."""
+    """Write the literate-nav SUMMARY: policy pages and the catalogue, then sections."""
     pages = list(pages)
     lines = [f"* [{page.title}]({page.target})" for page in pages if page.source in ROOT_PAGES]
+    lines[1:1] = [f"* [{page.title}]({page.target})" for page in pages if page.source == CATALOGUE]
+
+    def listed(members: Iterable[Page], indent: str) -> list[str]:
+        ordered = sorted(members, key=lambda page: page.title.lower())
+        return [f"{indent}* [{page.title}]({page.target})" for page in ordered]
+
+    lines.append("* Reusable workflows")
+    for tier in workflow_docs.TIERS:
+        members = [page for page in pages if page.tier == tier]
+        if members:
+            lines.append(f"    * {tier.capitalize()}")
+            lines += listed(members, "        ")
     sections = (
+        ("Composite actions", [p for p in pages if p.source.startswith(".github/actions/")]),
         ("Guides", [p for p in pages if p.source.startswith("docs/")]),
         ("Examples", [p for p in pages if p.source.startswith("examples/")]),
-        ("Composite actions", [p for p in pages if p.source.startswith(".github/actions/")]),
     )
     for name, members in sections:
         lines.append(f"* {name}")
-        lines += [
-            f"    * [{page.title}]({page.target})"
-            for page in sorted(members, key=lambda page: page.title.lower())
-        ]
+        lines += listed(members, "    ")
     return "\n".join(lines) + "\n"
+
+
+def page_markdown(
+    page: Page,
+    pages: Sequence[Page],
+    root: Path,
+    components: Mapping[str, workflow_docs.Component],
+) -> str:
+    """Return a page's Markdown with links rewritten for the site."""
+    by_source = {candidate.source: candidate for candidate in pages}
+    # Generated pages write links relative to the repository root.
+    generated = Page("index", page.target, page.title)
+    definitions = workflow_docs.support_matrix(root).get("definitions") or {}
+    if page.source == CATALOGUE:
+        text = workflow_docs.render_catalogue(
+            components.values(),
+            definitions,
+            lambda c: (
+                f"{workflow_docs.WORKFLOWS.as_posix()}/{c.name}"
+                if c.kind == "workflow"
+                else f"{workflow_docs.ACTIONS.as_posix()}/{c.name}/README.md"
+            ),
+        )
+        return rewrite_links(text, generated, by_source, root)
+    if page.tier:
+        component = components[posixpath.basename(page.source)]
+        related = [
+            (candidate.title, candidate.source)
+            for candidate in pages
+            if candidate.source.startswith(("docs/", "examples/"))
+            and component.name in (root / candidate.source).read_text(encoding="utf-8")
+        ]
+        text = workflow_docs.render_workflow_page(root, component, definitions, related)
+        return rewrite_links(text, generated, by_source, root)
+    text = (root / page.source).read_text(encoding="utf-8")
+    return rewrite_links(text, page, by_source, root)
 
 
 def main() -> None:
@@ -148,11 +216,10 @@ def main() -> None:
     import mkdocs_gen_files
 
     pages = discover_pages(ROOT)
-    by_source = {page.source: page for page in pages}
+    components = {component.name: component for component in workflow_docs.public_components(ROOT)}
     for page in pages:
-        text = (ROOT / page.source).read_text(encoding="utf-8")
         with mkdocs_gen_files.open(page.target, "w", encoding="utf-8") as handle:
-            handle.write(rewrite_links(text, page, by_source, ROOT))
+            handle.write(page_markdown(page, pages, ROOT, components))
         mkdocs_gen_files.set_edit_path(page.target, page.source)
     with mkdocs_gen_files.open("SUMMARY.md", "w", encoding="utf-8") as handle:
         handle.write(render_nav(pages))
