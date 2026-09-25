@@ -1,5 +1,5 @@
 # Applies Flyway, Liquibase or Alembic migrations to each listed environment from per-environment
-# secrets, reporting history and rolling back on failure, with an optional dry-run SQL preview.
+# secrets, reporting history and rolling back on failure; a dry run previews the SQL instead.
 name: Database Migration
 
 on:
@@ -18,7 +18,7 @@ on:
         required: true
         type: string
       dry-run:
-        description: "Validate migrations without applying"
+        description: "Preview the migration SQL instead of applying it (Flyway needs a Teams license key)"
         type: boolean
         default: false
         required: false
@@ -28,8 +28,11 @@ on:
         type: string
         default: '26.2.1'
     secrets:
+      FLYWAY_LICENSE_KEY:
+        description: "Optional Flyway Teams license key, needed for dry runs and undo"
+        required: false
       flyway-license-key:
-        description: "Optional Flyway license key"
+        description: "Deprecated: pass FLYWAY_LICENSE_KEY instead, which secrets: inherit also provides"
         required: false
 permissions:
   contents: read
@@ -46,24 +49,26 @@ jobs:
       DATABASE_URL: ${{ secrets[format('{0}_DATABASE_URL', matrix.environment)] }}
       DB_USER: ${{ secrets[format('{0}_DB_USER', matrix.environment)] }}
       DB_PASSWORD: ${{ secrets[format('{0}_DB_PASSWORD', matrix.environment)] }}
-      FLYWAY_LICENSE_KEY: ${{ secrets.flyway-license-key }}
+      FLYWAY_LICENSE_KEY: ${{ secrets.FLYWAY_LICENSE_KEY || secrets.flyway-license-key }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
+      # Both launchers find their libraries next to themselves, so keep each install together.
       - name: Setup Flyway
         if: inputs.tool == 'flyway'
         run: |
           set -euo pipefail
-          curl -sSL https://repo1.maven.org/maven2/org/flywaydb/flyway-commandline/9.22.3/flyway-commandline-9.22.3-linux-x64.tar.gz | tar xz
-          sudo mv flyway-9.22.3/flyway /usr/local/bin
+          curl -fsSL https://repo1.maven.org/maven2/org/flywaydb/flyway-commandline/9.22.3/flyway-commandline-9.22.3-linux-x64.tar.gz | tar xz -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/flyway-9.22.3" >> "$GITHUB_PATH"
 
       - name: Setup Liquibase
         if: inputs.tool == 'liquibase'
         run: |
           set -euo pipefail
-          curl -sSL https://github.com/liquibase/liquibase/releases/download/v4.27.0/liquibase-4.27.0.tar.gz | tar xz
-          sudo mv liquibase /usr/local/bin
+          mkdir -p "$RUNNER_TEMP/liquibase"
+          curl -fsSL https://github.com/liquibase/liquibase/releases/download/v4.27.0/liquibase-4.27.0.tar.gz | tar xz -C "$RUNNER_TEMP/liquibase"
+          echo "$RUNNER_TEMP/liquibase" >> "$GITHUB_PATH"
 
       - name: Setup Alembic
         if: inputs.tool == 'alembic'
@@ -89,6 +94,7 @@ jobs:
 
       - name: Apply migrations
         id: migrate
+        if: ${{ !inputs.dry-run }}
         run: |
           set -euo pipefail
           case "${{ inputs.tool }}" in
