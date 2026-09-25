@@ -2,6 +2,12 @@
 
 All notable changes to this repository are documented here.
 
+## Unreleased
+
+### Fixed
+
+- `python-test-matrix.yml` failed on Windows, which its default `os-matrix` includes: its steps are bash scripts, but Windows runners default to PowerShell. The job now runs its steps, including `test-command`, in bash on every OS, and the self-test covers Windows and macOS.
+
 ## 1.3.0 - 2026-09-25
 
 ### Added
