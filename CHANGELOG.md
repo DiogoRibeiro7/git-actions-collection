@@ -13,6 +13,7 @@ All notable changes to this repository are documented here.
 - `python-test-matrix.yml` failed on Windows, which its default `os-matrix` includes: its steps are bash scripts, but Windows runners default to PowerShell. The job now runs its steps, including `test-command`, in bash on every OS, and the self-test covers Windows and macOS.
 - `database-migration.yml` applied migrations even with `dry-run: true`: the Liquibase and Alembic dry runs printed the SQL and then ran it. Dry runs now skip the migration step. Flyway dry runs need a Flyway Teams license key.
 - `database-migration.yml` could not start Flyway or Liquibase, because it moved only their launchers into `/usr/local/bin`, away from their libraries. Each tool now stays in its own directory on `PATH`.
+- `pytorch-train-deploy.yml` could not start: it ran its CUDA container with `--gpus all` on `ubuntu-latest`, which has no GPU. GPU access is now opt-in through `gpu: true`, with a new `runs-on` input for GPU runners. The workflow no longer requests the unused `id-token: write`, its inputs are described, and the guide says the deploy step is a placeholder and drops a `pip-version` input that never existed.
 - The documented `database-migration.yml` call passed per-environment secrets explicitly, which GitHub rejects because the workflow cannot declare them. The guide and example now use `secrets: inherit`.
 
 ## 1.3.0 - 2026-09-25
