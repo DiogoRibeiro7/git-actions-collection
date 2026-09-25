@@ -51,19 +51,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
+      # Both launchers find their libraries next to themselves, so keep each install together.
       - name: Setup Flyway
         if: inputs.tool == 'flyway'
         run: |
           set -euo pipefail
-          curl -sSL https://repo1.maven.org/maven2/org/flywaydb/flyway-commandline/9.22.3/flyway-commandline-9.22.3-linux-x64.tar.gz | tar xz
-          sudo mv flyway-9.22.3/flyway /usr/local/bin
+          curl -fsSL https://repo1.maven.org/maven2/org/flywaydb/flyway-commandline/9.22.3/flyway-commandline-9.22.3-linux-x64.tar.gz | tar xz -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/flyway-9.22.3" >> "$GITHUB_PATH"
 
       - name: Setup Liquibase
         if: inputs.tool == 'liquibase'
         run: |
           set -euo pipefail
-          curl -sSL https://github.com/liquibase/liquibase/releases/download/v4.27.0/liquibase-4.27.0.tar.gz | tar xz
-          sudo mv liquibase /usr/local/bin
+          mkdir -p "$RUNNER_TEMP/liquibase"
+          curl -fsSL https://github.com/liquibase/liquibase/releases/download/v4.27.0/liquibase-4.27.0.tar.gz | tar xz -C "$RUNNER_TEMP/liquibase"
+          echo "$RUNNER_TEMP/liquibase" >> "$GITHUB_PATH"
 
       - name: Setup Alembic
         if: inputs.tool == 'alembic'
