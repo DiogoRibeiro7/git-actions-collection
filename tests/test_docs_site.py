@@ -25,6 +25,10 @@ def test_every_repository_guide_is_published_once() -> None:
     assert ".github/actions/check-imports/README.md" in sources
     # Fixture crates inside an example are packaging inputs, not site pages.
     assert "examples/rust-workspace/crates/cli/README.md" not in sources
+    assert docs_site.CATALOGUE in sources
+    public = [c for c in docs_site.workflow_docs.public_components(ROOT) if c.kind == "workflow"]
+    assert {f".github/workflows/{c.name}" for c in public} <= sources
+    assert ".github/workflows/ci-tests.yml" not in sources  # internal
 
 
 @pytest.fixture
@@ -52,6 +56,7 @@ PAGES = {
         Page("docs/guide.md", "guide.md", "Guide"),
         Page("examples/demo/README.md", "examples/demo.md", "demo"),
         Page("examples/other/README.md", "examples/other.md", "other"),
+        Page(".github/workflows/lint.yml", "workflows/lint.md", "Lint", "supported"),
     )
 }
 
@@ -70,6 +75,7 @@ PAGES = {
         ("examples/demo/README.md", "../other", "other.md"),
         ("examples/demo/README.md", "../../README.md#status", "../index.md#status"),
         ("README.md", ".github/workflows/ci.yml", f"{BLOB}/.github/workflows/ci.yml"),
+        ("docs/guide.md", "../.github/workflows/lint.yml", "workflows/lint.md"),
         ("docs/guide.md", "../scripts/tool.py#L3", f"{BLOB}/scripts/tool.py#L3"),
         ("README.md", "scripts", f"{docs_site.REPOSITORY}/tree/main/scripts"),
         ("README.md", "missing.md", "missing.md"),
@@ -109,23 +115,48 @@ def test_navigation_lists_policy_pages_then_sorted_sections() -> None:
     pages = [
         Page("README.md", "index.md", "Home"),
         Page("SUPPORT.md", "support.md", "Support policy"),
+        Page(docs_site.CATALOGUE, "catalogue.md", "Catalogue"),
         Page("docs/b.md", "b.md", "Zeta guide"),
         Page("docs/a.md", "a.md", "alpha guide"),
         Page("examples/x/README.md", "examples/x.md", "x"),
         Page(".github/actions/y/README.md", "actions/y.md", "y"),
+        Page(".github/workflows/w.yml", "workflows/w.md", "W", "experimental"),
+        Page(".github/workflows/v.yml", "workflows/v.md", "V", "supported"),
     ]
 
     assert docs_site.render_nav(pages).splitlines() == [
         "* [Home](index.md)",
+        "* [Catalogue](catalogue.md)",
         "* [Support policy](support.md)",
+        "* Reusable workflows",
+        "    * Supported",
+        "        * [V](workflows/v.md)",
+        "    * Experimental",
+        "        * [W](workflows/w.md)",
+        "* Composite actions",
+        "    * [y](actions/y.md)",
         "* Guides",
         "    * [alpha guide](a.md)",
         "    * [Zeta guide](b.md)",
         "* Examples",
         "    * [x](examples/x.md)",
-        "* Composite actions",
-        "    * [y](actions/y.md)",
     ]
+
+
+def test_generated_pages_link_to_site_pages() -> None:
+    pages = docs_site.discover_pages(ROOT)
+    components = {c.name: c for c in docs_site.workflow_docs.public_components(ROOT)}
+    by_source = {page.source: page for page in pages}
+
+    catalogue = docs_site.page_markdown(by_source[docs_site.CATALOGUE], pages, ROOT, components)
+    rust_ci = docs_site.page_markdown(
+        by_source[".github/workflows/rust-ci.yml"], pages, ROOT, components
+    )
+
+    assert "[`rust-ci.yml`](workflows/rust-ci.md)" in catalogue
+    assert "[`python-lint`](actions/python-lint.md)" in catalogue
+    assert "[support policy](support.md)" in catalogue
+    assert "[rust-crate](../examples/rust-crate.md)" in rust_ci
 
 
 def _workflow() -> dict:
