@@ -28,9 +28,19 @@ updates:
       - "dependencies"
       - "python"
 
-  # GitHub Actions
+  # GitHub Actions: workflows, composite actions and consumer examples. One pull
+  # request per action keeps every pin of that action on the same commit.
   - package-ecosystem: "github-actions"
-    directory: "/"
+    directories:
+      - "/"
+      - "/.github/actions/*"
+      - "/examples/*"
+      - "/examples/*/*"
+    groups:
+      github-actions:
+        group-by: dependency-name
+        patterns:
+          - "*"
     schedule:
       interval: "weekly"
     reviewers:

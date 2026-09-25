@@ -27,6 +27,7 @@ All notable changes to this repository are documented here.
 - `pr-policy.yml` labels by changed paths only when the caller has a `.github/labeler.yml`, which must use the labeler v5+ match-object format; callers without one no longer fail. The repository's own labeler config uses the new format.
 - `python-lint.yml`, `pr-policy.yml`, and `aws-lambda-deploy.yml` failed for every caller outside this repository: their `./.github/actions/...` steps resolved inside the caller's checkout. They now check out this collection at `job.workflow_sha`, the exact commit of the called workflow, and run the actions from there. `python-lint.yml` checks the caller's code out into `project/` and gains an optional `working-directory` input. `job.workflow_sha` is not available on GitHub Enterprise Server.
 - `ci-monorepo-matrix.yml` called `ci-monorepo-runner.yml` from a step, which GitHub rejects; it now calls it as a job.
+- Some workflows pinned actions to SHAs that do not exist and failed when those steps ran: setup-go and setup-java in `aws-lambda-deploy.yml`, configure-aws-credentials in `multi-cloud-deploy.yml`, and rust-toolchain in `ci-monorepo-runner.yml`. The Rust step also lacked its required `toolchain` input and now uses `stable`. Each action is now pinned to one tagged release across the collection: setup-go 6.5.0, setup-java 6.0.1, setup-node 6.5.0, setup-python 6.3.0, configure-aws-credentials 6.3.0 (moved from 4.0.2, which ran on the retired Node 20 runtime), and checkout 7.0.1 in the examples and the workflow generator.
 
 ## 1.2.1 - 2026-09-23
 

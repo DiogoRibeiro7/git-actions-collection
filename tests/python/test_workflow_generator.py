@@ -1,4 +1,5 @@
 import importlib.util
+import re
 import sys
 from pathlib import Path
 
@@ -55,3 +56,22 @@ def test_generator_on_key_is_string():
     data = yaml.safe_load(python_workflow("main"))
     assert "on" in data
     assert True not in data
+
+
+PIN = re.compile(r"uses:\s*([\w.-]+/[\w.-]+)@([0-9a-f]{40})")
+
+
+def test_generated_workflows_use_the_repository_action_pins():
+    """Dependabot does not update scripts/_lib/workflows.py, so its refs follow the workflows."""
+    workflows = Path(__file__).resolve().parents[2] / ".github" / "workflows"
+    pinned = {
+        action: ref
+        for path in workflows.glob("*.yml")
+        for action, ref in PIN.findall(path.read_text(encoding="utf-8"))
+    }
+
+    for content in (python_workflow("main"), node_workflow("main")):
+        for action, ref in PIN.findall(content):
+            assert ref == pinned[action], (
+                f"update {action} in scripts/_lib/workflows.py to {pinned[action]}"
+            )

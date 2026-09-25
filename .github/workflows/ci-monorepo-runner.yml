@@ -95,7 +95,9 @@ jobs:
 
       - name: Setup Rust
         if: inputs.kind == 'rust'
-        uses: dtolnay/rust-toolchain@1d0fa839ab7bb8288b370fd8eeb8ba8a6b2dbb20
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de
+        with:
+          toolchain: stable
 
       - name: Install Helm
         if: inputs.kind == 'helm'

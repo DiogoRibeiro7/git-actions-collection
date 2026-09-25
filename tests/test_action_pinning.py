@@ -79,28 +79,33 @@ def test_consumer_examples_pin_third_party_actions() -> None:
     assert not problems, "Mutable action references:\n" + "\n".join(problems)
 
 
-def test_each_file_pins_one_commit_per_action_repository() -> None:
-    """Sub-actions of one repository, such as CodeQL init/autobuild/analyze, move together."""
+def test_each_action_repository_is_pinned_to_one_commit() -> None:
+    """Every pin of an action repository, across workflows, composite actions and
+    examples, uses the same commit, so CodeQL init/autobuild/analyze and the copies
+    Dependabot updates in each directory move together."""
     paths = [
         *sorted((ROOT / ".github" / "workflows").glob("*.y*ml")),
         *sorted((ROOT / ".github" / "actions").glob("*/action.y*ml")),
         *sorted((ROOT / "examples").glob("**/.github/workflows/*.y*ml")),
     ]
-    problems: list[str] = []
+    refs: dict[str, dict[str, set[str]]] = {}
 
     for path in paths:
-        refs: dict[str, set[str]] = {}
         for uses in _references(path):
             if uses.startswith(("./", "docker://")):
                 continue
             action, _, ref = uses.rpartition("@")
-            refs.setdefault("/".join(action.split("/")[:2]), set()).add(ref)
-        problems += [
-            f"{path.relative_to(ROOT).as_posix()}: {repository} at {sorted(pinned)}"
-            for repository, pinned in refs.items()
-            if len(pinned) > 1
-        ]
+            repository = "/".join(action.split("/")[:2])
+            refs.setdefault(repository, {}).setdefault(ref, set()).add(
+                path.relative_to(ROOT).as_posix()
+            )
 
+    problems = [
+        f"{repository}@{ref}: {', '.join(sorted(files))}"
+        for repository, pinned in sorted(refs.items())
+        if len(pinned) > 1
+        for ref, files in sorted(pinned.items())
+    ]
     assert not problems, "Actions pinned to several commits:\n" + "\n".join(problems)
 
 
