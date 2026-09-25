@@ -330,7 +330,7 @@ jobs:
 
       - name: Generate SLSA provenance
         id: slsa
-        uses: actions/attest-build-provenance@ca0aaa1889e301c8331fbdb338d9475431b75b13
+        uses: actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f
         with:
           subject-path: security-reports/**
 
