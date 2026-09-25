@@ -60,10 +60,11 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           API_URL: https://api.github.com/repos/rhysd/actionlint/releases/latest
 
+      # Steps already run in inputs.working-directory.
       - name: Lint workflows (if present)
         run: |
           set -euo pipefail
-          dir="${{ inputs.working-directory }}/.github/workflows"
+          dir=".github/workflows"
           if [ -d "$dir" ]; then
             find "$dir" -type f \( -name '*.yml' -o -name '*.yaml' \) \
               -print0 | xargs -0 -r -n1 actionlint
@@ -159,12 +160,23 @@ jobs:
       - name: Terraform init
         if: inputs.kind == 'terraform'
         run: |
+          set -euo pipefail
           terraform -version
-          terraform -chdir=. init -backend=false
+          terraform init -backend=false
+          terraform validate
 
       - name: Kubernetes manifests lint
         if: inputs.kind == 'k8s'
-        run: kubeconform -summary ./*.yaml || true
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          manifests=(./*.yaml ./*.yml)
+          if [ "${#manifests[@]}" -eq 0 ]; then
+            echo "No Kubernetes manifests in $PWD"
+            exit 0
+          fi
+          # Custom resources have no upstream schema; validate everything else.
+          kubeconform -summary -ignore-missing-schemas "${manifests[@]}"
 
       - name: Helm lint and template
         if: inputs.kind == 'helm'
