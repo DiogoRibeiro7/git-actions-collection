@@ -1,3 +1,5 @@
+# Runs CodeQL analysis over a fixed Python, JavaScript and Go matrix, autobuilding JavaScript and
+# Go, and uploads results to GitHub code scanning.
 name: CodeQL Analysis
 
 on:

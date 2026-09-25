@@ -1,3 +1,5 @@
+# Deletes workflow artifacts past a retention age or size limit, sparing the newest N, open-PR and
+# release-run artifacts, and optionally prunes untagged GitHub Packages versions.
 name: Artifact Management
 
 on:

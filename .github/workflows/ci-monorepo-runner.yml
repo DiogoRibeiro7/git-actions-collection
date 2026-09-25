@@ -1,3 +1,5 @@
+# Runs actionlint, then one directory check selected by kind: pytest, Node tests, mvn test, cargo
+# check, go test, terraform init, kubeconform, helm lint/template, or docker build.
 name: CI Monorepo Runner
 
 on:

@@ -1,3 +1,5 @@
+# Builds workspace documentation with cargo doc, failing on rustdoc warnings, with configurable
+# features, optional private items and dependency docs, and optional HTML artifact upload.
 name: Rust Docs
 
 on:

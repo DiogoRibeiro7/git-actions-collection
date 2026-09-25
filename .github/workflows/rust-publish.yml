@@ -1,3 +1,5 @@
+# Verifies selected crates with metadata checks and cargo package, then publishes them to crates.io
+# via OIDC trusted publishing from the release environment; dry run by default.
 name: Rust Publish
 
 on:

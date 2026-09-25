@@ -1,3 +1,5 @@
+# Installs dependencies (Yarn or npm, chosen by lockfile), runs the build script if one exists, and
+# publishes to npm with provenance under a configurable dist-tag.
 name: Publish to npm
 on:
   workflow_call:

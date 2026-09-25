@@ -1,3 +1,5 @@
+# Builds a Python package with python -m build or Poetry, validates it with twine check --strict,
+# and publishes via PyPI trusted publishing, skipping existing versions.
 name: Publish to PyPI
 on:
   workflow_call:

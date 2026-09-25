@@ -1,3 +1,5 @@
+# Runs TFLint and cfn-lint against the given paths without failing on findings; Checkov, tfsec and
+# KICS steps are present but hardcoded off.
 name: Infra Lint
 on:
   workflow_call:

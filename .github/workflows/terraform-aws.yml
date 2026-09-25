@@ -1,3 +1,5 @@
+# Assumes an AWS IAM role via OIDC and runs terraform init and plan with retries, optionally
+# applying the saved plan and running terraform destroy if it fails.
 name: Terraform Apply (AWS OIDC)
 
 on:

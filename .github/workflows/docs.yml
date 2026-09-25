@@ -9,7 +9,13 @@ on:
       - 'mkdocs.yml'
       - 'requirements-docs.txt'
       - 'scripts/docs_site.py'
-      - '.github/workflows/docs.yml'
+      # Reference pages are generated from workflow and action metadata.
+      - 'scripts/action_docs.py'
+      - 'scripts/workflow_docs.py'
+      - 'scripts/interface_snapshot.py'
+      - '.github/support-matrix.yml'
+      - '.github/workflows/*.yml'
+      - '.github/actions/*/action.yml'
   push:
     branches:
       - main
@@ -18,7 +24,13 @@ on:
       - 'mkdocs.yml'
       - 'requirements-docs.txt'
       - 'scripts/docs_site.py'
-      - '.github/workflows/docs.yml'
+      # Reference pages are generated from workflow and action metadata.
+      - 'scripts/action_docs.py'
+      - 'scripts/workflow_docs.py'
+      - 'scripts/interface_snapshot.py'
+      - '.github/support-matrix.yml'
+      - '.github/workflows/*.yml'
+      - '.github/actions/*/action.yml'
   workflow_dispatch:
 
 permissions:

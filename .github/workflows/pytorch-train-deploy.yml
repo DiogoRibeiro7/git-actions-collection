@@ -1,3 +1,5 @@
+# Trains a model with a caller script in a PyTorch CUDA container, optionally logs it to MLflow,
+# runs a benchmark script and uploads the model file as an artifact.
 name: PyTorch Train and Deploy
 
 on:

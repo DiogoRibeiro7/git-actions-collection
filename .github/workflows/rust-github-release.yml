@@ -1,3 +1,5 @@
+# Packages a Cargo crate after metadata checks, builds .crate and SHA256SUMS release assets, and
+# creates a GitHub Release for the version tag; dry run by default.
 name: Rust GitHub Release
 
 on:

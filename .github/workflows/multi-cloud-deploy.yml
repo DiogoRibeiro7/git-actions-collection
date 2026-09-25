@@ -1,3 +1,5 @@
+# Runs infra-lint, then plans and auto-applies Terraform, Pulumi or Bicep in a GitHub environment
+# over an AWS/Azure/GCP matrix with optional OIDC cloud logins.
 name: Multi-Cloud Deploy
 
 on:

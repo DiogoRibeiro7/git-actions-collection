@@ -1,3 +1,5 @@
+# Restores, builds and tests a .NET solution or project with the dotnet CLI, running dotnet test per
+# target framework in a matrix; tests and a private NuGet token are optional.
 name: .NET CI
 
 on:

@@ -1,3 +1,5 @@
+# Publishes pre-release builds from main or -rc refs: Python to TestPyPI, npm under the next dist-
+# tag, or a multi-arch Docker image tagged rc.
 name: Canary Release
 
 on:

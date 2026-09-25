@@ -1,3 +1,5 @@
+# Runs semantic-release (Node 24 by default) with the git, changelog and GitHub plugins and
+# conventionalcommits preset installed, driven by the caller's release config.
 name: Semantic Release
 on:
   workflow_call:

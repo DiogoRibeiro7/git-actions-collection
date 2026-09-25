@@ -1,3 +1,5 @@
+# Detects top-level folders changed since the previous push and runs a basic per-folder check by
+# kind (e.g. pytest, go test, cargo check, terraform init, docker build).
 name: CI Monorepo by Path
 
 on:

@@ -1,3 +1,5 @@
+# Runs cargo fmt --check, cargo check, Clippy with warnings denied, and cargo test on Ubuntu with
+# best-effort caching, plus an optional OS/toolchain compatibility matrix.
 name: Rust CI
 
 on:

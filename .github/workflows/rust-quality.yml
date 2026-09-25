@@ -1,3 +1,5 @@
+# Runs cargo fmt --check and Clippy with warnings denied across all workspace targets on Ubuntu,
+# with best-effort Cargo caching.
 name: Rust Quality
 
 on:

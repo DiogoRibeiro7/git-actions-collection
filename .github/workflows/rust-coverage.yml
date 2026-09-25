@@ -1,3 +1,5 @@
+# Generates workspace LCOV coverage with cargo-llvm-cov, prints a summary, uploads lcov.info as an
+# artifact, and optionally fails below a minimum line-coverage percentage.
 name: Rust Coverage
 
 on:

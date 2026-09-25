@@ -1,3 +1,5 @@
+# Regenerates CHANGELOG.md from full git history with git-cliff and opens or updates a pull request
+# with the result via peter-evans/create-pull-request.
 name: Changelog Auto PR
 on:
   workflow_call:

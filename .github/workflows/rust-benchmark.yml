@@ -1,3 +1,5 @@
+# Runs a quick Criterion smoke benchmark via cargo bench --workspace with short warm-up/measurement
+# settings, configurable Cargo features, and optional upload of target/criterion results.
 name: Rust Benchmark Smoke
 
 on:

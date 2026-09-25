@@ -1,3 +1,5 @@
+# Runs go test ./... and the latest (unpinned) golangci-lint on Ubuntu with a configurable Go
+# version, defaulting to 1.22.
 name: Go CI
 
 on:

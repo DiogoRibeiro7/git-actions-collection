@@ -1,3 +1,5 @@
+# Applies Flyway, Liquibase or Alembic migrations to each listed environment from per-environment
+# secrets, reporting history and rolling back on failure, with an optional dry-run SQL preview.
 name: Database Migration
 
 on:
