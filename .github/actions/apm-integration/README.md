@@ -2,20 +2,22 @@
 
 Send deployment notifications and custom metrics to popular APM providers.
 
+<!-- BEGIN GENERATED REFERENCE: python scripts/action_docs.py --write -->
 ## Inputs
 
-| Name | Description | Default |
-|------|-------------|---------|
-| `provider` | APM provider: `datadog`, `newrelic`, or `appinsights` | – |
-| `api-key` | API or ingestion key for the provider | – |
-| `app-id` | Application identifier (required for New Relic) | – |
-| `environment` | Deployment environment name | `production` |
-| `deployment-id` | Identifier for the deployment event | commit SHA |
-| `metrics-file` | Path to JSON metrics file with `latency` and `threshold` | – |
+| Input | Required | Default | Description |
+| --- | --- | --- | --- |
+| `provider` | yes |  | APM provider: datadog, newrelic, or appinsights |
+| `api-key` | yes |  | API or ingestion key for the provider |
+| `app-id` | no |  | Application or service identifier (required for New Relic) |
+| `environment` | no | `production` | Deployment environment name |
+| `deployment-id` | no | `${{ github.sha }}` | Identifier for the deployment event |
+| `metrics-file` | no |  | Optional JSON file with custom metrics and thresholds |
 
 ## Outputs
 
-None
+This action has no outputs.
+<!-- END GENERATED REFERENCE -->
 
 ## Usage
 

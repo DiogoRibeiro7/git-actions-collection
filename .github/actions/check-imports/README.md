@@ -2,21 +2,25 @@
 
 Compare imported Python modules against dependencies listed in `pyproject.toml`.
 
+<!-- BEGIN GENERATED REFERENCE: python scripts/action_docs.py --write -->
 ## Inputs
 
-| Name | Description | Default |
-|------|-------------|---------|
-| `paths` | Space separated paths to scan | `src tests` |
-| `fail-on` | `missing`, `unused`, `both`, or `none` | `missing` |
-| `format` | Output format: `text` or `json` | `text` |
-| `update-pyproject` | Add missing packages to `pyproject.toml` | `false` |
-| `create-pr` | Open a PR when updates occur | `false` |
-| `pr-branch` | Branch name used when `create-pr` is true | `deps/check-imports` |
-| `python-version` | Python version to run the checker | `3.12` |
+| Input | Required | Default | Description |
+| --- | --- | --- | --- |
+| `paths` | no | `src tests` | Paths to scan for Python files |
+| `fail-on` | no | `missing` | missing \| unused \| both \| none |
+| `format` | no | `text` | Output format: text or json |
+| `update-pyproject` | no | `false` | If true, add missing packages to pyproject.toml |
+| `create-pr` | no | `false` | Create a pull request with pyproject changes |
+| `pr-branch` | no | `deps/check-imports` | Branch name for the PR when create-pr is true |
+| `python-version` | no | `3.12` | Python version to run the checker |
+| `pip-version` | no | `26.2.1` | pip release to install (set to 'latest' to track upstream) |
+| `smart-update` | no | `false` | Use smart dependency updater on pyproject.toml |
 
 ## Outputs
 
-None
+This action has no outputs.
+<!-- END GENERATED REFERENCE -->
 
 ## Example
 
