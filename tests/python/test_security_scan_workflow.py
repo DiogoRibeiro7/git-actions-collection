@@ -66,9 +66,10 @@ def test_security_scan_has_executable_self_test():
 
     smoke = data["jobs"]["smoke"]
     assert smoke["uses"] == "./.github/workflows/security-scan.yml"
+    # The Python scans run for real: they audit this repository's pyproject.toml.
     assert smoke["with"] == {
         "paths": "tests/python/test_security_scan_workflow.py",
-        "skip-python-scans": True,
+        "skip-python-scans": False,
         "skip-trivy": True,
         "skip-npm-signatures": True,
         "skip-java-verify": True,
