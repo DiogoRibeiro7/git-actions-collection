@@ -16,7 +16,7 @@ on:
         type: boolean
         default: false
       dependency-install-command:
-        description: 'Optional shell command that installs the consumer project dependencies before pip-audit'
+        description: 'Optional shell command that installs the project dependencies; pip-audit then audits what it installed. Without it, the root requirements.txt, or else the dependencies of pyproject.toml, are audited'
         required: false
         type: string
         default: ''
@@ -80,7 +80,11 @@ jobs:
         with:
           path: ${{ env.TRIVY_CACHE_DIR }}
           key: trivy-${{ runner.os }}
+      # pip-audit without a target audits its own environment, not the project, so
+      # always hand it a requirements file: the caller's installed packages, the
+      # root requirements.txt, or the dependencies pyproject.toml resolves to.
       - name: Prepare Python dependency audit target
+        id: audit-target
         if: ${{ inputs['skip-python-scans'] == false }}
         shell: bash
         env:
@@ -94,21 +98,40 @@ jobs:
             python -m pip install --upgrade "pip==$PIP_VERSION"
           fi
 
+          requirements=""
           if [ -n "$DEPENDENCY_INSTALL_COMMAND" ]; then
             bash -euo pipefail -c "$DEPENDENCY_INSTALL_COMMAND"
             python -m pip freeze --exclude-editable \
               | grep -vEi '^(pip|setuptools|wheel)==' \
               > .security-scan-audit-requirements.txt || true
+            requirements=.security-scan-audit-requirements.txt
+          elif [ -f requirements.txt ]; then
+            requirements=requirements.txt
+          elif [ -f pyproject.toml ]; then
+            python -m venv "$RUNNER_TEMP/security-scan-project"
+            if "$RUNNER_TEMP/security-scan-project/bin/python" -m pip install --quiet .; then
+              "$RUNNER_TEMP/security-scan-project/bin/python" -m pip freeze --exclude-editable \
+                | grep -vEi '^(pip|setuptools|wheel)==' \
+                | grep -v ' @ file://' \
+                > .security-scan-audit-requirements.txt || true
+              requirements=.security-scan-audit-requirements.txt
+            else
+              echo "::warning::pip-audit skipped: installing the project from pyproject.toml failed. Set dependency-install-command to install it."
+            fi
+          else
+            echo "::warning::pip-audit skipped: no requirements.txt or pyproject.toml. Set dependency-install-command to audit installed dependencies."
           fi
+          echo "requirements=$requirements" >> "$GITHUB_OUTPUT"
 
+      # Outside the workspace, so Bandit never scans the scanners' own packages.
       - name: Install Python scanners
         if: ${{ inputs['skip-python-scans'] == false }}
         shell: bash
         run: |
           set -euo pipefail
-          python -m venv .security-scan-tools
-          .security-scan-tools/bin/python -m pip install --upgrade pip
-          .security-scan-tools/bin/python -m pip install pip-audit==2.10.1 bandit==1.8.6
+          python -m venv "$RUNNER_TEMP/security-scan-tools"
+          "$RUNNER_TEMP/security-scan-tools/bin/python" -m pip install --upgrade pip
+          "$RUNNER_TEMP/security-scan-tools/bin/python" -m pip install pip-audit==2.10.1 bandit==1.8.6
 
       - name: Python dependency scans
         id: python-scans
@@ -117,18 +140,21 @@ jobs:
         env:
           SCAN_PATHS: ${{ inputs.paths }}
           BANDIT_ARGS: ${{ inputs.bandit-args }}
+          AUDIT_REQUIREMENTS: ${{ steps.audit-target.outputs.requirements }}
         run: |
           set -uo pipefail
-          audit_cmd=(.security-scan-tools/bin/pip-audit --strict --format json -o pip-audit.json)
-          if [ -s .security-scan-audit-requirements.txt ]; then
-            audit_cmd+=(--requirement .security-scan-audit-requirements.txt)
+          if [ -n "$AUDIT_REQUIREMENTS" ] && [ -s "$AUDIT_REQUIREMENTS" ]; then
+            "$RUNNER_TEMP/security-scan-tools/bin/pip-audit" --strict --format json -o pip-audit.json \
+              --requirement "$AUDIT_REQUIREMENTS" > pip-audit.log 2>&1
+            audit_status=$?
+          else
+            echo "No Python dependencies to audit." | tee pip-audit.log
+            echo '{"dependencies": [], "fixes": []}' > pip-audit.json
+            audit_status=0
           fi
 
-          "${audit_cmd[@]}" > pip-audit.log 2>&1
-          audit_status=$?
-
           read -r -a bandit_args <<< "$BANDIT_ARGS"
-          .security-scan-tools/bin/bandit -r "$SCAN_PATHS" "${bandit_args[@]}" -f json -o bandit.json > bandit.log 2>&1
+          "$RUNNER_TEMP/security-scan-tools/bin/bandit" -r "$SCAN_PATHS" "${bandit_args[@]}" -f json -o bandit.json > bandit.log 2>&1
           bandit_status=$?
 
           echo "pip-audit-status=$audit_status" >> "$GITHUB_OUTPUT"

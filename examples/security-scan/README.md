@@ -22,4 +22,4 @@ jobs:
       skip-go-verify: false
 ```
 
-The optional `dependency-install-command` lets `pip-audit` inspect the dependency closure installed by the consumer project. `bandit-args` controls Bandit's severity/confidence or other CLI flags while preserving `-ll -ii` as the default. Stable consumers may use `@v1`; pin an exact commit SHA when immutable reproducibility is required.
+The optional `dependency-install-command` lets `pip-audit` inspect the dependency closure installed by the consumer project. Without it, `pip-audit` audits the root `requirements.txt`, or else the dependencies your `pyproject.toml` resolves to, and warns when it finds neither. The scanners are installed outside the workspace, so Bandit only scans your code. `bandit-args` controls Bandit's severity/confidence or other CLI flags while preserving `-ll -ii` as the default. Stable consumers may use `@v1`; pin an exact commit SHA when immutable reproducibility is required.
