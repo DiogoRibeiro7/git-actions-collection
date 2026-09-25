@@ -28,8 +28,11 @@ on:
         type: string
         default: '26.2.1'
     secrets:
+      FLYWAY_LICENSE_KEY:
+        description: "Optional Flyway Teams license key, needed for dry runs and undo"
+        required: false
       flyway-license-key:
-        description: "Optional Flyway license key"
+        description: "Deprecated: pass FLYWAY_LICENSE_KEY instead, which secrets: inherit also provides"
         required: false
 permissions:
   contents: read
@@ -46,7 +49,7 @@ jobs:
       DATABASE_URL: ${{ secrets[format('{0}_DATABASE_URL', matrix.environment)] }}
       DB_USER: ${{ secrets[format('{0}_DB_USER', matrix.environment)] }}
       DB_PASSWORD: ${{ secrets[format('{0}_DB_PASSWORD', matrix.environment)] }}
-      FLYWAY_LICENSE_KEY: ${{ secrets.flyway-license-key }}
+      FLYWAY_LICENSE_KEY: ${{ secrets.FLYWAY_LICENSE_KEY || secrets.flyway-license-key }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
