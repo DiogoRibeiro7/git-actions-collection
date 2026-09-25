@@ -5,12 +5,14 @@ tests that require POSIX Bash. Shell files use LF line endings via `.gitattribut
 
 ## Install tools
 
-Use Python 3.10+ and Node.js 20.19+, 22.13+, or 24+. CI uses Node.js 22.
+Use Python 3.10+ and Node.js 26+. Node.js 26 no longer bundles Corepack, so
+install it from npm before enabling it.
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 python -m pip install -e '.[dev]'
+npm install --global corepack@0.36.0
 corepack enable
 yarn install --frozen-lockfile
 ```

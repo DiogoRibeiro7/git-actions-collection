@@ -140,12 +140,13 @@ See `.github/workflows/` for the complete catalogue and `docs/` for detailed gui
 
 ## Local development
 
-Python 3.10+ and Node.js 20.19+, 22.13+, or 24+ are required for the repository test harness. Bats is required for the shell-action tests.
+Python 3.10+ and Node.js 26+ are required for the repository test harness; Node.js 26 no longer bundles Corepack, so install it from npm. Bats is required for the shell-action tests.
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 python -m pip install -e '.[dev]'
+npm install --global corepack@0.36.0
 corepack enable
 yarn install --frozen-lockfile
 ```
