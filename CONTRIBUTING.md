@@ -189,12 +189,19 @@ with MkDocs from `docs/`, the root policy files, and the example and composite
 action READMEs. `scripts/docs_site.py` assembles those pages at build time and
 rewrites links written for GitHub, so keep writing ordinary relative links.
 
+It also generates the catalogue and a reference page for every supported,
+reference and experimental workflow (`scripts/workflow_docs.py`). A page shows
+the workflow's usage, inputs, outputs, secrets and required permissions, read
+from its YAML. Start each such workflow with a `#` comment describing what it
+does; pytest fails without one, and a link to the workflow's `.yml` file opens
+its reference page on the site.
+
 ```bash
 python -m pip install --require-hashes -r requirements-docs.txt
 python -m mkdocs serve    # live preview at http://127.0.0.1:8000
 python -m mkdocs build    # strict: broken links and anchors fail
 ```
 
-The `Docs` workflow builds every pull request that touches Markdown and deploys
-`main` to GitHub Pages. To change the toolchain, edit `requirements-docs.in` and
+The `Docs` workflow builds every pull request that touches Markdown or workflow
+and action metadata, and deploys `main` to GitHub Pages. To change the toolchain, edit `requirements-docs.in` and
 regenerate the hashed lock with the command at the top of that file.
