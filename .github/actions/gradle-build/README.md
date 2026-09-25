@@ -2,18 +2,20 @@
 
 Run [Gradle](https://gradle.org/) builds with caching and configurable tasks.
 
+<!-- BEGIN GENERATED REFERENCE: python scripts/action_docs.py --write -->
 ## Inputs
 
-| Name | Description | Default |
-|------|-------------|---------|
-| `java-version` | Java version to use | `17` |
-| `tasks` | Gradle tasks to run | `build` |
-| `gradle-args` | Additional Gradle arguments | `--build-cache` |
-| `working-directory` | Directory of the Gradle project | `.` |
+| Input | Required | Default | Description |
+| --- | --- | --- | --- |
+| `java-version` | no | `17` | Java version to use |
+| `tasks` | no | `build` | Gradle tasks to run |
+| `gradle-args` | no | `--build-cache` | Additional Gradle arguments |
+| `working-directory` | no | `.` | Directory of the Gradle project |
 
 ## Outputs
 
-None
+This action has no outputs.
+<!-- END GENERATED REFERENCE -->
 
 ## Example
 

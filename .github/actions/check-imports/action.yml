@@ -10,7 +10,7 @@ inputs:
     required: false
     default: "missing"
   format:
-    description: "text | json"
+    description: "Output format: text or json"
     required: false
     default: "text"
   update-pyproject:

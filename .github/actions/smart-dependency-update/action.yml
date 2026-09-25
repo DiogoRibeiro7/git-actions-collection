@@ -2,7 +2,7 @@ name: "Smart Dependency Update"
 description: "Batch update dependencies with conflict detection and Dependabot integration"
 inputs:
   manifests:
-    description: "Space-separated list of manifest files"
+    description: "Space-separated list of manifest files (package.json, pyproject.toml, Cargo.toml, go.mod, Gemfile)"
     required: true
   apply:
     description: "If true, apply updates to manifests"
@@ -20,7 +20,7 @@ inputs:
     description: "owner/repo for Dependabot API"
     required: false
   github-token:
-    description: "GitHub token for Dependabot API"
+    description: "Token that can read Dependabot alerts (security-events: read), used when dependabot is true"
     required: false
   pip-version:
     description: "pip release to install (set to 'latest' to track upstream)"
@@ -46,5 +46,5 @@ runs:
         INPUT_PIP_VERSION: ${{ inputs.pip-version }}
 outputs:
   report:
-    description: "JSON report of updates and conflicts"
+    description: "JSON report of updates, detected conflicts and Dependabot alerts"
     value: ${{ steps.run.outputs.report }}

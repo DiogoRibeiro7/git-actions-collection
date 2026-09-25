@@ -2,16 +2,18 @@
 
 Enable Corepack and install dependencies with Yarn using a cache.
 
+<!-- BEGIN GENERATED REFERENCE: python scripts/action_docs.py --write -->
 ## Inputs
 
-| Name | Description | Default |
-|------|-------------|---------|
-| `node-version` | Node version to use | `24` |
-| `working-directory` | Project directory | `.` |
+| Input | Required | Default | Description |
+| --- | --- | --- | --- |
+| `node-version` | no | `24` | Node version |
+| `working-directory` | no | `.` | Project directory |
 
 ## Outputs
 
-None
+This action has no outputs.
+<!-- END GENERATED REFERENCE -->
 
 ## Example
 

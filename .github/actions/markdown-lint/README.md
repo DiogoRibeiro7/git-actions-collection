@@ -3,17 +3,19 @@
 Run [markdownlint-cli](https://github.com/DavidAnson/markdownlint-cli) on Markdown
 files with minimal setup.
 
+<!-- BEGIN GENERATED REFERENCE: python scripts/action_docs.py --write -->
 ## Inputs
 
-| Name | Description | Default |
-|------|-------------|---------|
-| `paths` | Paths to lint | `.` |
-| `config-file` | Path to configuration file | *(empty)* |
-| `node-version` | Node version to use | `24` |
+| Input | Required | Default | Description |
+| --- | --- | --- | --- |
+| `paths` | no | `.` | Paths to lint |
+| `config-file` | no | `""` | Path to configuration file |
+| `node-version` | no | `24` | Node version to use |
 
 ## Outputs
 
-None
+This action has no outputs.
+<!-- END GENERATED REFERENCE -->
 
 ## Usage
 

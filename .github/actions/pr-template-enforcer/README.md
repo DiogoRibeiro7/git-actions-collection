@@ -2,6 +2,16 @@
 
 Fails the workflow if a pull request description is empty or missing the required headings.
 
+<!-- BEGIN GENERATED REFERENCE: python scripts/action_docs.py --write -->
+## Inputs
+
+This action has no inputs.
+
+## Outputs
+
+This action has no outputs.
+<!-- END GENERATED REFERENCE -->
+
 ## Usage
 
 ```yaml

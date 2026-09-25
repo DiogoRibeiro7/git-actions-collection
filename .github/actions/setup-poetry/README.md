@@ -2,16 +2,19 @@
 
 Install [Poetry](https://python-poetry.org/), configure caches and optionally install dependencies.
 
+<!-- BEGIN GENERATED REFERENCE: python scripts/action_docs.py --write -->
 ## Inputs
 
-| Name | Description | Default |
-|------|-------------|---------|
-| `python-version` | Python version to use | `3.12` |
-| `install-deps` | Run `poetry install` | `true` |
+| Input | Required | Default | Description |
+| --- | --- | --- | --- |
+| `python-version` | no | `3.12` | Python version |
+| `install-deps` | no | `true` | Run 'poetry install' |
+| `pip-version` | no | `26.2.1` | pip release to install (set to 'latest' to track upstream) |
 
 ## Outputs
 
-None
+This action has no outputs.
+<!-- END GENERATED REFERENCE -->
 
 ## Example
 

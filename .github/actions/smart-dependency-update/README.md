@@ -2,22 +2,25 @@
 
 Batch-update dependencies across multiple languages with conflict detection and Dependabot alert integration.
 
+<!-- BEGIN GENERATED REFERENCE: python scripts/action_docs.py --write -->
 ## Inputs
 
-| Name | Required | Description |
-| --- | --- | --- |
-| `manifests` | yes | Space-separated list of manifest files (`package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `Gemfile`) |
-| `apply` | no | Apply updates to files when `true` (default `false`) |
-| `batch-size` | no | Max packages to update in one run (default `50`) |
-| `dependabot` | no | Fetch Dependabot alerts (default `false`) |
-| `repo` | no | `owner/repo` for Dependabot API calls |
-| `github-token` | no | Token with `security_events: read` for Dependabot API |
+| Input | Required | Default | Description |
+| --- | --- | --- | --- |
+| `manifests` | yes |  | Space-separated list of manifest files (package.json, pyproject.toml, Cargo.toml, go.mod, Gemfile) |
+| `apply` | no | `false` | If true, apply updates to manifests |
+| `batch-size` | no | `50` | Max number of packages to update |
+| `dependabot` | no | `false` | Fetch Dependabot alerts |
+| `repo` | no |  | owner/repo for Dependabot API |
+| `github-token` | no |  | Token that can read Dependabot alerts (security-events: read), used when dependabot is true |
+| `pip-version` | no | `26.2.1` | pip release to install (set to 'latest' to track upstream) |
 
 ## Outputs
 
-| Name | Description |
+| Output | Description |
 | --- | --- |
-| `report` | JSON summary containing applied updates, detected conflicts, and Dependabot alerts |
+| `report` | JSON report of updates, detected conflicts and Dependabot alerts |
+<!-- END GENERATED REFERENCE -->
 
 ## Usage
 
