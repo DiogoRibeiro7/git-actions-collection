@@ -59,7 +59,7 @@ def node_workflow(branch: str) -> str:
               - uses: actions/checkout@{CHECKOUT_REF}
               - uses: actions/setup-node@{SETUP_NODE_REF}
                 with:
-                  node-version: '20'
+                  node-version: '24'
                   cache: yarn
               - run: corepack enable
               - run: yarn install --immutable

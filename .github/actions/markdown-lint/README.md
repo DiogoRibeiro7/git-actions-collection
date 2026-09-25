@@ -9,7 +9,7 @@ files with minimal setup.
 |------|-------------|---------|
 | `paths` | Paths to lint | `.` |
 | `config-file` | Path to configuration file | *(empty)* |
-| `node-version` | Node version to use | `20` |
+| `node-version` | Node version to use | `24` |
 
 ## Outputs
 
@@ -32,7 +32,7 @@ None
       README.md
       docs/
     config-file: .markdownlint.yml
-    node-version: '20'
+    node-version: '24'
 ```
 
 ### Full workflow with caching

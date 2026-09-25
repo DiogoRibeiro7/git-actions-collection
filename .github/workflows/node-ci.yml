@@ -7,7 +7,7 @@ on:
         description: Node.js version
         required: false
         type: string
-        default: '20'
+        default: '24'
       os-matrix:
         description: JSON array of OS labels
         required: false

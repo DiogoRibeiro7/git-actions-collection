@@ -76,7 +76,7 @@ jobs:
         if: steps.changed.outputs.changed == 'true' && startsWith(matrix.function.runtime, 'nodejs')
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
-          node-version: ${{ matrix.function.node-version || '20' }}
+          node-version: ${{ matrix.function.node-version || '24' }}
       - name: Build Node.js package
         if: steps.changed.outputs.changed == 'true' && startsWith(matrix.function.runtime, 'nodejs')
         working-directory: ${{ matrix.function.path }}

@@ -6,7 +6,7 @@ on:
         description: 'Node version'
         required: false
         type: string
-        default: '20'
+        default: '24'
       working-directory:
         description: 'Directory where package.json lives'
         required: false

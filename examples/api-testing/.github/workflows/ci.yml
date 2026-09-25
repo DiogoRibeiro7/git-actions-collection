@@ -5,7 +5,7 @@ jobs:
   build:
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/node-ci.yml@v1
     with:
-      node-version: '20'
+      node-version: '24'
   api-tests:
     needs: build
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/api-testing.yml@v1

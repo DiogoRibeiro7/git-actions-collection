@@ -223,7 +223,7 @@ jobs:
         if: hashFiles('package-lock.json') != '' && inputs['skip-npm-signatures'] == false
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
-          node-version: '20'
+          node-version: '24'
           cache: npm
       - name: Verify npm signatures
         if: hashFiles('package-lock.json') != '' && inputs['skip-npm-signatures'] == false
