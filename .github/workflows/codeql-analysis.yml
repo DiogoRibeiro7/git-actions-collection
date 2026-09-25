@@ -15,11 +15,11 @@ jobs:
         language: [python, javascript, go]
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
-      - uses: github/codeql-action/init@d8073367669608af8fbcc5f63dd0a0d52bb90cff
+      - uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2
         with:
           languages: ${{ matrix.language }}
-      - uses: github/codeql-action/autobuild@d8073367669608af8fbcc5f63dd0a0d52bb90cff
+      - uses: github/codeql-action/autobuild@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2
         if: matrix.language != 'python'
-      - uses: github/codeql-action/analyze@d8073367669608af8fbcc5f63dd0a0d52bb90cff
+      - uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2
         with:
           category: "/language:${{ matrix.language }}"

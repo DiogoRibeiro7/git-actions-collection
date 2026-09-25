@@ -284,17 +284,17 @@ jobs:
           if-no-files-found: ignore
       - name: Upload pip-audit report
         if: ${{ inputs['skip-python-scans'] == false && always() }}
-        uses: github/codeql-action/upload-sarif@d8073367669608af8fbcc5f63dd0a0d52bb90cff
+        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2
         with:
           sarif_file: pip-audit.sarif
       - name: Upload Bandit report
         if: ${{ inputs['skip-python-scans'] == false && always() }}
-        uses: github/codeql-action/upload-sarif@d8073367669608af8fbcc5f63dd0a0d52bb90cff
+        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2
         with:
           sarif_file: bandit.sarif
       - name: Upload Trivy report
         if: ${{ inputs['skip-trivy'] == false && always() }}
-        uses: github/codeql-action/upload-sarif@d8073367669608af8fbcc5f63dd0a0d52bb90cff
+        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2
         with:
           sarif_file: trivy.sarif
 
