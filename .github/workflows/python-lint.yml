@@ -29,13 +29,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # The caller's code goes in project/ so linting never reaches the collection checkout.
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           path: project
       # Step-level ./ actions resolve in the caller's checkout, so fetch this collection
       # at the exact commit of this reusable workflow to run its composite actions.
       - name: Check out collection actions
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: ${{ job.workflow_repository }}
           ref: ${{ job.workflow_sha }}
