@@ -10,6 +10,7 @@ All notable changes to this repository are documented here.
 
 ### Fixed
 
+- `terraform-plan-comment.yml` passed when `terraform plan` failed, because the plan was piped through `tee` without `pipefail`. The workflow now posts the plan output, including any error, and then fails the job.
 - `python-test-matrix.yml` failed on Windows, which its default `os-matrix` includes: its steps are bash scripts, but Windows runners default to PowerShell. The job now runs its steps, including `test-command`, in bash on every OS, and the self-test covers Windows and macOS.
 - `database-migration.yml` applied migrations even with `dry-run: true`: the Liquibase and Alembic dry runs printed the SQL and then ran it. Dry runs now skip the migration step. Flyway dry runs need a Flyway Teams license key.
 - `database-migration.yml` could not start Flyway or Liquibase, because it moved only their launchers into `/usr/local/bin`, away from their libraries. Each tool now stays in its own directory on `PATH`.
