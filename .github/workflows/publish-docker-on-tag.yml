@@ -1,5 +1,5 @@
 # Builds and pushes a multi-arch image (amd64/arm64, GHCR by default) via docker-build-push.yml,
-# tagged with the Git tag plus latest, then scans it with Trivy.
+# tagged with the Git tag plus latest, after a Trivy scan of the first platform passes.
 name: Publish Docker (compatibility alias)
 
 on:

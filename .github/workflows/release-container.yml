@@ -1,5 +1,5 @@
-# Calls docker-build-push.yml (compatibility alias) to push a linux/amd64+arm64 image to
-# ghcr.io/<owner>/<repo>, tagged with the Git tag or SHA plus latest, and Trivy-scan it.
+# Calls docker-build-push.yml (compatibility alias) to Trivy-scan and push a linux/amd64+arm64 image
+# to ghcr.io/<owner>/<repo>, tagged with the Git tag or SHA plus latest.
 name: Release Container (compatibility alias)
 
 on:

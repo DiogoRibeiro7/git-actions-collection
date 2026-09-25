@@ -15,6 +15,7 @@ All notable changes to this repository are documented here.
 - `database-migration.yml` applied migrations even with `dry-run: true`: the Liquibase and Alembic dry runs printed the SQL and then ran it. Dry runs now skip the migration step. Flyway dry runs need a Flyway Teams license key.
 - `database-migration.yml` could not start Flyway or Liquibase, because it moved only their launchers into `/usr/local/bin`, away from their libraries. Each tool now stays in its own directory on `PATH`.
 - The documented `database-migration.yml` call passed per-environment secrets explicitly, which GitHub rejects because the workflow cannot declare them. The guide and example now use `secrets: inherit`.
+- `docker-build-push.yml` (and `publish-docker-on-tag.yml` and `release-container.yml`, which call it) pushed the image before scanning it, so a failing Trivy scan could not stop a vulnerable image from being published. It now builds the first platform into the local Docker engine, scans that, and pushes only after the scan passes. Other platforms in a multi-platform build are not scanned.
 
 ## 1.3.0 - 2026-09-25
 
