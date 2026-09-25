@@ -4,9 +4,16 @@ All notable changes to this repository are documented here.
 
 ## Unreleased
 
+### Deprecated
+
+- `database-migration.yml`'s `flyway-license-key` secret. Pass `FLYWAY_LICENSE_KEY` instead, which `secrets: inherit` also provides.
+
 ### Fixed
 
 - `python-test-matrix.yml` failed on Windows, which its default `os-matrix` includes: its steps are bash scripts, but Windows runners default to PowerShell. The job now runs its steps, including `test-command`, in bash on every OS, and the self-test covers Windows and macOS.
+- `database-migration.yml` applied migrations even with `dry-run: true`: the Liquibase and Alembic dry runs printed the SQL and then ran it. Dry runs now skip the migration step. Flyway dry runs need a Flyway Teams license key.
+- `database-migration.yml` could not start Flyway or Liquibase, because it moved only their launchers into `/usr/local/bin`, away from their libraries. Each tool now stays in its own directory on `PATH`.
+- The documented `database-migration.yml` call passed per-environment secrets explicitly, which GitHub rejects because the workflow cannot declare them. The guide and example now use `secrets: inherit`.
 
 ## 1.3.0 - 2026-09-25
 
