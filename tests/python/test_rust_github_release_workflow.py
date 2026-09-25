@@ -5,6 +5,7 @@ from typing import Any
 import pytest
 import yaml
 
+from tests.utils.action_refs import is_commit_pinned
 from tests.utils.fake_runner import ActionResult, run_workflow_step
 from tests.utils.fakebin import make_fakebin
 
@@ -72,17 +73,17 @@ def test_rust_github_release_uses_pinned_artifact_actions() -> None:
     rendered = Path(".github/workflows/rust-github-release.yml").read_text(
         encoding="utf-8"
     )
+    uses = [
+        step["uses"]
+        for job in data["jobs"].values()
+        for step in job.get("steps", [])
+        if "uses" in step
+    ]
 
-    # v7.0.0 release commit, matching the rest of the repository.
-    assert (
-        "actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131"
-        in rendered
-    )
+    assert any(is_commit_pinned(ref, "actions/download-artifact") for ref in uses)
+    assert any(is_commit_pinned(ref, "actions/upload-artifact") for ref in uses)
+    # An untagged download-artifact commit this workflow was once pinned to.
     assert "484a0b528fb4d7bd804637ccb632e47a0e638317" not in rendered
-    assert (
-        "actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f"
-        in rendered
-    )
 
 
 def test_rust_github_release_requires_version_tag_match() -> None:

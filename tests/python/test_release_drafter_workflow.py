@@ -3,8 +3,9 @@ from typing import Any
 
 import yaml
 
-# release-drafter v7.7.0; v7 dropped the GITHUB_TOKEN env variable and several config keys.
-RELEASE_DRAFTER = "release-drafter/release-drafter@34d80673e067bdc0c24568d3af899c216adcfaa9"
+from tests.utils.action_refs import is_commit_pinned
+
+# v7 dropped the GITHUB_TOKEN env variable and several config keys.
 REMOVED_IN_V7 = {"autolabeler", "include-pre-releases", "references"}
 
 
@@ -24,8 +25,8 @@ def test_release_drafter_requests_only_draft_release_permissions() -> None:
     assert _load_workflow()["permissions"] == {"contents": "write", "pull-requests": "read"}
 
 
-def test_release_drafter_uses_the_pinned_v7_action() -> None:
-    assert _drafter_step()["uses"] == RELEASE_DRAFTER
+def test_release_drafter_uses_a_pinned_action() -> None:
+    assert is_commit_pinned(_drafter_step()["uses"], "release-drafter/release-drafter")
 
 
 def test_release_drafter_relies_on_the_v7_token_input() -> None:

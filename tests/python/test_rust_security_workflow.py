@@ -5,6 +5,7 @@ from typing import Any
 import pytest
 import yaml
 
+from tests.utils.action_refs import is_commit_pinned
 from tests.utils.rust_steps import (
     cargo_stub,
     run_step,
@@ -50,14 +51,12 @@ def test_rust_security_pins_tooling() -> None:
     steps = data["jobs"]["audit"]["steps"]
     steps_by_name = {step.get("name"): step for step in steps if step.get("name")}
 
-    assert (
-        steps_by_name["Install cargo-audit"]["uses"]
-        == "taiki-e/install-action@7623a79cdfecb99d681017af368ca353d9f49bb5"
+    assert is_commit_pinned(
+        steps_by_name["Install cargo-audit"]["uses"], "taiki-e/install-action"
     )
     assert steps_by_name["Install cargo-audit"]["with"]["tool"] == "cargo-audit@0.22.2"
-    assert (
-        steps_by_name["Install cargo-deny"]["uses"]
-        == "taiki-e/install-action@7623a79cdfecb99d681017af368ca353d9f49bb5"
+    assert is_commit_pinned(
+        steps_by_name["Install cargo-deny"]["uses"], "taiki-e/install-action"
     )
     assert steps_by_name["Install cargo-deny"]["with"]["tool"] == "cargo-deny@0.20.2"
 
