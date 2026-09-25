@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gh-actions-collection"
-version = "1.2.1"
+version = "1.3.0"
 description = "A curated library of reusable GitHub Actions, workflows, and CI/CD helpers"
 readme = "README.md"
 license = {text = "MIT"}

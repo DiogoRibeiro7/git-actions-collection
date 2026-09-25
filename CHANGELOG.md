@@ -2,11 +2,16 @@
 
 All notable changes to this repository are documented here.
 
-## Unreleased
+## 1.3.0 - 2026-09-25
 
 ### Added
 
 - The supported `python-lint` composite action accepts an optional `working-directory` input (default `.`).
+- New Rust workflows: `rust-coverage.yml` (cargo-llvm-cov with an optional LCOV artifact and line-coverage threshold), `rust-docs.yml` (rustdoc with warnings as errors), `rust-benchmark.yml` (short Criterion benchmark smoke runs), and `rust-release-preflight.yml` (checks package metadata and runs a verified `cargo package`).
+- Experimental Rust release workflows: `rust-publish.yml` publishes to crates.io through Trusted Publishing (GitHub OIDC, no long-lived token), and `rust-github-release.yml` creates a GitHub Release with the verified `.crate` and a `SHA256SUMS` file. Both are dry runs unless the caller opts in and run the live job in a protected environment. `rust-release-preflight.yml` and `rust-publish.yml` accept a `packages` list to verify and publish selected workspace crates in order.
+- `rust-security.yml` can enforce `cargo-deny` policies (`run-cargo-deny`, off by default) alongside `cargo-audit`.
+- `SUPPORT.md` defines compatibility and deprecation rules for supported components. `.github/supported-interfaces.json` records their public interfaces, and CI fails when an interface changes without being recorded.
+- A documentation site is published at https://diogoribeiro7.github.io/git-actions-collection/, built with MkDocs in strict mode from the repository's Markdown.
 
 ### Changed
 
@@ -16,12 +21,14 @@ All notable changes to this repository are documented here.
 - Security compatibility change: Python actions and reusable workflows now default to pip `26.2.1`, replacing the vulnerable `24.3.1` installer. The new default requires Python 3.10 or newer; explicit `pip-version` overrides remain available. The supported-interface snapshot records this change under the security exception in `SUPPORT.md`.
 - Security compatibility change: Node.js 20 reached end of life on 2026-04-30 and no longer receives security fixes, so Node.js defaults move to 24 (the active LTS). This changes the `node-version` default of the supported `setup-yarn` and `markdown-lint` actions and of `node-ci.yml`, `npm-publish.yml`, `publish-to-npm.yml`, `release.yml` and `vercel-nextjs.yml`, plus the fixed Node.js versions in `api-testing.yml`, `aws-lambda-deploy.yml`, `ci-monorepo-runner.yml`, `concurrency-caching.yml`, `security-scan.yml` and the workflow generator. Pass `node-version` to keep an older release. The supported-interface snapshot records this change under the security exception in `SUPPORT.md`.
 - Updated the JavaScript test toolchain to patched Vitest 4, Vite 8, and ESLint 10, migrated ESLint configuration, and refreshed both Yarn lockfiles.
-- Repository development tooling now requires Node.js 26+, and repository CI runs Node.js 26. Node.js 25+ no longer bundles Corepack, so CI installs Corepack 0.36.0 from npm. Consumer workflow and action defaults are unchanged.
+- Repository development tooling now requires Node.js 26+, and repository CI runs Node.js 26. Node.js 25+ no longer bundles Corepack, so CI installs Corepack 0.36.0 from npm.
 - Updated Requests, Poetry, and pytest pins used by shell actions and examples, and raised the Python build-tool security floors.
 - Raised the Django example's Django and Gunicorn minimum versions to patched releases.
 - Added npm/example dependency updates to Dependabot and dependency auditing to repository CI.
-
 - Promoted `rust-ci.yml`, `rust-quality.yml`, `rust-security.yml`, `rust-coverage.yml`, `rust-docs.yml`, `rust-benchmark.yml`, and `rust-release-preflight.yml` from reference to supported. Their interfaces are now covered by the v1 compatibility and deprecation policy in `SUPPORT.md`. `rust-publish.yml` and `rust-github-release.yml` remain experimental.
+- `rust-ci.yml` rejects `all-features` combined with `no-default-features` or an explicit feature list, as the other Rust workflows already did.
+- Workflows now use `actions/checkout` 7, which refuses to check out fork pull request code when the workflow is triggered by `pull_request_target` or `workflow_run`. Collection workflows called from those events can no longer build a fork's code.
+- The third-party actions the collection uses now run on Node.js 24. Self-hosted runners need Actions Runner v2.327.1 or later.
 
 ### Fixed
 
@@ -31,6 +38,8 @@ All notable changes to this repository are documented here.
 - Workflows and actions that run `corepack enable` failed on Node.js 25 and newer, which no longer bundle Corepack. `setup-yarn`, `node-ci.yml`, `npm-publish.yml`, `vercel-nextjs.yml`, `lockfile-consistency.yml` and `ci-monorepo-runner.yml` now install Corepack 0.36.0 from npm first when Node.js is 25 or newer, and keep the bundled Corepack on older releases.
 - Some workflows pinned actions to SHAs that do not exist and failed when those steps ran: setup-go and setup-java in `aws-lambda-deploy.yml`, configure-aws-credentials in `multi-cloud-deploy.yml`, and rust-toolchain in `ci-monorepo-runner.yml`. The Rust step also lacked its required `toolchain` input and now uses `stable`. Each action is now pinned to one tagged release across the collection: setup-go 6.5.0, setup-java 6.0.1, setup-node 6.5.0, setup-python 6.3.0, configure-aws-credentials 6.3.0 (moved from 4.0.2, which ran on the retired Node 20 runtime), and checkout 7.0.1 in the examples and the workflow generator.
 - Other pins were not release commits: azure/login and google-github-actions/auth in `multi-cloud-deploy.yml` and kics in `infra-lint.yml` pointed at SHAs that do not exist, and rust-cache, attest-build-provenance and crates-io-auth-action used untagged commits. They now use azure/login 3.1.0, auth 3.0.0, kics-github-action 2.1.20, rust-cache 2.9.2, attest-build-provenance 3.2.0 and crates-io-auth-action 1.0.5. CI runs `scripts/verify_action_pins.py` to check every pin against its repository's tags.
+- Several reference workflows used action tags that do not exist, so they failed for every caller: `actions/checkout@5` in `pr-policy.yml`, `k8s-manifests-lint.yml` and `ci-monorepo-matrix.yml`, plus `hashicorp/setup-terraform@3`, `codelytv/pr-size-labeler@1` and `actions/labeler@6`. These refs and the remaining mutable ones, such as `@main`, `@v4` and `@stable`, now point at release commits, and a test rejects mutable refs.
+- `codeql-analysis.yml` and `security-scan.yml` pinned `github/codeql-action` to the annotated tag object of the moving `v4` tag instead of a commit. They now use the v4.38.2 release commit.
 
 ## 1.2.1 - 2026-09-23
 
