@@ -1,42 +1,53 @@
 # PyTorch Train and Deploy Workflow
 
-This reusable workflow trains a PyTorch model with GPU acceleration, tracks experiments, and optionally deploys the resulting artifact.
+This experimental reusable workflow trains a PyTorch model inside the
+`pytorch/pytorch` CUDA container, optionally logs the model to MLflow, runs a
+benchmark script, and uploads the model as an artifact.
 
 ## Features
 
-- Caches dependencies and datasets to handle large model files efficiently
-- Runs inside a CUDA-enabled container with `--gpus all` to access runner GPUs
-- Logs metrics and artifacts to an optional MLflow server for experiment tracking
-- Uploads the trained model as a versioned artifact and can trigger custom deployment steps
-- Executes a separate benchmark script to record performance metrics
+- Runs in `pytorch/pytorch:2.1.2-cuda11.8-cudnn8-runtime` on `ubuntu-latest` by
+  default, without GPU access, because GitHub-hosted Linux runners have no GPU.
+- For GPU training, set `runs-on` to a runner with NVIDIA drivers (a GPU larger
+  runner or a self-hosted runner) and `gpu: true`, which passes `--gpus all` to
+  the container.
+- Caches pip downloads and the `data/` directory.
+- Logs the model file to an MLflow tracking server when `mlflow-uri` is set.
+- Uploads the model file as the `trained-model` artifact.
+- `deploy: true` runs a placeholder step that only logs the commit. Deploy from
+  your own job that downloads the `trained-model` artifact.
 
 ## Inputs
 
 | Name | Type | Required | Description |
 | ---- | ---- | -------- | ----------- |
-| `python-version` | string | no (default `3.10`) | Python version used for training |
-| `train-script` | string | no (default `train.py`) | Path to the training script |
-| `benchmark-script` | string | no (default `benchmark.py`) | Script that measures inference performance |
-| `model-artifact` | string | no (default `model.pt`) | Output model file to upload |
-| `deploy` | boolean | no (default `false`) | Whether to run the deployment step |
+| `python-version` | string | no (default `3.10`) | Python version installed with setup-python for training |
+| `train-script` | string | no (default `train.py`) | Training script, relative to the repository root |
+| `benchmark-script` | string | no (default `benchmark.py`) | Benchmark script run after training |
+| `model-artifact` | string | no (default `model.pt`) | Model file the training script writes |
+| `deploy` | boolean | no (default `false`) | Run the placeholder deploy step |
 | `mlflow-uri` | string | no | MLflow tracking server URL |
-| `pip-version` | string | no (default `26.2.1`) | pip release installed before training; set to `latest` to follow upstream |
-| `hf-token` | secret | no | Token used by the example deployment step |
+| `runs-on` | string | no (default `ubuntu-latest`) | Runner label; choose a GPU runner when `gpu` is true |
+| `gpu` | boolean | no (default `false`) | Give the container the runner GPUs (`--gpus all`) |
+| `hf-token` | secret | no | Token exposed to the deploy step as `HF_TOKEN` |
 
 ## Example
 
 ```yaml
-name: Train and Deploy
+name: Train
 on: [push]
+
+permissions:
+  contents: read
 
 jobs:
   train:
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/pytorch-train-deploy.yml@v1
     with:
       python-version: '3.11'
-      deploy: true
-    secrets:
-      hf-token: ${{ secrets.HF_TOKEN }}
+      # Omit both lines to train on the CPU of a GitHub-hosted runner.
+      runs-on: gpu-runner
+      gpu: true
 ```
 
 ## Security Considerations
@@ -44,4 +55,3 @@ jobs:
 - Pin all actions to commit SHAs for supply-chain security
 - Store MLflow and deployment credentials in encrypted secrets
 - Run benchmarks on isolated runners to avoid leaking model data
-- Python environments in this workflow respect the shared pip upgrade policy—the default installer (`26.2.1`) is validated by the repository test suite, and you can override `pip-version` if a newer pip is required.

@@ -1,42 +1,57 @@
-# Trains a model with a caller script in a PyTorch CUDA container, optionally logs it to MLflow,
-# runs a benchmark script and uploads the model file as an artifact.
+# Trains a model with a caller script in a PyTorch CUDA container (GPU access is opt-in), optionally
+# logs it to MLflow, runs a benchmark script and uploads the model file as an artifact.
 name: PyTorch Train and Deploy
 
 on:
   workflow_call:
     inputs:
       python-version:
+        description: 'Python version installed with setup-python for training'
         type: string
         default: '3.10'
       train-script:
+        description: 'Training script, relative to the repository root'
         type: string
         default: 'train.py'
       benchmark-script:
+        description: 'Benchmark script run after training'
         type: string
         default: 'benchmark.py'
       model-artifact:
+        description: 'Model file the training script writes; uploaded as the trained-model artifact'
         type: string
         default: 'model.pt'
       deploy:
+        description: 'Run the deploy step, a placeholder that only logs the commit'
         type: boolean
         default: false
       mlflow-uri:
+        description: 'MLflow tracking server URL; when set, the model file is logged there'
         type: string
         default: ''
+      runs-on:
+        description: 'Runner label; choose a GPU runner when gpu is true'
+        type: string
+        default: 'ubuntu-latest'
+      gpu:
+        description: 'Give the container the runner GPUs (--gpus all); needs a runner with NVIDIA drivers'
+        type: boolean
+        default: false
     secrets:
       hf-token:
+        description: 'Token exposed to the deploy step as HF_TOKEN'
         required: false
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
   train:
-    runs-on: ubuntu-latest
+    # GitHub-hosted ubuntu-latest runners have no GPU, and Docker refuses --gpus without one.
+    runs-on: ${{ inputs.runs-on }}
     container:
       image: pytorch/pytorch:2.1.2-cuda11.8-cudnn8-runtime
-      options: --gpus all
+      options: ${{ inputs.gpu && '--gpus all' || '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
