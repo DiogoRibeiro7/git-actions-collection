@@ -1,3 +1,5 @@
+# Audits Cargo.lock against the RustSec database with cargo-audit, generating the lockfile if
+# missing, and optionally enforces cargo-deny advisory, ban, license and source policies.
 name: Rust Security
 
 on:

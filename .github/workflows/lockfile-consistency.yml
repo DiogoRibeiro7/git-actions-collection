@@ -1,3 +1,5 @@
+# Checks that Poetry and Yarn lockfiles match their manifests, running poetry lock --check and yarn
+# install --immutable when both files are present.
 name: Lockfile Consistency
 
 on:

@@ -1,3 +1,5 @@
+# Runs helm lint and helm template on a chart and, when publishing is enabled, packages it and
+# pushes to an OCI registry or releases it to GitHub Pages via chart-releaser.
 name: Helm Chart Lint & Test
 on:
   workflow_call:

@@ -1,3 +1,5 @@
+# Lints an OpenAPI spec with Redocly and runs Newman (Postman) or Pact contract tests, with optional
+# GraphQL linting, k6 load testing and OWASP ZAP scanning.
 name: API Testing
 
 on:

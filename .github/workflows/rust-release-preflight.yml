@@ -1,3 +1,5 @@
+# Validates crates.io publishability, required Cargo metadata and dependency order for selected
+# workspace crates, runs cargo package, and optionally uploads the .crate archives.
 name: Rust Release Preflight
 
 on:

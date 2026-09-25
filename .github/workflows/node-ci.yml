@@ -1,3 +1,5 @@
+# Installs dependencies with Yarn via Corepack (yarn install --immutable) and runs yarn lint and
+# yarn test across an OS matrix (Ubuntu, Windows, macOS by default).
 name: Node CI
 
 on:

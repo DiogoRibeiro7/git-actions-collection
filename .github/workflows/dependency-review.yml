@@ -1,3 +1,5 @@
+# Runs GitHub's dependency-review-action with default settings on pull requests, failing on
+# dependency changes that introduce known vulnerabilities.
 name: Dependency Review
 
 on:

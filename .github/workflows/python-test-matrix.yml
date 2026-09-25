@@ -1,3 +1,5 @@
+# Runs pytest (or a custom test command) across a Python version and OS matrix, installing the
+# project from pyproject.toml or requirements.txt with pip caching.
 name: Python Test Matrix
 on:
   workflow_call:

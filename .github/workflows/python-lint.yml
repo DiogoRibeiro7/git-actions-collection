@@ -1,3 +1,5 @@
+# Runs Ruff (ruff check) and optionally mypy on the caller's code, using pinned tool versions and a
+# configurable Python version.
 name: Python Lint
 on:
   workflow_call:

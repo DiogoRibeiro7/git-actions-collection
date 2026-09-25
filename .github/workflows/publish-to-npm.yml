@@ -1,3 +1,5 @@
+# Calls npm-publish.yml (compatibility alias) to install dependencies, run any build script, and
+# publish the repo-root package to npm with provenance under the latest dist-tag.
 name: Publish to npm (compatibility alias)
 
 on:

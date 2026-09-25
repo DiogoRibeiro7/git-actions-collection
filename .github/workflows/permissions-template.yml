@@ -1,3 +1,5 @@
+# Demonstrates least-privilege job permissions: a read-only job checks out the repo, and on tag refs
+# a contents: write job echoes a placeholder message.
 name: Permissions Hardened Template
 
 on:

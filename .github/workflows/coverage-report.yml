@@ -1,3 +1,5 @@
+# Installs a Python project with pytest and pytest-cov, runs a configurable test command (pytest
+# --cov by default), uploads coverage.xml as an artifact, and logs the overall line rate.
 name: Python Tests & Coverage
 on:
   workflow_call:

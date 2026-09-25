@@ -1,3 +1,5 @@
+# Deploys each Lambda in a JSON matrix via AWS OIDC when its path changed in the last commit,
+# building per runtime, publishing a version and optionally moving an alias with rollback.
 name: AWS Lambda Deploy
 
 on:

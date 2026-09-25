@@ -1,3 +1,5 @@
+# Updates the draft GitHub release with release-drafter, using the release-drafter.yml config from
+# the caller repository's .github directory.
 name: Release Drafter
 on:
   workflow_call:

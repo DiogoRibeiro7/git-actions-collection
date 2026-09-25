@@ -1,3 +1,5 @@
+# Checks commit messages against Conventional Commits, using webiny/action-conventional-commits on
+# pull requests and commitlint on push events.
 name: Conventional Commits
 on:
   workflow_call: {}

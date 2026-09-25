@@ -1,3 +1,6 @@
+# Runs pip-audit and Bandit (SARIF uploaded to code scanning), opt-in Trivy filesystem scanning, and
+# npm signature, Maven/Gradle and Go module checks when detected, then attests reports with SLSA
+# provenance.
 name: Security Scan
 on:
   workflow_call:

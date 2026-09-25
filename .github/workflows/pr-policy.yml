@@ -1,3 +1,6 @@
+# Fails pull requests whose description lacks "## Summary" and "## Testing" sections, adds a size
+# label with pr-size-labeler, and adds path labels via actions/labeler when .github/labeler.yml
+# exists.
 name: PR Policy
 on:
   workflow_call:

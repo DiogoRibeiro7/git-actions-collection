@@ -1,3 +1,4 @@
+# Runs tests with Maven (mvn -B test) or the Gradle wrapper (./gradlew test) on Temurin JDK 17.
 name: Java CI
 
 on:

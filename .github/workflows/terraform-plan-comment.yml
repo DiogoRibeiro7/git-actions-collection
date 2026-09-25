@@ -1,3 +1,5 @@
+# Runs terraform init, validate and plan (Terraform 1.8.5) and posts the plan output as a sticky
+# pull request comment.
 name: Terraform Plan (PR comment)
 on:
   workflow_call:

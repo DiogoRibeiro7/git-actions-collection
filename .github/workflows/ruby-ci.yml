@@ -1,3 +1,5 @@
+# Installs gems with Bundler caching and runs a test command (default bundle exec rake test) across
+# a Ruby version matrix on Ubuntu.
 name: Ruby CI
 
 on:

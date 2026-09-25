@@ -1,3 +1,5 @@
+# Runs npm ci and npm test (if present) on Node 24 with npm caching, cancelling superseded runs for
+# the same caller workflow and ref.
 name: Concurrency and Caching Template
 
 on:

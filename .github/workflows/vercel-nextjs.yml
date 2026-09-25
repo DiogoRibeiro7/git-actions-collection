@@ -1,3 +1,5 @@
+# Runs yarn build on a Next.js app, then deploys the source with Vercel CLI 33 (production by
+# default) with up to three attempts, outputting the deployment URL.
 name: Vercel Next.js Deploy
 
 on:

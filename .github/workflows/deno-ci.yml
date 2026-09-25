@@ -1,3 +1,5 @@
+# Runs deno lint and deno test across an OS matrix with dependency caching, and optionally deploys
+# to Deno Deploy production with deployctl.
 name: Deno CI
 
 on:

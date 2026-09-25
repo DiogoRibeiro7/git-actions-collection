@@ -1,3 +1,5 @@
+# Validates Kubernetes manifests under the given paths against upstream schemas using the latest
+# kubeconform release, printing a summary.
 name: Kubernetes Manifests Lint
 on:
   workflow_call:
