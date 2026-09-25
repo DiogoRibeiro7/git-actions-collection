@@ -5,10 +5,12 @@ on:
   workflow_call:
     inputs:
       commit-message:
+        description: 'Commit message and pull request title'
         required: false
         type: string
         default: 'chore: update changelog'
       branch:
+        description: 'Branch the changelog update is pushed to'
         required: false
         type: string
         default: 'chore/update-changelog'
@@ -22,10 +24,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
+      # Ubuntu does not package git-cliff; install a checksum-verified release binary.
       - name: Install git-cliff
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y git-cliff
+        uses: taiki-e/install-action@7623a79cdfecb99d681017af368ca353d9f49bb5
+        with:
+          tool: git-cliff@2.14.2
       - name: Generate changelog
         run: git cliff --output CHANGELOG.md
       - name: Create Pull Request
