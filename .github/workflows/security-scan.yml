@@ -61,7 +61,7 @@ jobs:
       TRIVY_CACHE_DIR: ~/.cache/trivy
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: actions/setup-python@cfd55ca82492758d853442341ad4d8010466803a
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
           python-version: '3.12'
           cache: pip
@@ -221,7 +221,7 @@ jobs:
           path: ${{ inputs.paths }}
       - name: Set up Node (if needed)
         if: hashFiles('package-lock.json') != '' && inputs['skip-npm-signatures'] == false
-        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
           node-version: '20'
           cache: npm
@@ -232,7 +232,7 @@ jobs:
           npm audit signatures
       - name: Set up Java (if needed)
         if: (hashFiles('pom.xml') != '' || hashFiles('build.gradle') != '' || hashFiles('build.gradle.kts') != '') && inputs['skip-java-verify'] == false
-        uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6
         with:
           distribution: temurin
           java-version: '17'

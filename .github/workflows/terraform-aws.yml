@@ -45,7 +45,7 @@ jobs:
         with:
           terraform_version: ${{ inputs.terraform-version }}
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@49f33fe638c0cba4fb16037a27915a7ab7740259
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd
         with:
           role-to-assume: ${{ inputs.aws-role }}
           aws-region: ${{ inputs.aws-region }}
