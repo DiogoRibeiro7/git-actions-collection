@@ -11,7 +11,5 @@ jobs:
       tool: flyway
       migration-dir: migrations
       environments: '["dev"]'
-    secrets:
-      DEV_DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
-      DEV_DB_USER: ${{ secrets.DEV_DB_USER }}
-      DEV_DB_PASSWORD: ${{ secrets.DEV_DB_PASSWORD }}
+    # Secret names depend on the environment list, so pass them all through.
+    secrets: inherit
