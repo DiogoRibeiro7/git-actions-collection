@@ -75,10 +75,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
-          node-version: '22'
+          node-version: '26'
           cache: yarn
       - name: Enable Corepack
-        run: corepack enable
+        # Node.js 25 and newer no longer bundle Corepack.
+        run: |
+          npm install --global corepack@0.36.0
+          corepack enable
       - name: Install dependencies
         run: yarn install --frozen-lockfile
       - name: Lint
