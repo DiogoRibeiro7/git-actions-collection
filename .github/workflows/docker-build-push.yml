@@ -1,5 +1,6 @@
 # Builds and pushes an image with Buildx (QEMU for multi-platform) to GHCR, another registry or ECR
-# via OIDC, with provenance/SBOM attestations and a default Trivy HIGH/CRITICAL scan.
+# via OIDC, with provenance/SBOM attestations. By default it first builds the first platform locally
+# and fails before pushing if Trivy finds HIGH/CRITICAL vulnerabilities.
 name: Docker Build & Push
 
 on:
@@ -50,7 +51,7 @@ on:
         type: string
         default: 'ghcr.io'
       scan:
-        description: 'Scan the published image for HIGH/CRITICAL vulnerabilities'
+        description: 'Scan the first platform for HIGH/CRITICAL vulnerabilities before pushing'
         required: false
         type: boolean
         default: true
@@ -149,6 +150,45 @@ jobs:
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.title=${{ github.repository }}
 
+      - name: Select platform for vulnerability scan
+        if: ${{ inputs.scan }}
+        id: scan-platform
+        shell: bash
+        env:
+          PLATFORMS: ${{ inputs.platforms }}
+        run: |
+          set -euo pipefail
+          platform="$(printf '%s\n' "$PLATFORMS" | tr ',' '\n' | sed '/^[[:space:]]*$/d; s/^[[:space:]]*//; s/[[:space:]]*$//' | head -n1)"
+          echo "value=$platform" >> "$GITHUB_OUTPUT"
+
+      # Build one platform into the local Docker engine and scan it, so a failing
+      # scan stops the job before anything is pushed. The push build reuses the cache.
+      - name: Build image for vulnerability scan
+        if: ${{ inputs.scan }}
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
+        with:
+          context: ${{ inputs.context }}
+          file: ${{ inputs.dockerfile }}
+          platforms: ${{ steps.scan-platform.outputs.value }}
+          load: true
+          push: false
+          tags: scan-candidate:${{ github.sha }}
+          build-args: ${{ inputs.build-args }}
+          target: ${{ inputs.target != '' && inputs.target || '' }}
+          provenance: false
+          sbom: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Scan image for vulnerabilities
+        if: ${{ inputs.scan }}
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8
+        with:
+          image-ref: scan-candidate:${{ github.sha }}
+          format: table
+          exit-code: '1'
+          severity: CRITICAL,HIGH
+
       - name: Build and push
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
         with:
@@ -164,24 +204,3 @@ jobs:
           sbom: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-      - name: Select image for vulnerability scan
-        if: ${{ inputs.scan }}
-        id: scan-image
-        shell: bash
-        env:
-          IMAGE: ${{ inputs.image }}
-          TAGS: ${{ inputs.tags }}
-        run: |
-          set -euo pipefail
-          first_tag="$(printf '%s\n' "$TAGS" | tr ',' '\n' | sed '/^[[:space:]]*$/d; s/^[[:space:]]*//; s/[[:space:]]*$//' | head -n1)"
-          echo "ref=$IMAGE:$first_tag" >> "$GITHUB_OUTPUT"
-
-      - name: Scan image for vulnerabilities
-        if: ${{ inputs.scan }}
-        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8
-        with:
-          image-ref: ${{ steps.scan-image.outputs.ref }}
-          format: table
-          exit-code: '1'
-          severity: CRITICAL,HIGH
