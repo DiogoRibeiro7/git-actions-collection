@@ -1,5 +1,6 @@
 # Audits Cargo.lock against the RustSec database with cargo-audit, generating the lockfile if
 # missing, and optionally enforces cargo-deny advisory, ban, license and source policies.
+# Findings are listed on the run page and annotated, cargo-audit's on their Cargo.lock entry.
 name: Rust Security
 
 on:
@@ -91,6 +92,7 @@ jobs:
           tool: cargo-audit@0.22.2
 
       - name: Audit Rust dependencies
+        id: audit
         if: inputs.run-cargo-audit
         shell: bash
         working-directory: ${{ inputs.working-directory }}
@@ -110,7 +112,12 @@ jobs:
             done
           fi
 
-          cargo audit "${args[@]}"
+          status=0
+          cargo audit "${args[@]}" || status=$?
+          # An offline JSON rerun records the findings for the Summary step; it never decides
+          # the result.
+          cargo audit "${args[@]}" --no-fetch --json >"$RUNNER_TEMP/cargo-audit.json" 2>/dev/null || true
+          exit "$status"
 
       - name: Validate cargo-deny policy
         if: inputs.run-cargo-deny
@@ -151,6 +158,7 @@ jobs:
           tool: cargo-deny@0.20.2
 
       - name: Enforce Rust dependency policy
+        id: deny
         if: inputs.run-cargo-deny
         shell: bash
         working-directory: ${{ inputs.working-directory }}
@@ -169,4 +177,150 @@ jobs:
             fi
           done
 
-          cargo deny --config "$CARGO_DENY_CONFIG" check "${args[@]}"
+          status=0
+          cargo deny --config "$CARGO_DENY_CONFIG" check "${args[@]}" || status=$?
+          # cargo-deny writes JSON diagnostics to stderr. Like the audit rerun, this only feeds
+          # the Summary step.
+          cargo deny --offline --format json --config "$CARGO_DENY_CONFIG" check "${args[@]}" \
+            2>"$RUNNER_TEMP/cargo-deny.jsonl" >/dev/null || true
+          exit "$status"
+
+      - name: Summary
+        if: always()
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          RUN_AUDIT: ${{ inputs.run-cargo-audit }}
+          RUN_DENY: ${{ inputs.run-cargo-deny }}
+          AUDIT_OUTCOME: ${{ steps.audit.outcome }}
+          DENY_OUTCOME: ${{ steps.deny.outcome }}
+        run: |
+          # The summary is best effort: it must not fail a job that passed.
+          python - <<'PY' || echo "::warning title=Security summary::Could not write the summary"
+          import json
+          import os
+
+          OUTCOMES = {
+              "success": "✅ Passed",
+              "failure": "❌ Failed",
+              "cancelled": "Cancelled",
+              "skipped": "Skipped",
+          }
+          temp = os.environ.get("RUNNER_TEMP", "")
+          lockfile = os.path.relpath(os.path.abspath("Cargo.lock"), os.environ.get("GITHUB_WORKSPACE") or os.getcwd())
+
+
+          def escape(value, prop=False):
+              value = str(value).replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+              return value.replace(":", "%3A").replace(",", "%2C") if prop else value
+
+
+          def cell(value):
+              return str(value).replace("|", "\\|").replace("\n", " ")
+
+
+          def plural(count, noun):
+              return f"{count} {noun}{'' if count == 1 else 's'}"
+
+
+          def result(enabled, outcome, details):
+              if enabled != "true":
+                  return "Not enabled"
+              text = OUTCOMES.get(outcome, "Not run")
+              return f"{text}: {', '.join(details)}" if details else text
+
+
+          def lock_line(name, version):
+              try:
+                  with open("Cargo.lock", encoding="utf-8") as handle:
+                      lines = handle.read().splitlines()
+              except OSError:
+                  return None
+              for index, line in enumerate(lines[:-1]):
+                  if line == f'name = "{name}"' and lines[index + 1] == f'version = "{version}"':
+                      return index + 1
+              return None
+
+
+          # cargo-audit: vulnerabilities fail the check; unmaintained, unsound and yanked crates warn.
+          findings = []
+          try:
+              with open(os.path.join(temp, "cargo-audit.json"), encoding="utf-8", errors="replace") as handle:
+                  report = json.load(handle)
+          except (OSError, ValueError):
+              report = {}
+          for item in (report.get("vulnerabilities") or {}).get("list") or []:
+              findings.append(("vulnerability", item))
+          for kind, items in (report.get("warnings") or {}).items():
+              findings += [(kind, item) for item in items]
+          annotations, audit_rows = [], []
+          for kind, item in findings:
+              advisory = item.get("advisory") or {}
+              package = item.get("package") or {}
+              crate = f"{package.get('name')} {package.get('version')}"
+              advisory_id = advisory.get("id", "")
+              link = f"[{advisory_id}](https://rustsec.org/advisories/{advisory_id})" if advisory_id else ""
+              title = advisory.get("title") or kind
+              fixes = " or ".join(f"`{fix}`" for fix in (item.get("versions") or {}).get("patched") or []) or "none"
+              audit_rows.append(f"| {kind} | {link} | `{crate}` | {cell(title)} | {fixes} |")
+              level = "error" if kind == "vulnerability" else "warning"
+              place = lock_line(package.get("name"), package.get("version"))
+              props = f"file={escape(lockfile, True)},line={place}," if place else ""
+              label = " ".join(part for part in (advisory_id, kind) if part)
+              annotations.append(f"::{level} {props}title={escape(label, True)}::{escape(f'{crate}: {title}')}")
+          vulnerabilities = sum(kind == "vulnerability" for kind, _ in findings)
+          audit_details = []
+          if vulnerabilities:
+              audit_details.append(f"{vulnerabilities} {'vulnerability' if vulnerabilities == 1 else 'vulnerabilities'}")
+          if len(findings) > vulnerabilities:
+              audit_details.append(plural(len(findings) - vulnerabilities, "warning"))
+
+          # cargo-deny: JSON lines of diagnostics, then one summary of counts per check.
+          deny_rows, deny_details = [], []
+          try:
+              with open(os.path.join(temp, "cargo-deny.jsonl"), encoding="utf-8", errors="replace") as handle:
+                  events = [json.loads(line) for line in handle if line.startswith("{")]
+          except (OSError, ValueError):
+              events = []
+          for event in events:
+              fields = event.get("fields") or {}
+              if event.get("type") == "summary":
+                  for check, counts in fields.items():
+                      found = [plural(counts[key], key[:-1]) for key in ("errors", "warnings") if counts.get(key)]
+                      if found:
+                          deny_details.append(f"{check} {' and '.join(found)}")
+              elif event.get("type") == "diagnostic" and fields.get("severity") in ("error", "warning"):
+                  graph = (fields.get("graphs") or [{}])[0].get("Krate") or {}
+                  crate = f"{graph.get('name')} {graph.get('version')}" if graph else ""
+                  message = fields.get("message", "")
+                  advisory_id = (fields.get("advisory") or {}).get("id")
+                  labels = [label for label in fields.get("labels") or [] if label.get("message")]
+                  if advisory_id:
+                      message += f" ({advisory_id})"
+                  elif labels:
+                      message += f": {labels[-1]['message']} (`{labels[-1].get('span', '')}`)"
+                  deny_rows.append(f"| {fields.get('code', '')} | {fields['severity']} | `{crate}` | {cell(message)} |")
+                  title = f"cargo-deny {fields.get('code', '')}".strip()
+                  text = f"{crate}: {message}" if crate else message
+                  annotations.append(f"::{fields['severity']} title={escape(title, True)}::{escape(text)}")
+
+          out = [
+              "## Rust security",
+              "",
+              "| Check | Result |",
+              "| --- | --- |",
+              f"| cargo-audit | {result(os.environ.get('RUN_AUDIT'), os.environ.get('AUDIT_OUTCOME'), audit_details)} |",
+              f"| cargo-deny | {result(os.environ.get('RUN_DENY'), os.environ.get('DENY_OUTCOME'), deny_details)} |",
+          ]
+          if audit_rows:
+              out += ["", "**cargo-audit findings**", "", "| Kind | Advisory | Crate | Title | Fixed in |"]
+              out += ["| --- | --- | --- | --- | --- |", *audit_rows[:50]]
+          if deny_rows:
+              out += ["", "**cargo-deny findings**", "", "| Code | Severity | Crate | Finding |"]
+              out += ["| --- | --- | --- | --- |", *deny_rows[:50]]
+          summary = "\n".join(out) + "\n"
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as handle:
+              handle.write(summary)
+          print(summary)
+          print("\n".join(annotations[:50]))
+          PY
