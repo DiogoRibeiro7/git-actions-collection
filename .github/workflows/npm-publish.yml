@@ -19,6 +19,11 @@ on:
         required: false
         type: string
         default: 'latest'
+      prerelease-id:
+        description: 'Publish <version>-<id>.<run number>.<run attempt> instead of the package.json version, e.g. canary; empty publishes the version as is'
+        required: false
+        type: string
+        default: ''
     secrets:
       NPM_TOKEN:
         required: true
@@ -59,8 +64,20 @@ jobs:
           else
             echo "No build script, skipping"
           fi
+      # npm refuses to publish a version twice, so repeated prerelease runs need unique versions.
+      - name: Set prerelease version
+        if: inputs.prerelease-id != ''
+        env:
+          PRERELEASE_ID: ${{ inputs.prerelease-id }}
+        run: |
+          set -euo pipefail
+          base="$(node -p "require('./package.json').version")"
+          version="${base}-${PRERELEASE_ID}.${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}"
+          npm version --no-git-tag-version "$version"
+          echo "Publishing $version"
       - name: Publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          TAG: ${{ inputs.tag }}
         run: |
-          npm publish --provenance --tag ${{ inputs.tag }}
+          npm publish --provenance --tag "$TAG"

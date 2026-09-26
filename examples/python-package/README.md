@@ -74,7 +74,7 @@ No secrets are needed; OIDC handles authentication. Flip `pre-release` to `false
 
 ## Canary Release
 
-`.github/workflows/canary.yml` publishes development builds to TestPyPI when pushing to `main` or tagging an `*-rc` version.
+`.github/workflows/canary.yml` publishes development builds to TestPyPI when pushing to `main` or tagging an `*-rc` version. TestPyPI skips a version it already has, so bump the version (for example to a `.devN` release) for each canary you want uploaded.
 
 ```yaml
 jobs:
