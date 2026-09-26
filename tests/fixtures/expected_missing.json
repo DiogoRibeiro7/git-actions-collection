@@ -1,4 +1,4 @@
 {
   "missing": ["httpx"],
-  "unused": ["requests>=2.0"]
+  "unused": []
 }

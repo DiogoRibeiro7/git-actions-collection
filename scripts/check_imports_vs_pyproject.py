@@ -3,8 +3,12 @@
 Usage:
   python scripts/check_imports_vs_pyproject.py --fail-on missing --format text
 """
-import argparse, ast, os, sys, json, tomllib, importlib.util, sysconfig
+import argparse, ast, os, re, sys, json, tomllib, importlib.util, sysconfig
 from pathlib import Path
+
+# The distribution name at the start of a PEP 508 requirement, before any
+# extras, version specifier, URL or environment marker.
+REQUIREMENT_NAME = re.compile(r"\s*([A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?)")
 
 def find_python_files(paths):
     for p in paths:
@@ -39,7 +43,9 @@ def load_pyproject_deps(pyproject_path: Path):
     project = data.get("project")
     if project:
         for dep in project.get("dependencies", []):
-            deps.add(dep.split()[0].replace("_", "-"))
+            match = REQUIREMENT_NAME.match(dep)
+            if match:
+                deps.add(match.group(1).replace("_", "-"))
     poetry = data.get("tool", {}).get("poetry")
     if poetry:
         for name in poetry.get("dependencies", {}):
