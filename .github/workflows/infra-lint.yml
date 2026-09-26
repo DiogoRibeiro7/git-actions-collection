@@ -1,14 +1,24 @@
-# Runs TFLint and cfn-lint against the given paths without failing on findings; Checkov, tfsec and
-# KICS steps are present but hardcoded off.
+# Lints Terraform with TFLint (recursively under each given path) and, when templates are listed,
+# CloudFormation with cfn-lint, failing on findings unless soft-fail is set.
 name: Infra Lint
 on:
   workflow_call:
     inputs:
-        paths:
-          description: 'Paths to check'
-          required: false
-          type: string
-          default: '.'
+      paths:
+        description: 'Space-separated directories whose Terraform TFLint checks, recursively'
+        required: false
+        type: string
+        default: '.'
+      cloudformation-templates:
+        description: 'Space-separated CloudFormation template files or globs for cfn-lint; empty skips cfn-lint'
+        required: false
+        type: string
+        default: ''
+      soft-fail:
+        description: 'Report findings without failing the job'
+        required: false
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -16,30 +26,52 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Set up TFLint
+        uses: terraform-linters/setup-tflint@1cf010d3c7aef302051ccdb68c14c5dc2efa34ef
+        with:
+          tflint_version: v0.64.0
+          github_token: ${{ github.token }}
       - name: Terraform lint
+        id: tflint
+        shell: bash
+        env:
+          LINT_PATHS: ${{ inputs.paths }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
-          curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
-          tflint --init
-          tflint ${{ inputs.paths }} || true
+          set -uo pipefail
+          status=0
+          read -r -a paths <<< "$LINT_PATHS"
+          for path in "${paths[@]}"; do
+            echo "::group::tflint $path"
+            tflint --chdir "$path" --init || status=1
+            tflint --chdir "$path" --recursive --format compact || status=1
+            echo "::endgroup::"
+          done
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+      - name: Set up Python
+        if: inputs.cloudformation-templates != ''
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12'
       - name: CloudFormation lint
+        id: cfnlint
+        if: inputs.cloudformation-templates != ''
+        shell: bash
+        env:
+          TEMPLATES: ${{ inputs.cloudformation-templates }}
         run: |
-          pip install cfn-lint
-          cfn-lint -I ${{ inputs.paths }} || true
-      - name: Checkov (optional)
-        if: ${{ false }} # enable by editing to true
-        uses: bridgecrewio/checkov-action@d146511ffb733a9a456c9ffc05cd462122037354
-        with:
-          directory: ${{ inputs.paths }}
-          soft_fail: true
-      - name: tfsec (optional)
-        if: ${{ false }} # enable by editing to true
-        uses: aquasecurity/tfsec-action@b466648d6e39e7c75324f25d83891162a721f2d6
-        with:
-          working_directory: ${{ inputs.paths }}
-          soft_fail: true
-      - name: KICS (optional)
-        if: ${{ false }} # enable by editing to true
-        uses: checkmarx/kics-github-action@05aa5eb70eede1355220f4ca5238d96b397e30a6
-        with:
-          path: ${{ inputs.paths }}
-          fail_on: high
+          set -uo pipefail
+          python -m pip install --quiet cfn-lint==1.57.0
+          read -r -a templates <<< "$TEMPLATES"
+          # cfn-lint expands the globs itself.
+          cfn-lint "${templates[@]}"
+          echo "status=$?" >> "$GITHUB_OUTPUT"
+      - name: Fail on findings
+        if: ${{ !inputs.soft-fail && (steps.tflint.outputs.status != '0' || (steps.cfnlint.outputs.status != '' && steps.cfnlint.outputs.status != '0')) }}
+        shell: bash
+        env:
+          TFLINT_STATUS: ${{ steps.tflint.outputs.status }}
+          CFNLINT_STATUS: ${{ steps.cfnlint.outputs.status }}
+        run: |
+          echo "::error::Infrastructure lint found problems (tflint=$TFLINT_STATUS, cfn-lint=${CFNLINT_STATUS:-skipped})"
+          exit 1
