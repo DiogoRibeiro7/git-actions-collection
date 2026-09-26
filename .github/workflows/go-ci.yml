@@ -1,5 +1,5 @@
-# Runs go test ./... and the latest (unpinned) golangci-lint on Ubuntu with a configurable Go
-# version, defaulting to 1.22.
+# Runs go test ./... and golangci-lint 2.14.0 on Ubuntu with a configurable Go version, defaulting
+# to 1.27.
 name: Go CI
 
 on:
@@ -9,7 +9,7 @@ on:
         description: Go version
         required: false
         type: string
-        default: '1.22'
+        default: '1.27'
 
 jobs:
   build:
@@ -27,4 +27,5 @@ jobs:
       - name: GolangCI-Lint
         uses: golangci/golangci-lint-action@e7fa5ac41e1cf5b7d48e45e42232ce7ada589601
         with:
-          version: latest
+          # Pinned: `latest` changed lint results without a change in the caller's code.
+          version: v2.14.0
