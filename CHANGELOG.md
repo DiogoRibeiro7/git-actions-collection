@@ -10,6 +10,7 @@ All notable changes to this repository are documented here.
 - The supported `setup-poetry` action accepts an optional `poetry-version` input (default `2.5.1`, the version it always installed).
 - `npm-publish.yml` accepts an optional `prerelease-id` input that publishes `<version>-<id>.<run number>.<run attempt>` instead of the `package.json` version.
 - `rust-ci.yml`, `rust-quality.yml` and `rust-docs.yml` annotate compiler, Clippy and rustdoc diagnostics, rustfmt diffs and failing tests on their file and line, so pull requests show them in "Files changed", and write a result table to the run's summary page. Before, these findings were only in the raw log. Inputs and pass/fail behaviour are unchanged.
+- `rust-coverage.yml`, `rust-security.yml` and `rust-benchmark.yml` write their results to the run's summary page: line and function coverage with the least covered files, cargo-audit and cargo-deny findings with their advisories and fixed versions, and each Criterion benchmark's mean and confidence interval. cargo-audit findings are annotated on their `Cargo.lock` entry and a missed coverage minimum on the run. cargo-audit and cargo-deny run a second time, offline and in JSON, to collect the findings; the first run still decides the result.
 
 ### Deprecated
 

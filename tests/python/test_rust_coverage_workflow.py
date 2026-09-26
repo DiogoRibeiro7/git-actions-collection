@@ -207,7 +207,12 @@ def test_rust_coverage_summary_tolerates_a_missing_report(
     log = tmp_path / "cargo.log"
 
     result = run_step(
-        "rust-coverage.yml", "coverage", "Coverage summary", tmp_path, stubs=cargo_stub(log)
+        "rust-coverage.yml",
+        "coverage",
+        "Coverage summary",
+        tmp_path,
+        stubs=cargo_stub(log),
+        context={"steps.coverage.outcome": "success" if has_report else "failure"},
     )
 
     assert result.code == 0, result.stderr

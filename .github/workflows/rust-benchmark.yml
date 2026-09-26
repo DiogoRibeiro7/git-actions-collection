@@ -1,5 +1,6 @@
 # Runs a quick Criterion smoke benchmark via cargo bench --workspace with short warm-up/measurement
-# settings, configurable Cargo features, and optional upload of target/criterion results.
+# settings, configurable Cargo features, and optional upload of target/criterion results. The run
+# page lists each benchmark's mean and confidence interval.
 name: Rust Benchmark Smoke
 
 on:
@@ -134,6 +135,7 @@ jobs:
           PY
 
       - name: Run Criterion smoke benchmark
+        id: bench
         shell: bash
         working-directory: ${{ inputs.working-directory }}
         env:
@@ -148,6 +150,9 @@ jobs:
           SAMPLE_SIZE: ${{ inputs.sample-size }}
         run: |
           set -euo pipefail
+          # The cache can restore Criterion results from earlier runs; the summary lists only
+          # benchmarks written after this marker.
+          touch "$RUNNER_TEMP/criterion-start"
 
           cargo_args=(--workspace)
           [[ "$CARGO_LOCKED" == "true" ]] && cargo_args+=(--locked)
@@ -173,3 +178,68 @@ jobs:
           path: ${{ inputs.working-directory }}/target/criterion
           if-no-files-found: error
           retention-days: ${{ inputs.artifact-retention-days }}
+
+      - name: Summary
+        if: always()
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          OUTCOME: ${{ steps.bench.outcome }}
+        run: |
+          # The summary is best effort: it must not fail a job that passed.
+          python - <<'PY' || echo "::warning title=Benchmark summary::Could not write the summary"
+          import json
+          import os
+
+          OUTCOMES = {
+              "success": "✅ Passed",
+              "failure": "❌ Failed",
+              "cancelled": "Cancelled",
+              "skipped": "Skipped",
+          }
+
+
+          def duration(nanoseconds):
+              for unit, scale in (("s", 1e9), ("ms", 1e6), ("µs", 1e3)):
+                  if nanoseconds >= scale:
+                      return f"{nanoseconds / scale:.4g} {unit}"
+              return f"{nanoseconds:.4g} ns"
+
+
+          try:
+              started = os.path.getmtime(os.path.join(os.environ.get("RUNNER_TEMP", ""), "criterion-start"))
+          except OSError:
+              started = None
+          rows = []
+          for root, _, files in os.walk(os.path.join("target", "criterion")):
+              if started is None or os.path.basename(root) != "new" or "estimates.json" not in files:
+                  continue
+              estimates_path = os.path.join(root, "estimates.json")
+              if os.path.getmtime(estimates_path) < started:
+                  continue
+              try:
+                  with open(estimates_path, encoding="utf-8") as handle:
+                      mean = json.load(handle)["mean"]
+                  with open(os.path.join(root, "benchmark.json"), encoding="utf-8") as handle:
+                      name = json.load(handle)["full_id"]
+              except (OSError, ValueError, KeyError):
+                  continue
+              interval = mean["confidence_interval"]
+              rows.append((name, mean["point_estimate"], interval["lower_bound"], interval["upper_bound"]))
+
+          result = OUTCOMES.get(os.environ.get("OUTCOME"), "Not run")
+          if rows:
+              result += f": {len(rows)} benchmark{'' if len(rows) == 1 else 's'}"
+          out = ["## Rust benchmarks", "", "| Check | Result |", "| --- | --- |", f"| Criterion | {result} |"]
+          if rows:
+              out += ["", "| Benchmark | Mean | 95% confidence interval |", "| --- | ---: | ---: |"]
+              out += [
+                  f"| `{name}` | {duration(point)} | {duration(lower)} to {duration(upper)} |"
+                  for name, point, lower, upper in sorted(rows)
+              ]
+              out += ["", "Smoke settings on a shared runner: large changes are signal, small ones are noise."]
+          summary = "\n".join(out) + "\n"
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as handle:
+              handle.write(summary)
+          print(summary)
+          PY

@@ -72,6 +72,13 @@ def _render(value: Any) -> str:
     return str(value)
 
 
+def runner_temp(workdir: Path) -> Path:
+    """The RUNNER_TEMP that run_step gives steps running in *workdir*."""
+    path = workdir.parent / f"{workdir.name}-runner-temp"
+    path.mkdir(exist_ok=True)
+    return path
+
+
 def run_step(
     workflow: str,
     job: str,
@@ -103,9 +110,10 @@ def run_step(
 
     # Gates pipe cargo through a script an earlier step writes to RUNNER_TEMP, and annotate
     # files relative to the checkout, which is the fixture's parent directory here.
-    runner_temp = workdir.parent / f"{workdir.name}-runner-temp"
-    runner_temp.mkdir(exist_ok=True)
-    env: dict[str, str] = {"RUNNER_TEMP": str(runner_temp), "GITHUB_WORKSPACE": str(workdir.parent)}
+    env: dict[str, str] = {
+        "RUNNER_TEMP": str(runner_temp(workdir)),
+        "GITHUB_WORKSPACE": str(workdir.parent),
+    }
     if stubs:
         fakebin = make_fakebin(workdir.parent / f"{workdir.name}-bin", dict(stubs))
         env["PATH"] = f"{fakebin}:{os.environ['PATH']}"
