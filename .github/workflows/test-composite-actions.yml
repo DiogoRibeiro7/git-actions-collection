@@ -1,0 +1,146 @@
+# Runs supported composite actions on a real runner against small consumer fixtures.
+name: Test Composite Actions
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/actions/**'
+      - 'scripts/**'
+      - 'tests/fixtures/composite-actions/**'
+      - '.github/workflows/test-composite-actions.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+# Each job checks out only what an external caller gets (the actions and their
+# bundled scripts) plus the fixtures, under collection/, and runs the action
+# against a fixture copied to the workspace root. Files elsewhere in this
+# repository therefore cannot hide what a consumer repository would lack.
+jobs:
+  setup-poetry:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the actions beside the consumer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          path: collection
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.github/actions/
+            /scripts/
+            /tests/fixtures/composite-actions/
+
+      - name: Prepare a Poetry project
+        run: cp -R collection/tests/fixtures/composite-actions/poetry-project/. .
+
+      - name: Set up Poetry and install the locked dependencies
+        uses: ./collection/.github/actions/setup-poetry
+
+      - name: Verify Poetry and the environment
+        run: |
+          set -euo pipefail
+          poetry --version | grep -F "2.5.1"
+          test "$POETRY_CACHE_DIR" = "$HOME/.cache/pypoetry"
+          poetry run python -c "import importlib.metadata as m; assert m.version('packaging') == '26.3'"
+
+  check-imports:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the actions beside the consumer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          path: collection
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.github/actions/
+            /scripts/
+            /tests/fixtures/composite-actions/
+
+      - name: Prepare a project with declared and undeclared imports
+        run: cp -R collection/tests/fixtures/composite-actions/check-imports/. .
+
+      - name: Accept imports that pyproject.toml declares
+        uses: ./collection/.github/actions/check-imports
+        with:
+          paths: src
+
+      - name: Reject an import that pyproject.toml does not declare
+        id: undeclared
+        continue-on-error: true
+        uses: ./collection/.github/actions/check-imports
+        with:
+          paths: undeclared
+
+      - name: Verify the undeclared import failed the check
+        env:
+          OUTCOME: ${{ steps.undeclared.outcome }}
+        run: test "$OUTCOME" = failure
+
+  benchmark-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the actions beside the consumer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          path: collection
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.github/actions/
+            /scripts/
+            /tests/fixtures/composite-actions/
+
+      - name: Prepare a benchmark suite
+        run: cp -R collection/tests/fixtures/composite-actions/benchmark bench
+
+      - name: Run the benchmarks
+        uses: ./collection/.github/actions/benchmark-smoke
+        with:
+          working-directory: bench
+
+      - name: Verify the benchmark report
+        run: |
+          python -c "import json; names = [b['name'] for b in json.load(open('bench/benchmark.json'))['benchmarks']]; assert names == ['test_fib'], names"
+
+  aws-lambda-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the actions beside the consumer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          path: collection
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.github/actions/
+            /scripts/
+            /tests/fixtures/composite-actions/
+
+      - name: Prepare a Lambda function with a dependency
+        run: cp -R collection/tests/fixtures/composite-actions/lambda lambda
+
+      - name: Package to the default path
+        uses: ./collection/.github/actions/aws-lambda-build
+
+      - name: Package into another directory
+        uses: ./collection/.github/actions/aws-lambda-build
+        with:
+          output-zip: dist/function.zip
+
+      - name: Verify both archives hold the handler and its dependency
+        run: |
+          set -euo pipefail
+          for archive in artifact/lambda.zip dist/function.zip; do
+            unzip -Z1 "$archive" > contents.txt
+            grep -qx 'handler.py' contents.txt
+            grep -qx 'packaging/__init__.py' contents.txt
+          done
