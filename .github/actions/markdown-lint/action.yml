@@ -2,7 +2,7 @@ name: "Markdown Lint"
 description: "Run markdownlint-cli on markdown files"
 inputs:
   paths:
-    description: "Paths to lint"
+    description: "Files, directories or globs to lint, separated by spaces or newlines; node_modules is always skipped, and a list that matches no Markdown file fails"
     required: false
     default: "."
   config-file:

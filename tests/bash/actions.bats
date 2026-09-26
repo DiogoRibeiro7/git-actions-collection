@@ -192,7 +192,7 @@ EOF
 
   INPUT_PATHS="README.md" INPUT_CONFIG_FILE=".markdownlint.yml" bash "$REPO_ROOT/scripts/markdown-lint/run.sh"
 
-  run grep -q "markdownlint -c .markdownlint.yml README.md" "$COMMAND_LOG"
+  run grep -qF "markdownlint --ignore **/node_modules/** -c .markdownlint.yml README.md" "$COMMAND_LOG"
   [ "$status" -eq 0 ]
 }
 
@@ -301,7 +301,7 @@ EOF
 
   INPUT_PATHS="README.md" INPUT_CONFIG_FILE="" bash "$REPO_ROOT/scripts/markdown-lint/run.sh"
 
-  run grep -q "markdownlint README.md" "$COMMAND_LOG"
+  run grep -qF "markdownlint --ignore **/node_modules/** README.md" "$COMMAND_LOG"
   [ "$status" -eq 0 ]
 }
 

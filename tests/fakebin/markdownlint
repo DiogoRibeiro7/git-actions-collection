@@ -3,3 +3,7 @@ set -euo pipefail
 
 echo "markdownlint $@" >> "${FAKEBIN_LOG:?}"
 if [ "${FAKEBIN_FAIL_MARKDOWNLINT:-}" = "1" ]; then exit 1; fi
+# markdownlint-cli prints its usage and exits 0 when no file matches.
+if [ "${FAKEBIN_MARKDOWNLINT_NO_FILES:-}" = "1" ]; then
+  echo "Usage: markdownlint [options] <files|directories|globs>"
+fi
