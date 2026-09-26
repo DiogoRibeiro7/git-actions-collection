@@ -11,7 +11,7 @@ WORKFLOW_TEMPLATE = """name: Publish to PyPI
 on:
   release:
     types: [published]
-# Pre-v1 note: @main is the canonical evaluation ref; pin an exact SHA for production.
+# @v1 follows the latest v1 release; pin an exact commit SHA for full reproducibility.
 jobs:
   publish:
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/pypi-publish.yml@v1

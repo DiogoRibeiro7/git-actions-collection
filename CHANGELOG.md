@@ -9,6 +9,10 @@ All notable changes to this repository are documented here.
 - The secrets of `artifact-management.yml`, `canary-release.yml`, `docker-build-push.yml`, `npm-publish.yml`, `publish-docker-on-tag.yml`, `publish-to-npm.yml`, `release-container.yml` and `vercel-nextjs.yml` now have descriptions. Their reference pages now say what each token is for, what it defaults to, and which permission the default needs. A test requires a description for every input, output and secret of a public workflow or action.
 - Repository releases now check the supported surface before tagging. The release preflight fails when a supported workflow or action changed incompatibly since the previous release in the same major version, when `.github/supported-interfaces.json` is stale, or when `CHANGELOG.md` has no dated section for a stable version or still has an `Unreleased` section. It runs in a read-only job, and a separate job then tags the commit it checked. The new `allow-breaking-changes` input accepts the exceptions `SUPPORT.md` allows. `RELEASES.md` now names `@main`, not `@v1`, as the development ref.
 
+### Fixed
+
+- The `python-package` example called the supported `security-scan.yml` without granting `id-token: write` and `attestations: write`, which its provenance job requests. A copy of the example failed before any job started. The example and its README now grant them. A new test checks every reference to the collection in the examples, documentation and generated workflows: the target must exist, be called at `@v1` or a commit SHA, receive only declared and non-deprecated inputs and secrets plus every required one, and get the permissions its jobs request when the caller declares permissions. The PyPI trusted-publishing wizard no longer calls `@main` the evaluation ref.
+
 ## 1.4.0 - 2026-09-26
 
 ### Added
