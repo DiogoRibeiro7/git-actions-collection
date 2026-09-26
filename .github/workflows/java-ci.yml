@@ -17,6 +17,16 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      # Any other value would skip both test steps and pass without testing anything.
+      - name: Check build tool
+        shell: bash
+        env:
+          BUILD_TOOL: ${{ inputs.build-tool }}
+        run: |
+          case "$BUILD_TOOL" in
+            maven|gradle) ;;
+            *) echo "::error::build-tool must be maven or gradle, not '$BUILD_TOOL'"; exit 1 ;;
+          esac
       - name: Set up JDK
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6
         with:
