@@ -1,6 +1,6 @@
 # Vercel Next.js Deploy Workflow
 
-Deploy a Next.js application to Vercel using the official CLI with retry logic for rate limits.
+Deploy a Next.js application to Vercel using the official CLI, retrying failed deploys.
 
 ## Usage
 
@@ -40,6 +40,6 @@ jobs:
 ## Notes
 
 * Uses the official [Vercel CLI](https://vercel.com/docs/cli) to interact with Vercel's API.
-* Retries failed deploys up to three times when rate limits are encountered.
+* Retries a failed deploy up to three times, waiting 10 and then 20 seconds, and fails with the CLI's exit code if the last attempt fails.
 * Minimal `contents: read` permission prevents unnecessary repository access.
 * Supports multiple accounts by accepting organization and project IDs as inputs.
