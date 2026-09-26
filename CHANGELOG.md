@@ -4,6 +4,10 @@ All notable changes to this repository are documented here.
 
 ## Unreleased
 
+### Removed
+
+- `multi-cloud-deploy.yml`, its guide and its example. It never worked: its first deployment step failed with a bash "bad substitution" error on every run. Beyond that, it would have applied the same stack to AWS, Azure and GCP in parallel with `-auto-approve`, lost environment and `PATH` changes between steps, and run Bicep without a resource group. Callers of this experimental workflow were already failing; deploy each cloud from its own job instead.
+
 ### Deprecated
 
 - `database-migration.yml`'s `flyway-license-key` secret. Pass `FLYWAY_LICENSE_KEY` instead, which `secrets: inherit` also provides.
