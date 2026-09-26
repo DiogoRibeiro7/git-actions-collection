@@ -1,5 +1,5 @@
-# Runs helm lint and helm template on a chart and, when publishing is enabled, packages it and
-# pushes to an OCI registry or releases it to GitHub Pages via chart-releaser.
+# Runs helm lint and helm template on a chart with a pinned Helm; publishing moved to
+# helm-chart-release.yml.
 name: Helm Chart Lint & Test
 on:
   workflow_call:
@@ -10,12 +10,12 @@ on:
         type: string
         default: '.'
       publish:
-        description: 'Package and publish the chart'
+        description: 'Deprecated: publish with helm-chart-release.yml; true now fails the job'
         required: false
         type: boolean
         default: false
       oci-registry:
-        description: 'OCI registry to push (if publish is true)'
+        description: 'Deprecated: set oci-repository on helm-chart-release.yml instead'
         required: false
         type: string
         default: ''
@@ -25,27 +25,25 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - name: Install Helm
-        run: |
-          curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-      - name: Helm lint
-        run: helm lint ${{ inputs.chart-path }}
-      - name: Helm template dry-run
-        run: helm template ${{ inputs.chart-path }} --dry-run
-      - name: Package chart
+      # Publishing never worked here: this workflow's token can only read the repository.
+      - name: Reject publishing
         if: ${{ inputs.publish }}
-        run: helm package ${{ inputs.chart-path }}
-      - name: Publish to OCI registry
-        if: ${{ inputs.publish && inputs.oci-registry != '' }}
+        shell: bash
         run: |
-          export HELM_EXPERIMENTAL_OCI=1
-          helm registry login ${{ inputs.oci-registry }} -u ${{ github.actor }} -p ${{ github.token }}
-          helm push ./*.tgz oci://${{ inputs.oci-registry }}
-      - name: Publish to GitHub Pages
-        if: ${{ inputs.publish && inputs.oci-registry == '' }}
-        uses: helm/chart-releaser-action@cae68fefc6b5f367a0275617c9f83181ba54714f
-        env:
-          CR_TOKEN: ${{ github.token }}
+          echo "::error::helm-chart-lint-test.yml no longer publishes charts. Call helm-chart-release.yml with dry-run: false instead."
+          exit 1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Set up Helm
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310
         with:
-          charts_dir: ${{ inputs.chart-path }}
+          version: v4.3.0
+      - name: Helm lint
+        shell: bash
+        env:
+          CHART_PATH: ${{ inputs.chart-path }}
+        run: helm lint "$CHART_PATH"
+      - name: Helm template
+        shell: bash
+        env:
+          CHART_PATH: ${{ inputs.chart-path }}
+        run: helm template "$CHART_PATH"
