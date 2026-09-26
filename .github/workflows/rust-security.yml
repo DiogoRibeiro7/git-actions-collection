@@ -299,7 +299,9 @@ jobs:
                       message += f" ({advisory_id})"
                   elif labels:
                       message += f": {labels[-1]['message']} (`{labels[-1].get('span', '')}`)"
-                  deny_rows.append(f"| {fields.get('code', '')} | {fields['severity']} | `{crate}` | {cell(message)} |")
+                  # Some findings, such as unused license allowances, concern no crate.
+                  crate_cell = f"`{crate}`" if crate else ""
+                  deny_rows.append(f"| {fields.get('code', '')} | {fields['severity']} | {crate_cell} | {cell(message)} |")
                   title = f"cargo-deny {fields.get('code', '')}".strip()
                   text = f"{crate}: {message}" if crate else message
                   annotations.append(f"::{fields['severity']} title={escape(title, True)}::{escape(text)}")

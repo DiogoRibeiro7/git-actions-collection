@@ -199,6 +199,56 @@ def test_security_summary_for_a_clean_audit_without_cargo_deny(tmp_path: Path) -
 
 
 @posix_only
+def test_security_summary_lists_deny_warnings_that_concern_no_crate(tmp_path: Path) -> None:
+    """Shaped like cargo-deny's warning for an allowed license that no crate uses."""
+    crate = _crate(tmp_path)
+    events = [
+        {"type": "diagnostic", "fields": {
+            "code": "license-not-encountered", "severity": "warning", "graphs": [],
+            "message": "license was not encountered",
+            "labels": [{"column": 12, "line": 2, "message": "unmatched license allowance",
+                        "span": "Zlib"}],
+        }},
+        {"type": "summary", "fields": {
+            "licenses": {"errors": 0, "helps": 0, "notes": 0, "warnings": 1},
+        }},
+    ]
+    (runner_temp(crate) / "cargo-deny.jsonl").write_text(
+        "".join(json.dumps(event) + "\n" for event in events), encoding="utf-8"
+    )
+
+    result = run_step(
+        "rust-security.yml",
+        "audit",
+        "Summary",
+        crate,
+        inputs={"run-cargo-audit": False, "run-cargo-deny": True},
+        context={"steps.audit.outcome": "skipped", "steps.deny.outcome": "success"},
+    )
+
+    assert result.code == 0, result.stderr
+    assert result.summary == """\
+## Rust security
+
+| Check | Result |
+| --- | --- |
+| cargo-audit | Not enabled |
+| cargo-deny | ✅ Passed: licenses 1 warning |
+
+**cargo-deny findings**
+
+| Code | Severity | Crate | Finding |
+| --- | --- | --- | --- |
+| license-not-encountered | warning |  \
+| license was not encountered: unmatched license allowance (`Zlib`) |
+"""
+    assert _annotations(result.stdout) == [
+        "::warning title=cargo-deny license-not-encountered::license was not encountered: "
+        "unmatched license allowance (`Zlib`)"
+    ]
+
+
+@posix_only
 def test_benchmark_step_marks_its_start(tmp_path: Path) -> None:
     crate = _crate(tmp_path)
 
