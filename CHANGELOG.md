@@ -8,6 +8,10 @@ All notable changes to this repository are documented here.
 
 - `database-migration.yml`'s `flyway-license-key` secret. Pass `FLYWAY_LICENSE_KEY` instead, which `secrets: inherit` also provides.
 
+### Removed
+
+- `multi-cloud-deploy.yml`, its guide and its example. It never worked: its first deployment step failed with a bash "bad substitution" error on every run. Beyond that, it would have applied the same stack to AWS, Azure and GCP in parallel with `-auto-approve`, lost environment and `PATH` changes between steps, and run Bicep without a resource group. Callers of this experimental workflow were already failing; deploy each cloud from its own job instead.
+
 ### Fixed
 
 - `terraform-plan-comment.yml` passed when `terraform plan` failed, because the plan was piped through `tee` without `pipefail`. The workflow now posts the plan output, including any error, and then fails the job.

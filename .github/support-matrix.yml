@@ -117,7 +117,6 @@ workflows:
     - canary-release.yml
     - database-migration.yml
     - docker-build-push.yml
-    - multi-cloud-deploy.yml
     - npm-publish.yml
     - pypi-publish.yml
     - rust-github-release.yml
