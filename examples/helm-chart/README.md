@@ -5,6 +5,8 @@
 ```yaml
 jobs:
   lint:
+    permissions:
+      contents: read
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/helm-chart-lint-test.yml@v1
     with:
       chart-path: .

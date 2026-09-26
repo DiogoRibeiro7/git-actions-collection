@@ -26,14 +26,22 @@ and builds a container image using reusable workflows.
 ```yaml
 jobs:
   lint:
+    permissions:
+      contents: read
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/python-lint.yml@v1
   test:
     needs: lint
+    permissions:
+      contents: read
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/python-test-matrix.yml@v1
     with:
       test-command: python manage.py test
   docker:
     needs: test
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/docker-build-push.yml@v1
     with:
       image: ghcr.io/${{ github.repository }}

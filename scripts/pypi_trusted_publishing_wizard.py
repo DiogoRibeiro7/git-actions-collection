@@ -14,6 +14,9 @@ on:
 # @v1 follows the latest v1 release; pin an exact commit SHA for full reproducibility.
 jobs:
   publish:
+    permissions:
+      contents: read
+      id-token: write
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/pypi-publish.yml@v1
     with:
       python-version: '3.12'

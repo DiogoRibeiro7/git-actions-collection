@@ -2,4 +2,7 @@ name: Commit Lint
 on: [pull_request]
 jobs:
   commit:
+    permissions:
+      contents: read
+      pull-requests: read
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/conventional-commits.yml@v1

@@ -35,6 +35,10 @@ Use `.github/workflows/canary.yml` to publish pre-release packages under the `ne
 ```yaml
 jobs:
   release:
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/canary-release.yml@v1
     with:
       project-type: npm

@@ -14,6 +14,8 @@ This guide explains how to test and deploy Deno applications using the reusable 
 ```yaml
 jobs:
   deno:
+    permissions:
+      contents: read
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/deno-ci.yml@v1
     with:
       deno-version: '1.x'
@@ -26,6 +28,8 @@ Enable deployment by setting `deploy: true` and providing the project name and t
 ```yaml
 jobs:
   deno:
+    permissions:
+      contents: read
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/deno-ci.yml@v1
     with:
       deploy: true

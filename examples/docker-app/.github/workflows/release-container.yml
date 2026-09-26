@@ -7,6 +7,10 @@ on:
 
 jobs:
   publish:
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/docker-build-push.yml@v1
     with:
       image: ghcr.io/${{ format('{0}', github.repository) }}

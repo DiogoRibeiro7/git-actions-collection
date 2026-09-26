@@ -11,6 +11,8 @@ upload a prebuilt output.
 ```yaml
 jobs:
   deploy:
+    permissions:
+      contents: read
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/vercel-nextjs.yml@v1
     with:
       vercel-org-id: ${{ vars.VERCEL_ORG_ID }}

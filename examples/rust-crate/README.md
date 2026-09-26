@@ -10,6 +10,8 @@ on:
   pull_request:
 jobs:
   rust:
+    permissions:
+      contents: read
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/rust-ci.yml@v1
 ```
 
@@ -34,6 +36,8 @@ full test suite:
 ```yaml
 jobs:
   quality:
+    permissions:
+      contents: read
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/rust-quality.yml@v1
     with:
       all-features: true
@@ -44,6 +48,8 @@ Rust dependency vulnerabilities can be checked independently with the security w
 ```yaml
 jobs:
   security:
+    permissions:
+      contents: read
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/rust-security.yml@v1
 ```
 
@@ -57,6 +63,8 @@ Projects with an explicit dependency policy can additionally enable `cargo-deny`
 ```yaml
 jobs:
   security:
+    permissions:
+      contents: read
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/rust-security.yml@v1
     with:
       run-cargo-deny: true
@@ -76,6 +84,8 @@ Coverage can be run independently with `cargo-llvm-cov`:
 ```yaml
 jobs:
   coverage:
+    permissions:
+      contents: read
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/rust-coverage.yml@v1
     with:
       all-features: true
@@ -91,6 +101,8 @@ Rust documentation can be enforced independently:
 ```yaml
 jobs:
   docs:
+    permissions:
+      contents: read
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/rust-docs.yml@v1
     with:
       all-features: true
@@ -105,6 +117,8 @@ Criterion benchmarks can be smoke-tested independently:
 ```yaml
 jobs:
   benchmark:
+    permissions:
+      contents: read
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/rust-benchmark.yml@v1
     with:
       bench-name: add
@@ -121,6 +135,8 @@ Before publication, crate metadata and the packaged archive can be verified inde
 ```yaml
 jobs:
   release-preflight:
+    permissions:
+      contents: read
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/rust-release-preflight.yml@v1
     with:
       package-name: rust-crate
@@ -213,6 +229,8 @@ do not automatically multiply Actions usage:
 ```yaml
 jobs:
   rust:
+    permissions:
+      contents: read
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/rust-ci.yml@v1
     with:
       all-features: true

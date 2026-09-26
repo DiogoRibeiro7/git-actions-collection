@@ -88,7 +88,11 @@ def generate_migrated(workflow: Dict[str, Any], language: str, version: str) -> 
         "python": "python-test-matrix.yml",
         "node": "node-ci.yml",
     }[language]
-    job: Dict[str, Any] = {"uses": f"{REPO}/.github/workflows/{uses_path}@{CONSUMER_REF}"}
+    # Both workflows only read the repository; declaring it keeps the grant explicit.
+    job: Dict[str, Any] = {
+        "permissions": {"contents": "read"},
+        "uses": f"{REPO}/.github/workflows/{uses_path}@{CONSUMER_REF}",
+    }
     if language == "python" and version:
         job["with"] = {"python-versions": f'["{version}"]'}
     if language == "node" and version:

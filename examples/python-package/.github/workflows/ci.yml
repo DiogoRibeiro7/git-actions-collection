@@ -7,8 +7,12 @@ on:
 
 jobs:
   lint:
+    permissions:
+      contents: read
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/python-lint.yml@v1
 
   test:
     needs: lint
+    permissions:
+      contents: read
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/coverage-report.yml@v1

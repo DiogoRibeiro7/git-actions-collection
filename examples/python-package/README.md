@@ -11,9 +11,13 @@ reusable workflows.
 ```yaml
 jobs:
   lint:
+    permissions:
+      contents: read
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/python-lint.yml@v1
   test:
     needs: lint
+    permissions:
+      contents: read
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/coverage-report.yml@v1
 ```
 
@@ -57,6 +61,9 @@ It defaults to TestPyPI to keep releases safe.
 ```yaml
 jobs:
   publish:
+    permissions:
+      contents: read
+      id-token: write
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/pypi-publish.yml@v1
     with:
       build-backend: poetry
@@ -82,6 +89,10 @@ No secrets are needed; OIDC handles authentication. Flip `pre-release` to `false
 ```yaml
 jobs:
   release:
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/canary-release.yml@v1
     with:
       project-type: python

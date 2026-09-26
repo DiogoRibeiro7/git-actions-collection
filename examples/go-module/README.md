@@ -10,6 +10,8 @@ on:
   pull_request:
 jobs:
   go:
+    permissions:
+      contents: read
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/go-ci.yml@v1
 ```
 

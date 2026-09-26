@@ -12,6 +12,7 @@ All notable changes to this repository are documented here.
 ### Fixed
 
 - The `python-package` example called the supported `security-scan.yml` without granting `id-token: write` and `attestations: write`, which its provenance job requests. A copy of the example failed before any job started. The example and its README now grant them. A new test checks every reference to the collection in the examples, documentation and generated workflows: the target must exist, be called at `@v1` or a commit SHA, receive only declared and non-deprecated inputs and secrets plus every required one, and get the permissions its jobs request when the caller declares permissions. The PyPI trusted-publishing wizard no longer calls `@main` the evaluation ref.
+- Every example, documentation snippet, editor snippet and generated workflow that calls a reusable workflow of the collection now declares job-level `permissions` with exactly what that workflow's jobs request. Before, they relied on the repository's default token. On repositories where that default is read-only, calls to workflows that need `pull-requests`, `id-token` or `packages` write failed before any job started. The PyPI trusted-publishing wizard and `migrate_starter_workflows.py` generate these grants too, and the consumer-reference test now requires them.
 
 ## 1.4.0 - 2026-09-26
 

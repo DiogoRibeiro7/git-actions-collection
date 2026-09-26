@@ -10,6 +10,8 @@ on:
   pull_request:
 jobs:
   build:
+    permissions:
+      contents: read
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/java-ci.yml@v1
     with:
       build-tool: maven

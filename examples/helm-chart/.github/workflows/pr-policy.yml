@@ -2,4 +2,7 @@ name: PR Policy
 on: [pull_request]
 jobs:
   policy:
+    permissions:
+      contents: read
+      pull-requests: write
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/pr-policy.yml@v1

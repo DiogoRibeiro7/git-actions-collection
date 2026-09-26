@@ -4,9 +4,11 @@ Examples, documentation snippets and generated workflows are what consumers copy
 Every reference to this collection must name a workflow or action that still
 exists, use the current major tag or an exact commit SHA, pass only inputs and
 secrets the target declares, supply the required ones, avoid deprecated inputs,
-and, when the caller declares permissions, grant everything the target's jobs
-request. GitHub checks those grants before any job starts, so a shortfall fails
-the whole run without a single job appearing on the pull request.
+and declare permissions that grant everything the target's jobs request. GitHub
+checks those grants before any job starts, so a shortfall fails the whole run
+without a single job appearing on the pull request. A caller without a
+permissions block gets the repository's default token, which is read-only on
+many repositories, so every caller declares its grant.
 """
 
 from __future__ import annotations
@@ -183,7 +185,7 @@ def _secret_problems(
 
 
 def _permission_problems(label: str, document: Any) -> list[str]:
-    """Check that callers which declare permissions grant what the target requests."""
+    """Check that each calling job declares permissions covering what the target requests."""
     if not isinstance(document, Mapping) or not isinstance(document.get("jobs"), Mapping):
         return []
     problems: list[str] = []
@@ -193,7 +195,10 @@ def _permission_problems(label: str, document: Any) -> list[str]:
         target = _target(job["uses"])
         interface = _interface(target)
         granted = job.get("permissions", document.get("permissions"))
-        if interface is None or granted is None:
+        if interface is None:
+            continue
+        if granted is None:
+            problems.append(f"{label}: job {name!r} must declare permissions for {target}")
             continue
         for scope, level in interface.get("permissions", {}).items():
             if scope == "*":
@@ -255,6 +260,10 @@ WORKFLOW = SLUG + ".github/workflows/security-scan.yml@v1"
             f"permissions:\n  contents: read\n  security-events: write\n"
             f"jobs:\n  scan:\n    uses: {WORKFLOW}\n",
             "job 'scan' must grant id-token: write for .github/workflows/security-scan.yml",
+        ),
+        (
+            f"jobs:\n  scan:\n    uses: {WORKFLOW}\n",
+            "job 'scan' must declare permissions for .github/workflows/security-scan.yml",
         ),
         (
             f"steps:\n  - uses: {SLUG}.github/actions/setup-r@v1\n    with:\n      r: '4'\n",
