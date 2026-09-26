@@ -90,19 +90,29 @@ jobs:
         if: matrix.type == 'terraform' || matrix.type == 'monorepo'
         uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd
         with:
-          terraform_version: latest
+          terraform_version: 1.16.4
 
       - name: Install Helm
         if: matrix.type == 'helm'
-        run: curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310
+        with:
+          version: v4.3.0
 
       - name: Install kubeconform
         if: matrix.type == 'k8s'
+        shell: bash
+        env:
+          VERSION: v0.8.0
+          SHA256: 9bc2bffbf71f261128533edaf912153948b7ff238f9a531ae6d34466ec287883
         run: |
           set -euo pipefail
-          curl -L https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz \
-            | tar -xz
-          sudo mv kubeconform /usr/local/bin/
+          archive="$RUNNER_TEMP/kubeconform.tar.gz"
+          curl -fsSL -o "$archive" \
+            "https://github.com/yannh/kubeconform/releases/download/$VERSION/kubeconform-linux-amd64.tar.gz"
+          echo "$SHA256  $archive" | sha256sum --check --quiet
+          mkdir -p "$RUNNER_TEMP/kubeconform"
+          tar -xzf "$archive" -C "$RUNNER_TEMP/kubeconform"
+          echo "$RUNNER_TEMP/kubeconform" >> "$GITHUB_PATH"
 
       - name: Python tests
         if: matrix.type == 'python'
@@ -195,7 +205,7 @@ jobs:
           set -euo pipefail
           cd "examples/${{ matrix.example }}"
           helm lint .
-          helm template . --dry-run
+          helm template . --dry-run=client
 
   references:
     runs-on: ubuntu-latest
