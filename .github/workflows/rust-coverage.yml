@@ -1,5 +1,6 @@
-# Generates workspace LCOV coverage with cargo-llvm-cov, prints a summary, uploads lcov.info as an
-# artifact, and optionally fails below a minimum line-coverage percentage.
+# Generates workspace LCOV coverage with cargo-llvm-cov, summarizes totals and the least covered
+# files on the run page, uploads lcov.info as an artifact, and optionally fails below a minimum
+# line-coverage percentage.
 name: Rust Coverage
 
 on:
@@ -116,6 +117,7 @@ jobs:
           PY
 
       - name: Generate LCOV coverage
+        id: coverage
         shell: bash
         working-directory: ${{ inputs.working-directory }}
         env:
@@ -135,12 +137,80 @@ jobs:
 
           cargo llvm-cov "${args[@]}" --lcov --output-path lcov.info
 
+      # Writes totals and the least covered files to the run page from lcov.info, the same data
+      # the artifact holds, then prints cargo-llvm-cov's own per-file report to the log.
       - name: Coverage summary
         if: always()
         shell: bash
         working-directory: ${{ inputs.working-directory }}
+        env:
+          OUTCOME: ${{ steps.coverage.outcome }}
+          MINIMUM_LINE_COVERAGE: ${{ inputs.minimum-line-coverage }}
         run: |
           set -euo pipefail
+          # The summary is best effort: it must not fail a job that passed.
+          python - <<'PY' || echo "::warning title=Coverage summary::Could not write the summary"
+          import os
+
+          OUTCOMES = {
+              "success": "✅ Passed",
+              "failure": "❌ Failed",
+              "cancelled": "Cancelled",
+              "skipped": "Skipped",
+          }
+          workspace = os.environ.get("GITHUB_WORKSPACE") or os.getcwd()
+          minimum = float(os.environ.get("MINIMUM_LINE_COVERAGE") or 0)
+
+
+          def percent(hit, total):
+              return f"{100 * hit / total:.2f}%" if total else "n/a"
+
+
+          files, record = [], {}
+          try:
+              with open("lcov.info", encoding="utf-8") as handle:
+                  for line in handle:
+                      key, _, value = line.strip().partition(":")
+                      if key == "SF":
+                          record = {"path": os.path.relpath(os.path.abspath(value), workspace)}
+                      elif key in ("LF", "LH", "FNF", "FNH"):
+                          record[key] = int(value)
+                      elif key == "end_of_record" and record:
+                          files.append(record)
+                          record = {}
+          except OSError:
+              files = None
+
+          total = {key: sum(item.get(key, 0) for item in files or []) for key in ("LF", "LH", "FNF", "FNH")}
+          lines = percent(total["LH"], total["LF"])
+          detail = "no coverage report" if files is None else f"{lines} of lines"
+          if minimum:
+              detail += f" (minimum {minimum:g}%)"
+          result = OUTCOMES.get(os.environ.get("OUTCOME"), "Not run")
+          out = ["## Rust coverage", "", "| Check | Result |", "| --- | --- |", f"| Coverage | {result}: {detail} |"]
+          if files is not None:
+              out += [
+                  "",
+                  "| Metric | Covered | Total | Coverage |",
+                  "| --- | ---: | ---: | ---: |",
+                  f"| Lines | {total['LH']} | {total['LF']} | {lines} |",
+                  f"| Functions | {total['FNH']} | {total['FNF']} | {percent(total['FNH'], total['FNF'])} |",
+              ]
+              partial = sorted(
+                  (item["LH"] / item["LF"], item["path"], item["LH"], item["LF"])
+                  for item in files
+                  if item.get("LF") and item.get("LH", 0) < item["LF"]
+              )
+              if partial:
+                  out += ["", "**Least covered files**", "", "| File | Lines | Coverage |", "| --- | ---: | ---: |"]
+                  out += [f"| `{path}` | {hit}/{found} | {percent(hit, found)} |" for _, path, hit, found in partial[:10]]
+          summary = "\n".join(out) + "\n"
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as handle:
+              handle.write(summary)
+          print(summary)
+          if files is not None and minimum and total["LF"] and 100 * total["LH"] / total["LF"] < minimum:
+              print(f"::error title=Line coverage::Line coverage is {lines}, below the minimum of {minimum:g}%.")
+          PY
           if [ -f lcov.info ]; then
             cargo llvm-cov report --summary-only
           else
