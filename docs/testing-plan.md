@@ -7,7 +7,9 @@ GitHub smoke tests execute real dependencies against disposable fixtures.
 
 The canonical `CI Tests` workflow runs pytest, recursive Bats tests, Vitest,
 actionlint/ShellCheck, and a composite-action integration matrix. Existing
-`test-*.yml` caller workflows exercise reusable workflows on GitHub.
+`test-*.yml` caller workflows exercise reusable workflows on GitHub, and
+`test-composite-actions.yml` runs supported composite actions on a runner against
+the consumer projects in `tests/fixtures/composite-actions/`.
 
 Internal `$GITHUB_OUTPUT` entries are not automatically public action outputs.
 The `missing` entry in check-imports and `packages` entries in R actions are
@@ -90,6 +92,7 @@ internal; only metadata-declared outputs such as smart-dependency-update's
 | Security Scan | `.github/workflows/security-scan.yml` | workflow | bash | - | - |
 | Terraform Apply (AWS OIDC) | `.github/workflows/terraform-aws.yml` | workflow | bash | - | - |
 | Terraform Plan (PR comment) | `.github/workflows/terraform-plan-comment.yml` | workflow | terraform | - | - |
+| Test Composite Actions | `.github/workflows/test-composite-actions.yml` | workflow | bash, python, poetry, unzip | - | - |
 | Test Python Test Matrix Workflow | `.github/workflows/test-python-test-matrix.yml` | workflow | bash | - | - |
 | Unit Tests | `.github/workflows/tests.yml` | workflow | node, python | - | - |
 | Vercel Next.js Deploy | `.github/workflows/vercel-nextjs.yml` | workflow | bash | - | - |
@@ -151,7 +154,8 @@ internal; only metadata-declared outputs such as smart-dependency-update's
 tests/
   python/            # pytest-based unit tests (fake runner, script validation)
   bash/              # bats tests for bash scripts
-  fixtures/          # golden outputs (JSON, YAML, text)
+  fixtures/          # golden outputs (JSON, YAML, text) and consumer projects
+                     # for the real-runner action self-tests (not collected by pytest)
   fakebin/           # command stubs placed first in PATH
 ```
 

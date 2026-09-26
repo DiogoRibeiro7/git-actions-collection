@@ -31,3 +31,19 @@ This action has no outputs.
     update-pyproject: true
     create-pr: true
 ```
+
+## How imports are matched
+
+The action collects the top-level modules that files under `paths` import. It
+drops standard-library modules and folders at the workspace root, which it
+treats as local packages. It compares what is left with the dependency names in
+`pyproject.toml`: `[project].dependencies` and `[tool.poetry.dependencies]`.
+Each PEP 508 requirement counts by its name alone, so `packaging>=25.0`,
+`requests[socks] >= 2.32` and `numpy<2; python_version < '3.13'` match
+`import packaging`, `import requests` and `import numpy`. Names are compared
+case-insensitively, with `_` and `-` treated as equal.
+
+The import name must match the distribution name. A module whose distribution
+has another name, such as `import yaml` from `PyYAML`, is reported as missing
+and its dependency as unused. Scan such code with `fail-on: none`, or keep it
+outside `paths`.

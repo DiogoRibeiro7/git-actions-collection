@@ -100,7 +100,7 @@ python scripts/action_docs.py --write
 | Composite harness | Input mapping, conditions, step outputs, environment files | `tests/test_fake_runner_composite.py` |
 | Contract | Public YAML wiring, defaults, permission requirements | `tests/test_action_contracts.py`, `tests/test_reusable_workflow_permissions.py` |
 | Static lint | Workflow syntax, expressions, dependencies, inline shell issues | `yarn lint:workflows` |
-| GitHub integration | Actual action dependencies and workflow orchestration | `CI Tests` composite smoke job, `test-python-test-matrix.yml` |
+| GitHub integration | Actual action dependencies and workflow orchestration | `test-composite-actions.yml`, `CI Tests` composite smoke job, `test-python-test-matrix.yml` |
 
 Keep substantial logic in scripts/functions. Test success, invalid input,
 dependency failure, and relevant side effects. Use temporary consumer directories,
@@ -168,6 +168,22 @@ Its composite smoke job checks out the collection in a subdirectory and executes
 actions. It verifies dry-run/apply behavior, the public JSON output, and failure
 propagation. It requires no publishing or deployment secrets.
 
+`.github/workflows/test-composite-actions.yml` runs the other supported composite
+actions the same way, one job per action. Each job checks out only
+`.github/actions`, `scripts`, and `tests/fixtures/composite-actions` under
+`collection/`, copies a consumer fixture from that folder to the workspace root,
+runs `./collection/.github/actions/<name>`, and asserts on real results. A
+checkout this narrow keeps files elsewhere in this repository from hiding what a
+consumer repository lacks. `tests/conftest.py` keeps pytest from collecting
+`tests/fixtures/`, because those projects are run by the actions' own tools.
+
+Every supported composite action must run on a real runner, either in that
+workflow or in another internal workflow, directly or through a workflow it
+calls. `test_supported_composite_actions_run_on_a_real_runner` enforces this.
+Its `AWAITING_RUNNER_SELF_TEST` set lists the actions still covered only by Bats
+contract tests; remove an action from it in the pull request that adds its job,
+and never add one.
+
 The existing `test-python-test-matrix.yml` workflow calls the reusable workflow
 directly with small test fixtures. New reusable workflows should have similarly
 focused caller tests. These integration tests run on GitHub for pull requests to
@@ -179,8 +195,9 @@ permissions, OIDC, environments, or concurrency; see its
 
 Actionlint checks all root workflows, including reference templates. Its only
 configuration exception permits the deliberately disabled optional scanners in
-`infra-lint.yml`. Example-project workflows also have their existing smoke/lint
-workflow. Keep exceptions narrow and documented.
+`infra-lint.yml`. The same job lints every example-project workflow with the same
+pinned tools, through `workflow-lint.yml`'s `extra-workflow-files` input. Keep
+exceptions narrow and documented.
 
 ## Build the documentation site
 

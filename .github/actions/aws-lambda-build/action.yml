@@ -6,7 +6,7 @@ inputs:
     required: false
     default: "lambda/"
   output-zip:
-    description: "Output zip path"
+    description: "Path of the zip to create, relative to the workspace or absolute; its directory is created and an existing file is replaced"
     required: false
     default: "artifact/lambda.zip"
   python-version:
