@@ -112,6 +112,7 @@ workflows:
     - release-container.yml
     - release-drafter.yml
     - ruby-ci.yml
+    - workflow-lint.yml
   experimental:
     - helm-chart-release.yml
     - aws-lambda-deploy.yml
