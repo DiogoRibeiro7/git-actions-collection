@@ -138,3 +138,74 @@ def test_pinning_rules(uses: str, consumer_example: bool, problem: str | None) -
         assert result is None
     else:
         assert result is not None and problem in result
+
+
+# Tools are pinned for the same reason as actions: a moving download can change
+# what a check does between two runs of the same commit, with nobody reviewing it.
+MOVING_TOOL_SOURCES = {
+    "downloads a moving 'latest' release": re.compile(r"releases/latest\b"),
+    "pipes a downloaded script into a shell": re.compile(
+        r"\b(?:curl|wget)\b[^\n]*\|\s*(?:sudo\s+)?(?:ba)?sh\b"
+    ),
+    "runs a script from a moving branch": re.compile(
+        r"raw\.githubusercontent\.com/[^/\s]+/[^/\s]+/(?:main|master|HEAD)/"
+    ),
+    "asks a setup action for the latest version": re.compile(
+        r"^\s*[\w-]*version:\s*['\"]?latest['\"]?\s*$", re.MULTILINE
+    ),
+}
+
+
+def tool_source_problems(text: str) -> list[str]:
+    """Name each way *text* installs a tool that can change without review."""
+    return [problem for problem, pattern in MOVING_TOOL_SOURCES.items() if pattern.search(text)]
+
+
+def test_workflows_and_actions_install_fixed_tool_releases() -> None:
+    paths = [
+        *sorted((ROOT / ".github" / "workflows").glob("*.y*ml")),
+        *sorted((ROOT / ".github" / "actions").glob("*/action.y*ml")),
+        *sorted((ROOT / "examples").glob("**/.github/workflows/*.y*ml")),
+    ]
+
+    problems = [
+        f"{path.relative_to(ROOT).as_posix()}: {problem}"
+        for path in paths
+        for problem in tool_source_problems(path.read_text(encoding="utf-8"))
+    ]
+
+    assert not problems, "Tools installed from moving sources:\n" + "\n".join(problems)
+
+
+@pytest.mark.parametrize(
+    ("snippet", "problem"),
+    [
+        (
+            "curl -L https://github.com/o/t/releases/latest/download/t.tar.gz | tar -xz",
+            "downloads a moving 'latest' release",
+        ),
+        ("API_URL: https://api.github.com/repos/o/t/releases/latest", "moving 'latest'"),
+        ("curl -fsSL https://example.com/install.sh | sudo bash", "into a shell"),
+        ("wget -qO- https://example.com/install | sh -s -- -b /usr/local/bin", "into a shell"),
+        (
+            "curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3",
+            "from a moving branch",
+        ),
+        ("        with:\n          terraform_version: latest\n", "latest version"),
+        ("          version: 'latest'\n", "latest version"),
+    ],
+)
+def test_moving_tool_sources_are_detected(snippet: str, problem: str) -> None:
+    assert any(problem in found for found in tool_source_problems(snippet))
+
+
+def test_fixed_tool_releases_pass() -> None:
+    fixed = (
+        'curl -fsSL -o "$archive" '
+        "https://github.com/o/t/releases/download/v1.2.3/t.tar.gz\n"
+        'echo "$SHA256  $archive" | sha256sum --check --quiet\n'
+        "        with:\n          terraform_version: 1.16.4\n"
+        "      default: latest\n"
+    )
+
+    assert tool_source_problems(fixed) == []
