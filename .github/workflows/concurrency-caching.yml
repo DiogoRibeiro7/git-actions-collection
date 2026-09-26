@@ -5,8 +5,10 @@ name: Concurrency and Caching Template
 on:
   workflow_call:
 
+# In a reusable workflow github.workflow is the caller's name, so without a prefix this group
+# matched a caller using the same pattern, and the run cancelled or blocked its own caller.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: concurrency-caching-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
