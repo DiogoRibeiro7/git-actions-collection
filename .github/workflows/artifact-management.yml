@@ -21,7 +21,7 @@ on:
         default: 500
         type: number
       package-name:
-        description: 'Optional GitHub Packages name for cleanup (e.g., ghcr.io/org/app)'
+        description: 'Optional GitHub Packages package name to clean up, without registry or owner (e.g. app for ghcr.io/org/app)'
         required: false
         default: ''
         type: string
