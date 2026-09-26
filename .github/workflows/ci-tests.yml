@@ -17,6 +17,10 @@ jobs:
   workflow-lint:
     name: Workflow syntax and shell lint
     uses: ./.github/workflows/workflow-lint.yml
+    with:
+      extra-workflow-files: |
+        examples/**/.github/workflows/*.yml
+        examples/**/.github/workflows/*.yaml
 
   python-tests:
     name: Python

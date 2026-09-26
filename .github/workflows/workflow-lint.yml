@@ -3,6 +3,16 @@ name: Workflow Lint
 
 on:
   workflow_call:
+    inputs:
+      extra-workflow-files:
+        description: >-
+          Git pathspecs, one per line, for workflow files outside `.github/workflows`
+          to lint as well, such as examples or templates
+          (for example `examples/**/.github/workflows/*.yml`). A pathspec list that
+          matches no tracked file fails the check. Empty lints only `.github/workflows`.
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -37,3 +47,26 @@ jobs:
         run: |
           set -euo pipefail
           actionlint -pyflakes=
+
+      - name: Lint extra workflow files
+        if: ${{ !cancelled() && inputs.extra-workflow-files != '' }}
+        shell: bash
+        env:
+          EXTRA_WORKFLOW_FILES: ${{ inputs.extra-workflow-files }}
+        run: |
+          set -euo pipefail
+          mapfile -t pathspecs < <(
+            printf '%s\n' "$EXTRA_WORKFLOW_FILES" |
+              sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d'
+          )
+          if [ "${#pathspecs[@]}" -eq 0 ]; then
+            echo "extra-workflow-files lists no pathspecs; nothing else to lint."
+            exit 0
+          fi
+          mapfile -d '' -t files < <(git ls-files -z -- "${pathspecs[@]}")
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "::error::extra-workflow-files matched no tracked files: ${pathspecs[*]}"
+            exit 1
+          fi
+          echo "Linting ${#files[@]} extra workflow files."
+          actionlint -pyflakes= "${files[@]}"

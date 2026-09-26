@@ -4,6 +4,10 @@ All notable changes to this repository are documented here.
 
 ## Unreleased
 
+### Added
+
+- `workflow-lint.yml` accepts an optional `extra-workflow-files` input: Git pathspecs for workflow files outside `.github/workflows`, such as examples or templates. They are linted with the same pinned actionlint and ShellCheck, and a list that matches no tracked file fails the check. The collection's CI uses it to lint all 49 example workflows. Before, only 11 examples were linted, with the latest actionlint release downloaded unpinned and `context "matrix" is not allowed here` errors ignored.
+
 ### Changed
 
 - The secrets of `artifact-management.yml`, `canary-release.yml`, `docker-build-push.yml`, `npm-publish.yml`, `publish-docker-on-tag.yml`, `publish-to-npm.yml`, `release-container.yml` and `vercel-nextjs.yml` now have descriptions. Their reference pages now say what each token is for, what it defaults to, and which permission the default needs. A test requires a description for every input, output and secret of a public workflow or action.

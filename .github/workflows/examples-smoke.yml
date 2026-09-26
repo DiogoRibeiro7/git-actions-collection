@@ -55,47 +55,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - name: Install actionlint
-        run: |
-          set -euo pipefail
-          url=$(python - <<'PY'
-          import json
-          import os
-          import urllib.request
-
-          api_url = os.environ["API_URL"]
-          req = urllib.request.Request(api_url, headers={"Accept": "application/vnd.github+json"})
-          token = os.environ.get("GITHUB_TOKEN")
-          if token:
-              req.add_header("Authorization", f"Bearer {token}")
-          with urllib.request.urlopen(req, timeout=15) as resp:
-              data = json.load(resp)
-          for asset in data.get("assets", []):
-              download_url = asset.get("browser_download_url", "")
-              if download_url.endswith("linux_amd64.tar.gz"):
-                  print(download_url)
-                  break
-          PY
-          )
-          if [ -z "$url" ]; then
-            echo "actionlint linux_amd64 tarball not found in latest release." >&2
-            exit 1
-          fi
-          curl -sSL "$url" | tar -xz
-          sudo mv actionlint /usr/local/bin/
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          API_URL: https://api.github.com/repos/rhysd/actionlint/releases/latest
-
-      - name: Lint example workflows
-        run: |
-          set -euo pipefail
-          dir="examples/${{ matrix.example }}/.github/workflows"
-          if [ -d "$dir" ]; then
-            find "$dir" -type f \( -name '*.yml' -o -name '*.yaml' \) \
-              -print0 | xargs -0 -r -n1 actionlint -ignore 'context "matrix" is not allowed here'
-          fi
-
       - name: Setup Python
         if: matrix.type == 'python' || matrix.type == 'monorepo' || matrix.type == 'docker'
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
