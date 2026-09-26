@@ -67,7 +67,6 @@ internal; only metadata-declared outputs such as smart-dependency-update's
 | JS/TS Unit Tests | `.github/workflows/js-unit-tests.yml` | workflow | node | - | - |
 | Kubernetes Manifests Lint | `.github/workflows/k8s-manifests-lint.yml` | workflow | curl | - | - |
 | Lockfile Consistency | `.github/workflows/lockfile-consistency.yml` | workflow | bash | - | - |
-| Multi-Cloud Deploy | `.github/workflows/multi-cloud-deploy.yml` | workflow | bash | - | - |
 | Node CI | `.github/workflows/node-ci.yml` | workflow | node | - | - |
 | Publish to npm | `.github/workflows/npm-publish.yml` | workflow | node | - | - |
 | Permissions Hardened Template | `.github/workflows/permissions-template.yml` | workflow | bash | - | - |
