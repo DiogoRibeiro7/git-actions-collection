@@ -29,36 +29,18 @@ jobs:
 
       # --- Common: actionlint for any nested workflows under this path
       - name: Install actionlint
+        env:
+          VERSION: 1.7.12
+          SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
         run: |
           set -euo pipefail
-          url=$(python - <<'PY'
-          import json
-          import os
-          import urllib.request
-
-          api_url = os.environ["API_URL"]
-          req = urllib.request.Request(api_url, headers={"Accept": "application/vnd.github+json"})
-          token = os.environ.get("GITHUB_TOKEN")
-          if token:
-              req.add_header("Authorization", f"Bearer {token}")
-          with urllib.request.urlopen(req, timeout=15) as resp:
-              data = json.load(resp)
-          for asset in data.get("assets", []):
-              download_url = asset.get("browser_download_url", "")
-              if download_url.endswith("linux_amd64.tar.gz"):
-                  print(download_url)
-                  break
-          PY
-          )
-          if [ -z "$url" ]; then
-            echo "actionlint linux_amd64 tarball not found in latest release." >&2
-            exit 1
-          fi
-          curl -sSL "$url" | tar -xz
-          sudo mv actionlint /usr/local/bin/
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          API_URL: https://api.github.com/repos/rhysd/actionlint/releases/latest
+          archive="$RUNNER_TEMP/actionlint.tar.gz"
+          curl -fsSL -o "$archive" \
+            "https://github.com/rhysd/actionlint/releases/download/v$VERSION/actionlint_${VERSION}_linux_amd64.tar.gz"
+          echo "$SHA256  $archive" | sha256sum --check --quiet
+          mkdir -p "$RUNNER_TEMP/actionlint"
+          tar -xzf "$archive" -C "$RUNNER_TEMP/actionlint" actionlint
+          echo "$RUNNER_TEMP/actionlint" >> "$GITHUB_PATH"
 
       # Steps already run in inputs.working-directory.
       - name: Lint workflows (if present)
@@ -104,20 +86,30 @@ jobs:
 
       - name: Install Helm
         if: inputs.kind == 'helm'
-        run: curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310
+        with:
+          version: v4.3.0
 
       - name: Install kubeconform
         if: inputs.kind == 'k8s'
+        env:
+          VERSION: v0.8.0
+          SHA256: 9bc2bffbf71f261128533edaf912153948b7ff238f9a531ae6d34466ec287883
         run: |
           set -euo pipefail
-          curl -L https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | tar -xz
-          sudo mv kubeconform /usr/local/bin/
+          archive="$RUNNER_TEMP/kubeconform.tar.gz"
+          curl -fsSL -o "$archive" \
+            "https://github.com/yannh/kubeconform/releases/download/$VERSION/kubeconform-linux-amd64.tar.gz"
+          echo "$SHA256  $archive" | sha256sum --check --quiet
+          mkdir -p "$RUNNER_TEMP/kubeconform"
+          tar -xzf "$archive" -C "$RUNNER_TEMP/kubeconform"
+          echo "$RUNNER_TEMP/kubeconform" >> "$GITHUB_PATH"
 
       - name: Setup Terraform
         if: inputs.kind == 'terraform' || inputs.kind == 'monorepo'
         uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd
         with:
-          terraform_version: latest
+          terraform_version: 1.16.4
 
       # --- Kind-specific commands
       - name: Python tests
@@ -187,7 +179,7 @@ jobs:
         if: inputs.kind == 'helm'
         run: |
           helm lint .
-          helm template . --dry-run
+          helm template . --dry-run=client
 
       - name: Docker build
         if: inputs.kind == 'docker'
