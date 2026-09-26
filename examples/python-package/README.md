@@ -24,6 +24,12 @@ Examples use the stable `@v1` tag. Pin an exact commit SHA when immutable reprod
 The workflow in `.github/workflows/security.yml` runs dependency and static analysis using the reusable security scan workflow.
 
 ```yaml
+permissions:
+  contents: read
+  security-events: write
+  id-token: write
+  attestations: write
+
 jobs:
   scan:
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/security-scan.yml@v1
@@ -32,13 +38,10 @@ jobs:
       skip-trivy: true
 ```
 
-The workflow requires the following permissions to upload SARIF results:
-
-```yaml
-permissions:
-  contents: read
-  security-events: write
-```
+`security-events: write` uploads the SARIF results. `id-token: write` and
+`attestations: write` let the workflow attest its security reports with SLSA
+provenance. GitHub checks these grants before any job starts, so omitting them
+fails the whole run.
 
 ## Additional Security Checks
 
