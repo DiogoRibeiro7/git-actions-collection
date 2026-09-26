@@ -3,6 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 import re
 
+import yaml
+
 from scripts import workflow_docs as docs
 from scripts.workflow_docs import Component
 
@@ -59,6 +61,29 @@ def test_every_public_workflow_opens_with_a_description() -> None:
     ]
 
     assert not missing, "Start these workflows with a `# description` comment:\n" + "\n".join(missing)
+
+
+def test_every_public_input_output_and_secret_is_described() -> None:
+    """The reference pages and action READMEs show these descriptions; a blank leaves a hole."""
+    def load(path: Path) -> dict:
+        return yaml.safe_load(path.read_text(encoding="utf-8"))
+
+    missing = []
+    for component in docs.public_components(ROOT):
+        if component.kind == "workflow":
+            interface = docs._workflow_call(load(ROOT / docs.WORKFLOWS / component.name))
+            kinds = ("inputs", "outputs", "secrets")
+        else:
+            interface = load(ROOT / docs.ACTIONS / component.name / "action.yml")
+            kinds = ("inputs", "outputs")
+        for kind in kinds:
+            missing += [
+                f"{component.name}: {kind[:-1]} {name}"
+                for name, spec in (interface.get(kind) or {}).items()
+                if not str((spec or {}).get("description") or "").strip()
+            ]
+
+    assert not missing, "Describe these:\n" + "\n".join(missing)
 
 
 def test_public_components_cover_every_tiered_workflow_and_action() -> None:
