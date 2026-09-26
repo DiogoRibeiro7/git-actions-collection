@@ -169,7 +169,8 @@ def test_rust_security_passes_ignored_advisories_to_cargo_audit(
     )
 
     assert result.code == 0, result.stderr
-    assert log.read_text(encoding="utf-8").splitlines() == [expected]
+    # The second, offline JSON run only feeds the job summary.
+    assert log.read_text(encoding="utf-8").splitlines() == [expected, f"{expected} --no-fetch --json"]
 
 
 @posix_only
@@ -253,5 +254,6 @@ def test_rust_security_passes_selected_checks_to_cargo_deny(tmp_path: Path) -> N
 
     assert result.code == 0, result.stderr
     assert log.read_text(encoding="utf-8").splitlines() == [
-        "deny --config deny.toml check advisories bans"
+        "deny --config deny.toml check advisories bans",
+        "deny --offline --format json --config deny.toml check advisories bans",
     ]
