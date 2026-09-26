@@ -68,6 +68,9 @@ The `deny.toml` remains owned by the consuming project because licence allowlist
 banned crates, duplicate-version rules, and accepted sources are project policy rather
 than sensible global defaults.
 
+The run page lists each finding with its advisory, crate and fixed versions. cargo-audit
+findings are also annotated on the crate's entry in `Cargo.lock`.
+
 Coverage can be run independently with `cargo-llvm-cov`:
 
 ```yaml
@@ -79,7 +82,8 @@ jobs:
       minimum-line-coverage: 80
 ```
 
-The workflow emits a terminal summary and uploads `lcov.info`. The minimum is
+The workflow shows line and function totals and the least covered files on the run page,
+prints cargo-llvm-cov's per-file report in the log, and uploads `lcov.info`. The minimum is
 caller-defined; a value of `0` disables threshold enforcement.
 
 Rust documentation can be enforced independently:
@@ -108,8 +112,9 @@ jobs:
 
 The defaults intentionally use short warm-up and measurement windows. This checks that
 benchmark targets compile and execute in CI; it is not a performance-regression threshold.
-Hosted runner timing is too noisy for that to be a reliable default. Criterion output can
-be retained explicitly with `upload-results: true`.
+Hosted runner timing is too noisy for that to be a reliable default. The run page lists
+each benchmark's mean and 95% confidence interval, and the full Criterion output can be
+retained explicitly with `upload-results: true`.
 
 Before publication, crate metadata and the packaged archive can be verified independently:
 
