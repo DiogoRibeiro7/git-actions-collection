@@ -131,3 +131,26 @@ def test_supported_workflows_declare_permissions() -> None:
         assert isinstance(permissions, dict) and permissions, (
             f"{path}: supported workflows must declare explicit top-level permissions"
         )
+
+
+def test_support_policy_lists_exactly_the_supported_components() -> None:
+    """SUPPORT.md repeats the supported tier by hand, so check it against the matrix."""
+    matrix = _load_matrix()
+    policy = (ROOT / "SUPPORT.md").read_text(encoding="utf-8")
+    section = policy.split("\n### Supported\n", 1)[1].split("\n### ", 1)[0]
+    workflow_list = section.split("The supported reusable workflows are:", 1)[1]
+    workflow_list = workflow_list.strip().split("\n\n", 1)[0]
+
+    assert set(re.findall(r"`([\w.-]+\.yml)`", workflow_list)) == set(
+        matrix["workflows"]["supported"]
+    ), "Update the supported workflow list in SUPPORT.md to match the support matrix"
+
+    actions = matrix["composite_actions"]
+    claim = re.search(r"All (\d+) composite actions are currently supported", section)
+    assert claim, "SUPPORT.md no longer states how many composite actions are supported"
+    assert int(claim[1]) == len(actions["supported"]), (
+        "Update the composite action count in SUPPORT.md"
+    )
+    assert not actions["reference"] and not actions["experimental"], (
+        "SUPPORT.md says all composite actions are supported; reword it"
+    )
