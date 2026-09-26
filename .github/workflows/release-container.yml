@@ -17,8 +17,10 @@ on:
         default: ''
     secrets:
       GHCR_USERNAME:
+        description: 'Username for ghcr.io; defaults to the actor that triggered the run'
         required: false
       GHCR_TOKEN:
+        description: 'Token that can push to ghcr.io; defaults to GITHUB_TOKEN, which needs packages: write from the caller'
         required: false
 
 permissions:
