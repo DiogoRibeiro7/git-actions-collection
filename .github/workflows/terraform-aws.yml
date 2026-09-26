@@ -1,5 +1,5 @@
-# Assumes an AWS IAM role via OIDC and runs terraform init and plan with retries, optionally
-# applying the saved plan and running terraform destroy if it fails.
+# Assumes an AWS IAM role via OIDC and runs terraform init and plan with retries, optionally applying
+# the saved plan and, for disposable environments, running terraform destroy if the apply fails.
 name: Terraform Apply (AWS OIDC)
 
 on:
@@ -30,7 +30,7 @@ on:
         type: boolean
         default: false
       destroy-on-failure:
-        description: "Destroy resources if apply fails"
+        description: "Run terraform destroy, removing everything in the state, if terraform apply fails; for disposable environments only"
         required: false
         type: boolean
         default: false
@@ -85,6 +85,7 @@ jobs:
             fi
           done
       - name: Terraform Apply
+        id: apply
         if: inputs.apply == true
         working-directory: ${{ inputs.working-directory }}
         shell: bash
@@ -101,11 +102,13 @@ jobs:
               exit 1
             fi
           done
-      - name: Rollback on failure
-        if: failure() && inputs.destroy-on-failure == true && inputs.apply == true
+      # failure() alone is also true when checkout, credentials, init or plan failed, which
+      # destroyed the whole stack because of a typo. Destroy only after a failed apply.
+      - name: Destroy after a failed apply
+        if: failure() && steps.apply.outcome == 'failure' && inputs.destroy-on-failure == true
         working-directory: ${{ inputs.working-directory }}
         shell: bash
         run: |
           set -euo pipefail
-          echo "Apply failed; attempting rollback" >&2
-          terraform destroy -auto-approve
+          echo "terraform apply failed; destroying everything in the state (destroy-on-failure)" >&2
+          terraform destroy -auto-approve -input=false
