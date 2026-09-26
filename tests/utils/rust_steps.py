@@ -22,6 +22,7 @@ from tests.utils.fake_runner import ActionResult, run_workflow_step
 from tests.utils.fakebin import make_fakebin
 
 WORKFLOWS = Path(".github/workflows")
+FEEDBACK_SETUP = "Set up run feedback"
 
 
 def require_rust_tools(*subcommands: str) -> None:
@@ -78,8 +79,12 @@ def run_step(
     workdir: Path,
     inputs: Mapping[str, Any] | None = None,
     stubs: Mapping[str, str] | None = None,
+    context: Mapping[str, str] | None = None,
 ) -> ActionResult:
-    """Run one step with default inputs, optional overrides, and optional tool stubs."""
+    """Run one step with default inputs, optional overrides, and optional tool stubs.
+
+    *context* supplies expressions other than inputs, such as ``toJSON(steps)``.
+    """
     path = WORKFLOWS / workflow
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
     declared = (data.get("on") or data.get(True))["workflow_call"]["inputs"]
@@ -90,16 +95,24 @@ def run_step(
         values[name] = value
 
     step = next(item for item in data["jobs"][job]["steps"] if item.get("name") == step_name)
-    context = {
+    expressions = {
         expression: _render(values[expression.removeprefix("inputs.")])
         for expression in re.findall(r"\$\{\{\s*(inputs\.[\w-]+)\s*\}\}", yaml.safe_dump(step))
     }
+    expressions.update(context or {})
 
-    env: dict[str, str] = {}
+    # Gates pipe cargo through a script an earlier step writes to RUNNER_TEMP, and annotate
+    # files relative to the checkout, which is the fixture's parent directory here.
+    runner_temp = workdir.parent / f"{workdir.name}-runner-temp"
+    runner_temp.mkdir(exist_ok=True)
+    env: dict[str, str] = {"RUNNER_TEMP": str(runner_temp), "GITHUB_WORKSPACE": str(workdir.parent)}
     if stubs:
         fakebin = make_fakebin(workdir.parent / f"{workdir.name}-bin", dict(stubs))
         env["PATH"] = f"{fakebin}:{os.environ['PATH']}"
-    return run_workflow_step(path, job, step_name, context, env=env, workdir=workdir)
+    if step_name != FEEDBACK_SETUP and "rust_feedback.py" in str(step.get("run")):
+        setup = run_workflow_step(path, job, FEEDBACK_SETUP, {}, env=env, workdir=workdir)
+        assert setup.code == 0, setup.stderr
+    return run_workflow_step(path, job, step_name, expressions, env=env, workdir=workdir)
 
 
 def cargo_stub(log: Path, exit_code: int = 0) -> dict[str, str]:

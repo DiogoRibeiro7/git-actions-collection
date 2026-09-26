@@ -73,7 +73,7 @@ def test_rust_quality_runs_fmt_and_clippy() -> None:
     steps_by_name = {step.get("name"): step for step in steps if step.get("name")}
 
     assert steps_by_name["Format check"]["if"] == "inputs.run-format"
-    assert steps_by_name["Format check"]["run"] == "cargo fmt --all --check"
+    assert "cargo fmt --all --check |" in steps_by_name["Format check"]["run"]
 
     clippy = steps_by_name["Clippy"]
     assert clippy["if"] == "inputs.run-clippy"
@@ -81,7 +81,7 @@ def test_rust_quality_runs_fmt_and_clippy() -> None:
     assert 'args+=(--all-features)' in clippy["run"]
     assert 'args+=(--no-default-features)' in clippy["run"]
     assert 'args+=(--features "$CARGO_FEATURES")' in clippy["run"]
-    assert 'cargo clippy "${args[@]}" -- -D warnings' in clippy["run"]
+    assert 'cargo clippy "${args[@]}" --message-format=json -- -D warnings' in clippy["run"]
 
 
 def test_rust_quality_cache_is_best_effort() -> None:
