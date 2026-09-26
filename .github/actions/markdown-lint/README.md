@@ -97,7 +97,7 @@ jobs:
 
 ### From `DavidAnson/markdownlint-cli2-action`
 
-```yaml
+```diff
 - uses: DavidAnson/markdownlint-cli2-action@v15
 + uses: DiogoRibeiro7/git-actions-collection/.github/actions/markdown-lint@v1
 ```
