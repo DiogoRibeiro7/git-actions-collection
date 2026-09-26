@@ -73,7 +73,8 @@ def test_rust_ci_builds_feature_arguments_safely() -> None:
         assert 'args+=(--features "$CARGO_FEATURES")' in command
 
     assert 'cargo check "${args[@]}"' in steps_by_name["Cargo check"]["run"]
-    assert 'cargo clippy "${args[@]}" -- -D warnings' in steps_by_name["Clippy"]["run"]
+    clippy = steps_by_name["Clippy"]["run"]
+    assert 'cargo clippy "${args[@]}" --message-format=json -- -D warnings' in clippy
     assert 'cargo test "${args[@]}"' in steps_by_name["Tests"]["run"]
 
 
@@ -84,6 +85,9 @@ def test_rust_ci_honours_working_directory() -> None:
     cargo_steps = []
     for job in data["jobs"].values():
         for step in job.get("steps", []):
+            # The feedback setup only writes its script to RUNNER_TEMP.
+            if step.get("name") == "Set up run feedback":
+                continue
             if isinstance(step.get("run"), str) and "cargo " in step["run"]:
                 cargo_steps.append(step)
 

@@ -1,5 +1,6 @@
 # Runs cargo fmt --check, cargo check, Clippy with warnings denied, and cargo test on Ubuntu with
-# best-effort caching, plus an optional OS/toolchain compatibility matrix.
+# best-effort caching, plus an optional OS/toolchain compatibility matrix. Diagnostics and failing
+# tests are annotated on their lines, and the run page gets a result summary.
 name: Rust CI
 
 on:
@@ -87,6 +88,192 @@ jobs:
           cache-targets: ${{ inputs.cache-targets }}
           cache-on-failure: false
 
+      # Cargo's diagnostics, rustfmt diffs and failing tests become annotations on the changed
+      # lines, and the Summary step adds a result table to the run page.
+      - name: Set up run feedback
+        shell: bash
+        run: |
+          cat > "$RUNNER_TEMP/rust_feedback.py" <<'PY'
+          """Annotate cargo output for GitHub, or summarize a Rust job on the run page.
+
+          Keep this script identical in rust-ci.yml, rust-quality.yml and rust-docs.yml.
+
+          filter
+              Echo cargo output from stdin. Turn compiler diagnostics (--message-format=json), rustfmt
+              diffs and failing tests into annotations, and record their counts as step outputs.
+          summary TITLE ID=LABEL...
+              Append a table of those steps' results to the job summary.
+          """
+
+          import functools
+          import json
+          import os
+          import re
+          import subprocess
+          import sys
+
+          FMT_DIFF = re.compile(r"^Diff in (.+?)(?::| at line )(\d+):$")
+          TEST_FAILED = re.compile(r"^test (.+) \.\.\. FAILED$")
+          TEST_OUTPUT = re.compile(r"^---- (.+) stdout ----$")
+          TEST_RESULT = re.compile(r"^test result: \w+\. (\d+) passed; (\d+) failed; (\d+) ignored;")
+          PANIC = re.compile(r"^thread '(.*)'(?: \(\d+\))? panicked at (.+):(\d+):(\d+):$")
+          OUTCOMES = {
+              "success": "✅ Passed",
+              "failure": "❌ Failed",
+              "cancelled": "Cancelled",
+              "skipped": "Skipped",
+          }
+          COUNTS = ("errors", "warnings", "diffs", "passed", "failed", "ignored")
+          MAX_FAILED_TESTS = 30
+
+
+          def escape(value, prop=False):
+              value = str(value).replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+              return value.replace(":", "%3A").replace(",", "%2C") if prop else value
+
+
+          @functools.cache
+          def cargo_root():
+              """Rustc reports workspace files relative to the Cargo workspace root."""
+              try:
+                  manifest = subprocess.run(
+                      ["cargo", "locate-project", "--workspace", "--message-format", "plain"],
+                      capture_output=True, text=True, check=True,
+                  ).stdout.strip()
+              except (OSError, subprocess.CalledProcessError):
+                  manifest = ""
+              return os.path.dirname(manifest) or os.getcwd()
+
+
+          def repo_path(path):
+              """Return a path relative to the checkout, or None when it lies outside it."""
+              path = os.path.join(cargo_root(), path)
+              relative = os.path.relpath(path, os.environ.get("GITHUB_WORKSPACE") or os.getcwd())
+              return None if relative.startswith("..") else relative
+
+
+          def annotate(level, message, title, path=None, *place):
+              """Print a workflow command; place is line, column, end line and end column, as known."""
+              props = []
+              if path is not None:
+                  props.append(f"file={escape(path, True)}")
+                  props += [f"{key}={value}" for key, value in zip(("line", "col", "endLine", "endColumn"), place)]
+              props.append(f"title={escape(title, True)}")
+              print(f"::{level} {','.join(props)}::{escape(message)}", flush=True)
+
+
+          def diagnostic(message, counts, seen):
+              rendered = message.get("rendered") or ""
+              # Lib and test builds of one crate report the same diagnostic twice.
+              if rendered and rendered not in seen:
+                  seen.add(rendered)
+                  print(rendered, end="" if rendered.endswith("\n") else "\n", flush=True)
+              level = message.get("level")
+              span = next((span for span in message.get("spans") or [] if span.get("is_primary")), None)
+              if level not in ("error", "warning") or span is None:
+                  return
+              # Point at the calling code, not at a macro defined in std or a dependency.
+              while repo_path(span["file_name"]) is None and span.get("expansion"):
+                  span = span["expansion"]["span"]
+              path = repo_path(span["file_name"])
+              key = (level, path, span["line_start"], span["column_start"], message["message"])
+              if key in seen:
+                  return
+              seen.add(key)
+              counts[level + "s"] += 1
+              code = (message.get("code") or {}).get("code") or "rustc"
+              annotate(
+                  level, message["message"], code, path,
+                  span["line_start"], span["column_start"], span["line_end"], span["column_end"],
+              )
+
+
+          def run_filter():
+              sys.stdin.reconfigure(errors="replace")
+              sys.stdout.reconfigure(errors="replace")
+              counts = dict.fromkeys(COUNTS, 0)
+              failed_tests, seen = [], set()
+              test_name = panic = None
+              for raw in sys.stdin:
+                  line = raw.rstrip("\r\n")
+                  try:
+                      event = json.loads(line) if line.startswith("{") else None
+                  except ValueError:
+                      event = None
+                  # Annotations are best effort: a parsing problem must not change the check's result.
+                  try:
+                      if isinstance(event, dict) and "reason" in event:
+                          if event["reason"] == "compiler-message":
+                              diagnostic(event["message"], counts, seen)
+                          continue
+                      print(line, flush=True)
+                      if panic is not None:
+                          path, row, column, name = panic
+                          panic = None
+                          annotate("error", f"{name} panicked: {line}", "test failed", path, row, column)
+                      elif match := FMT_DIFF.match(line):
+                          counts["diffs"] += 1
+                          message = "cargo fmt would reformat this code"
+                          annotate("error", message, "rustfmt", repo_path(match[1]), match[2])
+                      elif match := TEST_FAILED.match(line):
+                          if match[1] not in failed_tests:
+                              failed_tests.append(match[1])
+                      elif match := TEST_OUTPUT.match(line):
+                          test_name = match[1]
+                      elif match := PANIC.match(line):
+                          panic = (repo_path(match[2]), match[3], match[4], test_name or match[1])
+                      elif match := TEST_RESULT.match(line):
+                          for key, value in zip(("passed", "failed", "ignored"), match.groups()):
+                              counts[key] += int(value)
+                  except Exception as error:
+                      print(f"::warning title=rust feedback::Could not annotate: {escape(error)}", flush=True)
+              if os.environ.get("GITHUB_OUTPUT"):
+                  with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as handle:
+                      handle.writelines(f"{key}={value}\n" for key, value in counts.items())
+                      handle.write(f"failed-tests={json.dumps(failed_tests)}\n")
+
+
+          def plural(count, noun):
+              return f"{count} {noun}{'' if count == 1 else 's'}"
+
+
+          def run_summary(title, specs):
+              steps = json.loads(os.environ.get("STEPS") or "{}")
+              lines = [f"## {title}", "", "| Check | Result |", "| --- | --- |"]
+              failed_tests = []
+              for spec in specs:
+                  step_id, label = spec.split("=", 1)
+                  step = steps.get(step_id) or {}
+                  outputs = step.get("outputs") or {}
+                  count = {key: int(outputs.get(key) or 0) for key in COUNTS}
+                  details = []
+                  if count["passed"] or count["failed"] or count["ignored"]:
+                      details.append("{passed} passed, {failed} failed, {ignored} ignored".format_map(count))
+                  if count["diffs"]:
+                      details.append(plural(count["diffs"], "formatting diff"))
+                  if count["errors"]:
+                      details.append(plural(count["errors"], "error"))
+                  if count["warnings"]:
+                      details.append(plural(count["warnings"], "warning"))
+                  result = OUTCOMES.get(step.get("outcome"), "Not run")
+                  lines.append(f"| {label} | {result}{': ' + ', '.join(details) if details else ''} |")
+                  failed_tests += json.loads(outputs.get("failed-tests") or "[]")
+              if failed_tests:
+                  lines += ["", "**Failed tests**", ""]
+                  lines += [f"- `{name}`" for name in failed_tests[:MAX_FAILED_TESTS]]
+                  if len(failed_tests) > MAX_FAILED_TESTS:
+                      lines.append(f"- and {len(failed_tests) - MAX_FAILED_TESTS} more")
+              with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as handle:
+                  handle.write("\n".join(lines) + "\n")
+
+
+          if __name__ == "__main__":
+              if sys.argv[1] == "filter":
+                  run_filter()
+              else:
+                  run_summary(sys.argv[2], sys.argv[3:])
+          PY
+
       - name: Validate Rust project
         shell: bash
         working-directory: ${{ inputs.working-directory }}
@@ -112,12 +299,16 @@ jobs:
           fi
 
       - name: Format check
+        id: format
         if: inputs.run-format
         shell: bash
         working-directory: ${{ inputs.working-directory }}
-        run: cargo fmt --all --check
+        run: |
+          set -euo pipefail
+          cargo fmt --all --check | python "$RUNNER_TEMP/rust_feedback.py" filter
 
       - name: Cargo check
+        id: check
         shell: bash
         working-directory: ${{ inputs.working-directory }}
         env:
@@ -132,9 +323,10 @@ jobs:
           [[ "$CARGO_ALL_FEATURES" == "true" ]] && args+=(--all-features)
           [[ "$CARGO_NO_DEFAULT_FEATURES" == "true" ]] && args+=(--no-default-features)
           [[ -n "$CARGO_FEATURES" ]] && args+=(--features "$CARGO_FEATURES")
-          cargo check "${args[@]}"
+          cargo check "${args[@]}" --message-format=json | python "$RUNNER_TEMP/rust_feedback.py" filter
 
       - name: Clippy
+        id: clippy
         if: inputs.run-clippy
         shell: bash
         working-directory: ${{ inputs.working-directory }}
@@ -150,9 +342,11 @@ jobs:
           [[ "$CARGO_ALL_FEATURES" == "true" ]] && args+=(--all-features)
           [[ "$CARGO_NO_DEFAULT_FEATURES" == "true" ]] && args+=(--no-default-features)
           [[ -n "$CARGO_FEATURES" ]] && args+=(--features "$CARGO_FEATURES")
-          cargo clippy "${args[@]}" -- -D warnings
+          cargo clippy "${args[@]}" --message-format=json -- -D warnings \
+            | python "$RUNNER_TEMP/rust_feedback.py" filter
 
       - name: Tests
+        id: tests
         if: inputs.run-tests
         shell: bash
         working-directory: ${{ inputs.working-directory }}
@@ -168,7 +362,20 @@ jobs:
           [[ "$CARGO_ALL_FEATURES" == "true" ]] && args+=(--all-features)
           [[ "$CARGO_NO_DEFAULT_FEATURES" == "true" ]] && args+=(--no-default-features)
           [[ -n "$CARGO_FEATURES" ]] && args+=(--features "$CARGO_FEATURES")
-          cargo test "${args[@]}"
+          cargo test "${args[@]}" --message-format=json | python "$RUNNER_TEMP/rust_feedback.py" filter
+
+      - name: Summary
+        if: always()
+        shell: bash
+        env:
+          STEPS: ${{ toJSON(steps) }}
+        run: |
+          set -euo pipefail
+          # The script is missing only when the job failed before writing it.
+          if [ -f "$RUNNER_TEMP/rust_feedback.py" ]; then
+            python "$RUNNER_TEMP/rust_feedback.py" summary "Rust CI" \
+              format=Format check="Cargo check" clippy=Clippy tests=Tests
+          fi
 
   compatibility:
     name: Compatibility / ${{ matrix.os }} / Rust ${{ matrix.rust }}

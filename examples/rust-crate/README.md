@@ -20,6 +20,13 @@ saving is an optimisation only: cache failures are allowed to continue and there
 cannot turn a valid build into a CI failure. Set `use-cache: false` when a repository
 needs a fully cold CI run, or `cache-targets: false` to cache only Cargo registry data.
 
+`rust-ci.yml`, `rust-quality.yml` and `rust-docs.yml` report problems where you review
+code. Compiler, Clippy and rustdoc diagnostics, rustfmt diffs and failing tests become
+annotations on the file and line, which a pull request shows in "Files changed". The run
+page gets a summary table with each check's result, the error and warning counts, the test
+counts and the names of failed tests. The log keeps cargo's usual output, and a check
+passes or fails exactly as cargo decides.
+
 For repositories that want a separate fast quality gate, use the dedicated
 `rust-quality.yml` workflow. It runs `rustfmt` and Clippy without running the
 full test suite:

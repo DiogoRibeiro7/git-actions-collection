@@ -9,6 +9,7 @@ All notable changes to this repository are documented here.
 - Experimental `helm-chart-release.yml`: lints and packages a Helm chart, then pushes it to an OCI registry (`ghcr.io/<owner>/charts` by default) from a GitHub environment. It is a dry run unless `dry-run: false` is set. The `helm-chart` example gains a tag-triggered release workflow.
 - The supported `setup-poetry` action accepts an optional `poetry-version` input (default `2.5.1`, the version it always installed).
 - `npm-publish.yml` accepts an optional `prerelease-id` input that publishes `<version>-<id>.<run number>.<run attempt>` instead of the `package.json` version.
+- `rust-ci.yml`, `rust-quality.yml` and `rust-docs.yml` annotate compiler, Clippy and rustdoc diagnostics, rustfmt diffs and failing tests on their file and line, so pull requests show them in "Files changed", and write a result table to the run's summary page. Before, these findings were only in the raw log. Inputs and pass/fail behaviour are unchanged.
 
 ### Deprecated
 

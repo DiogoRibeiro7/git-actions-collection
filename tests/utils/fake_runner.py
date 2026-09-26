@@ -28,6 +28,7 @@ class ActionResult:
     step_outputs: dict[str, dict[str, str]] = field(default_factory=dict)
     skipped_uses: tuple[str, ...] = ()
     executed_steps: int = 0
+    summary: str = ""
 
 
 def _lookup_expression(
@@ -370,4 +371,5 @@ def run_workflow_step(
             stdout=proc.stdout,
             stderr=proc.stderr,
             outputs=_read_outputs(gh_output),
+            summary=Path(run_env["GITHUB_STEP_SUMMARY"]).read_text(encoding="utf-8"),
         )
