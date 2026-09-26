@@ -121,3 +121,42 @@ def test_terraform_is_validated_after_init(tmp_path: Path) -> None:
         "terraform init -backend=false",
         "terraform validate",
     ]
+
+
+def test_the_monorepo_example_maps_folders_to_known_kinds() -> None:
+    """The example once mapped folders to workflow paths, which match no kind."""
+    import re
+
+    import yaml
+
+    example = yaml.safe_load(
+        (ROOT / "examples/monorepo/.github/workflows/ci.yml").read_text(encoding="utf-8")
+    )
+    groups = json.loads(example["jobs"]["matrix"]["with"]["groups"])
+    known = set(re.findall(r"inputs\.kind == '([a-z0-9]+)'", RUNNER.read_text(encoding="utf-8")))
+
+    assert groups and set(groups.values()) <= known
+    assert all((ROOT / "examples/monorepo" / folder).is_dir() for folder in groups)
+
+
+@pytest.mark.parametrize("requirements", [False, True])
+def test_python_lane_supports_coverage_options(tmp_path: Path, requirements: bool) -> None:
+    if requirements:
+        (tmp_path / "requirements.txt").write_text("requests\n", encoding="utf-8")
+    fakebin = make_fakebin(tmp_path, {"python": 'echo "python $*"'})
+
+    result = run_workflow_step(
+        RUNNER,
+        "run-kind",
+        "Python tests",
+        context={},
+        env={"PATH": f"{fakebin}:{os.environ['PATH']}"},
+        workdir=tmp_path,
+    )
+
+    assert result.code == 0, result.stderr
+    assert result.stdout.splitlines() == [
+        *(["python -m pip install -q -r requirements.txt"] if requirements else []),
+        "python -m pip install -q pytest pytest-cov",
+        "python -m pytest -q",
+    ]

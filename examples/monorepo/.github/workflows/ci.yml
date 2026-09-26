@@ -8,4 +8,6 @@ jobs:
   matrix:
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/ci-monorepo-matrix.yml@v1
     with:
-      groups: '{"pkg-a": ".github/workflows/python-lint.yml","web-app": ".github/workflows/node-ci.yml","infra": ".github/workflows/infra-lint.yml"}'
+      # Each top-level folder maps to a check the runner knows: python, node, java, rust,
+      # go, terraform, k8s, helm or docker.
+      groups: '{"pkg-a": "python", "web-app": "node", "infra": "terraform"}'

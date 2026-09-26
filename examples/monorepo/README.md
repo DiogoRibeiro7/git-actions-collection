@@ -1,6 +1,7 @@
 # Monorepo Example
 
-This example shows how to fan out work to language-specific workflows only when their paths change.
+This example runs a check for each top-level folder, and only for the folders a push or pull
+request changed.
 
 ## Layout
 
@@ -8,9 +9,15 @@ This example shows how to fan out work to language-specific workflows only when 
 - `web-app/` &ndash; minimal Node project.
 - `infra/` &ndash; small Terraform module.
 
-Each folder exposes a local reusable workflow in `.github/workflows/`.
-The top-level workflow calls the [ci-monorepo-matrix](../../.github/workflows/ci-monorepo-matrix.yml) workflow with a mapping of folders to those reusable workflows.
+The top-level workflow calls [ci-monorepo-matrix](../../.github/workflows/ci-monorepo-matrix.yml)
+with a mapping of folders to the kind of check the
+[runner](../../.github/workflows/ci-monorepo-runner.yml) performs: `pkg-a` runs pytest, `web-app`
+runs its npm test script, and `infra` runs `terraform init` and `terraform validate`.
+
+The workflows inside each folder's `.github/workflows/` show the pipeline that folder would use as
+a repository of its own. GitHub runs workflows only from the repository root, so the monorepo CI
+does not call them.
 
 ## Usage
 
-On pushes or pull requests, only the workflows for folders with modified files run.
+On pushes or pull requests, only the checks for folders with modified files run.
