@@ -47,7 +47,7 @@ Before expanding the catalogue aggressively, improve the guarantees around every
 - [x] Add a formal deprecation policy for supported workflow inputs and outputs.
 - [x] Add compatibility tests that fail when a supported public interface changes unexpectedly.
 - [x] Extend release preflight checks to validate the complete supported surface.
-- [ ] Add a consumer-reference audit to find stale examples and outdated `@main` or obsolete repository references.
+- [x] Add a consumer-reference audit to find stale examples and outdated `@main` or obsolete repository references.
 
 ### Migration tooling
 
