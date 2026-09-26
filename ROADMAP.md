@@ -46,7 +46,7 @@ Before expanding the catalogue aggressively, improve the guarantees around every
 - [ ] Keep `.github/support-matrix.yml`, documentation, examples, and release metadata consistent automatically.
 - [x] Add a formal deprecation policy for supported workflow inputs and outputs.
 - [x] Add compatibility tests that fail when a supported public interface changes unexpectedly.
-- [ ] Extend release preflight checks to validate the complete supported surface.
+- [x] Extend release preflight checks to validate the complete supported surface.
 - [ ] Add a consumer-reference audit to find stale examples and outdated `@main` or obsolete repository references.
 
 ### Migration tooling

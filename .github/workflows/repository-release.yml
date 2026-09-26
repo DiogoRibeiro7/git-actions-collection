@@ -12,31 +12,50 @@ on:
         required: false
         type: boolean
         default: false
+      allow-breaking-changes:
+        description: 'Release even though supported interfaces changed incompatibly since the previous release. Only for the exceptions SUPPORT.md allows'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: repository-release
   cancel-in-progress: false
 
 jobs:
-  release:
+  preflight:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    outputs:
+      commit: ${{ steps.commit.outputs.sha }}
     steps:
       - name: Checkout main
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: main
           fetch-depth: 0
+          persist-credentials: false
 
-      - name: Configure release tag identity
+      - name: Record release commit
+        id: commit
         shell: bash
         run: |
           set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12'
+
+      - name: Install preflight dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install -e .
 
       - name: Read GitHub default branch
         id: repository
@@ -54,15 +73,19 @@ jobs:
           VERSION: ${{ inputs.version }}
           DEFAULT_BRANCH: ${{ steps.repository.outputs.default-branch }}
           PRERELEASE: ${{ inputs.prerelease }}
+          ALLOW_BREAKING_CHANGES: ${{ inputs.allow-breaking-changes }}
         run: |
           set -euo pipefail
           args=(
-            scripts/release_preflight.py
+            -m scripts.release_preflight
             --version "$VERSION"
             --default-branch "$DEFAULT_BRANCH"
           )
           if [ "$PRERELEASE" = "true" ]; then
             args+=(--prerelease)
+          fi
+          if [ "$ALLOW_BREAKING_CHANGES" = "true" ]; then
+            args+=(--allow-breaking-changes)
           fi
           python "${args[@]}"
 
@@ -77,6 +100,25 @@ jobs:
             echo "Tag $tag already exists." >&2
             exit 1
           fi
+
+  release:
+    needs: preflight
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout the validated commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ needs.preflight.outputs.commit }}
+          fetch-depth: 0
+
+      - name: Configure release tag identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Create version tag
         shell: bash

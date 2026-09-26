@@ -7,7 +7,7 @@ This repository is primarily a personal library of reusable GitHub Actions and w
 - `main` is the only permanent development branch.
 - Changes reach `main` through pull requests.
 - Feature, fix, and maintenance branches are temporary.
-- `@v1` is for development and evaluation. Stable consumers should use the moving major tag such as `@v1` or an exact commit SHA.
+- `@main` is for development and evaluation. Stable consumers should use the moving major tag such as `@v1` or an exact commit SHA.
 
 ## Stable releases
 
@@ -33,11 +33,11 @@ Repository releases are intentionally manual.
 1. Merge all intended changes into `main`.
 2. Confirm required CI checks are green.
 3. Review the public workflows, actions, examples, and documentation.
-4. Update `pyproject.toml` so its project version matches the stable version to be released.
+4. Update `pyproject.toml` so its project version matches the stable version to be released, and turn the `Unreleased` section of `CHANGELOG.md` into `## <version> - <YYYY-MM-DD>`.
 5. Run **Repository Release** from GitHub Actions on `main`.
 6. Supply the semantic version without the `v` prefix, for example `1.0.0`.
-7. The workflow runs a release preflight that requires GitHub's default branch to be `main`, rejects stale `develop` consumer references, and validates stable release metadata against `pyproject.toml`.
-8. Only after the preflight passes does it create the annotated exact tag, publish a GitHub Release with generated notes, and update the moving major tag.
+7. The workflow runs a release preflight in a read-only job. It requires GitHub's default branch to be `main` and rejects stale `develop` consumer references. For a stable release it also checks the version in `pyproject.toml`, requires a dated `CHANGELOG.md` section for it, and rejects a leftover `Unreleased` section. It checks that `.github/supported-interfaces.json` matches the supported workflows and actions. Finally, it compares those interfaces with the previous release in the same major version (see [Compatibility](#compatibility)).
+8. Only after the preflight passes does a second job, the only one that can write, create the annotated exact tag on the commit the preflight checked, publish a GitHub Release with generated notes, and update the moving major tag.
 
 The release workflow does not publish containers, Python packages, npm packages, Marketplace listings, or other registry artifacts for this repository. Publishing workflows in this collection are reusable building blocks for consumer repositories.
 
@@ -48,3 +48,5 @@ Prereleases may use semantic versions such as `1.0.0-rc.1` and should be marked 
 ## Compatibility
 
 Within a major release series, changes should preserve the documented public inputs, outputs, secrets, and expected behaviour of supported reusable workflows and composite actions. Breaking changes require a new major version.
+
+The release preflight enforces this. It compares the supported interfaces with the snapshot tagged by the previous release in the same major version and fails on every breaking change it finds. When each reported change is an exception that [SUPPORT.md](SUPPORT.md#compatibility-and-deprecation) allows and the changelog records it, run **Repository Release** again with **allow-breaking-changes**. The job log lists each accepted change.

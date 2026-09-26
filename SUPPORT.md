@@ -107,6 +107,11 @@ To retire part of a supported interface:
 A security fix may break compatibility within a major version when keeping
 the old behaviour would be unsafe. Its release notes must say so explicitly.
 
+The repository release preflight compares the supported interfaces with the
+previous release in the same major version and fails on a breaking change.
+The releaser accepts the exceptions above explicitly; see
+[RELEASES.md](RELEASES.md#compatibility).
+
 ## Versioning
 
 The versioning and release process are defined in [RELEASES.md](RELEASES.md).
