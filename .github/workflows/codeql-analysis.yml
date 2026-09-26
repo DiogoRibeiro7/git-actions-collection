@@ -1,27 +1,83 @@
-# Runs CodeQL analysis over a fixed Python, JavaScript and Go matrix, autobuilding JavaScript and
-# Go, and uploads results to GitHub code scanning.
+# Runs CodeQL analysis for each language in the repository (detected from GitHub's language
+# statistics unless given), building compiled languages with autobuild, and uploads the results to
+# GitHub code scanning.
 name: CodeQL Analysis
 
 on:
   workflow_call:
+    inputs:
+      languages:
+        description: 'JSON array of CodeQL languages, e.g. ["python","javascript-typescript"]; empty detects them from the repository'
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read
-  security-events: write
 
 jobs:
-  analyze:
+  languages:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      languages: ${{ steps.detect.outputs.languages }}
+      count: ${{ steps.detect.outputs.count }}
+    steps:
+      # CodeQL fails a language with no source code, so analyse only what the repository contains.
+      - name: Detect languages
+        id: detect
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUESTED: ${{ inputs.languages }}
+        run: |
+          set -euo pipefail
+          if [ -z "$REQUESTED" ]; then
+            gh api "repos/$GITHUB_REPOSITORY/languages" > "$RUNNER_TEMP/languages.json"
+          fi
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          # GitHub language names mapped to CodeQL languages; Swift needs a macOS runner.
+          CODEQL = {
+              "C": "c-cpp", "C++": "c-cpp", "C#": "csharp", "Go": "go", "Java": "java-kotlin",
+              "Kotlin": "java-kotlin", "JavaScript": "javascript-typescript",
+              "TypeScript": "javascript-typescript", "Python": "python", "Ruby": "ruby",
+          }
+          requested = os.environ["REQUESTED"].strip()
+          if requested:
+              languages = json.loads(requested)
+              if not isinstance(languages, list) or not all(isinstance(x, str) for x in languages):
+                  raise SystemExit("languages must be a JSON array of strings")
+          else:
+              found = json.loads(Path(os.environ["RUNNER_TEMP"], "languages.json").read_text())
+              languages = sorted({CODEQL[name] for name in found if name in CODEQL})
+              print(f"Detected CodeQL languages: {', '.join(languages) or 'none'}")
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"languages={json.dumps(languages)}\n")
+              output.write(f"count={len(languages)}\n")
+          PY
+
+  analyze:
+    needs: languages
+    if: needs.languages.outputs.count != '0'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     strategy:
+      fail-fast: false
       matrix:
-        language: [python, javascript, go]
+        language: ${{ fromJson(needs.languages.outputs.languages) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2
         with:
           languages: ${{ matrix.language }}
-      - uses: github/codeql-action/autobuild@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2
-        if: matrix.language != 'python'
+          build-mode: ${{ contains(fromJson('["c-cpp","csharp","go","java-kotlin","swift"]'), matrix.language) && 'autobuild' || 'none' }}
       - uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2
         with:
           category: "/language:${{ matrix.language }}"
