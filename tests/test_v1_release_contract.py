@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 import tomllib
 
 from packaging.version import Version
@@ -15,6 +16,21 @@ def test_v1_project_metadata_is_stable() -> None:
     assert version.major == 1
     assert not version.is_prerelease
     assert "Development Status :: 5 - Production/Stable" in data["project"]["classifiers"]
+
+
+def test_project_version_is_the_newest_changelog_release() -> None:
+    """The release PR bumps pyproject.toml and dates the changelog together."""
+    data = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    released = re.findall(
+        r"^## ([0-9]+\.[0-9]+\.[0-9]+) - [0-9]{4}-[0-9]{2}-[0-9]{2}$", changelog, re.MULTILINE
+    )
+
+    assert released, "CHANGELOG.md has no dated release section"
+    assert released[0] == data["project"]["version"], (
+        f"pyproject.toml is {data['project']['version']} but the newest dated "
+        f"CHANGELOG.md release is {released[0]}; bump both in the release PR"
+    )
 
 
 def test_generators_default_to_v1() -> None:
