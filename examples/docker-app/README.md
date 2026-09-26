@@ -23,6 +23,10 @@ Use `.github/workflows/canary.yml` to build an image tagged `:rc` when pushing t
 ```yaml
 jobs:
   release:
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/canary-release.yml@v1
     with:
       project-type: docker

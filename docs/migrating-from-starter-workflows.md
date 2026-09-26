@@ -46,6 +46,8 @@ name: Python package
 on: [push]
 jobs:
   ci:
+    permissions:
+      contents: read
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/python-test-matrix.yml@v1
     with:
       python-versions: '["3.x"]'
@@ -81,6 +83,8 @@ on:
     branches: [ main ]
 jobs:
   ci:
+    permissions:
+      contents: read
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/node-ci.yml@v1
     with:
       node-version: '20'

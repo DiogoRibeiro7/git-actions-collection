@@ -2,6 +2,8 @@ name: Lint K8s Manifests
 on: [push]
 jobs:
   lint:
+    permissions:
+      contents: read
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/k8s-manifests-lint.yml@v1
     with:
       paths: .

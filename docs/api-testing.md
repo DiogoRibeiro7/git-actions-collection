@@ -9,6 +9,8 @@ name: CI
 on: [push]
 jobs:
   test:
+    permissions:
+      contents: read
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/api-testing.yml@v1
     with:
       openapi-spec: openapi.yaml

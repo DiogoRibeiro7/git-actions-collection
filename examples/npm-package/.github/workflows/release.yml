@@ -7,6 +7,9 @@ on:
 
 jobs:
   publish:
+    permissions:
+      contents: read
+      id-token: write
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/npm-publish.yml@v1
     secrets:
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

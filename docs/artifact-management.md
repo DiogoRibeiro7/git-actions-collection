@@ -12,6 +12,10 @@ on:
   workflow_dispatch:
 jobs:
   cleanup:
+    permissions:
+      actions: write
+      contents: read
+      packages: write
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/artifact-management.yml@v1
     secrets:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
