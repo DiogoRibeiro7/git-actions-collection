@@ -26,6 +26,7 @@ on:
         default: ''
     secrets:
       NPM_TOKEN:
+        description: 'npm token with publish rights to the package, used as NODE_AUTH_TOKEN'
         required: true
 permissions:
   contents: read

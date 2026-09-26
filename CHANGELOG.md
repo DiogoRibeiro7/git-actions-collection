@@ -2,6 +2,12 @@
 
 All notable changes to this repository are documented here.
 
+## Unreleased
+
+### Changed
+
+- The secrets of `artifact-management.yml`, `canary-release.yml`, `docker-build-push.yml`, `npm-publish.yml`, `publish-docker-on-tag.yml`, `publish-to-npm.yml`, `release-container.yml` and `vercel-nextjs.yml` now have descriptions. Their reference pages now say what each token is for, what it defaults to, and which permission the default needs. A test requires a description for every input, output and secret of a public workflow or action.
+
 ## 1.4.0 - 2026-09-26
 
 ### Added

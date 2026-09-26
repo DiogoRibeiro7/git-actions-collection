@@ -32,6 +32,7 @@ on:
         type: string
     secrets:
       GH_TOKEN:
+        description: 'Token for the GitHub API calls that list and delete workflow artifacts in this repository; secrets.GITHUB_TOKEN works when the caller grants actions: write. Package cleanup uses the job token instead'
         required: true
 permissions:
   contents: read

@@ -26,6 +26,7 @@ on:
         default: ''
     secrets:
       NPM_TOKEN:
+        description: 'npm token with publish rights to the package; used only when project-type is npm'
         required: false
 permissions:
   contents: read

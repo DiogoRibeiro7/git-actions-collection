@@ -47,8 +47,10 @@ on:
         default: 'ghcr.io'
     secrets:
       REGISTRY_USERNAME:
+        description: 'Username for the registry login; defaults to the actor that triggered the run, which suits GHCR'
         required: false
       REGISTRY_PASSWORD:
+        description: 'Password or token for the registry login; defaults to GITHUB_TOKEN, which can push to GHCR when the caller grants packages: write'
         required: false
 
 permissions:

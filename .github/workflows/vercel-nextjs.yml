@@ -30,6 +30,7 @@ on:
         default: true
     secrets:
       vercel-token:
+        description: 'Vercel access token with deploy access to the project'
         required: true
     outputs:
       deployment-url:
