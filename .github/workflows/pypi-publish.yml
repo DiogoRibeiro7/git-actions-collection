@@ -25,7 +25,7 @@ on:
         type: string
         default: 'pypi'
       pre-release:
-        description: 'Publish as a pre-release (true/false)'
+        description: 'Upload to TestPyPI instead of PyPI; PyPI marks pre-releases from the version itself, e.g. 1.0.0rc1'
         required: false
         type: boolean
         default: false
@@ -51,22 +51,27 @@ jobs:
           python-version: ${{ inputs.python-version }}
           cache: pip
       - name: Install build backend
+        env:
+          PIP_VERSION: ${{ inputs.pip-version }}
+          BUILD_BACKEND: ${{ inputs.build-backend }}
         run: |
           set -euo pipefail
-          pip_version="${{ inputs.pip-version }}"
-          if [ "$pip_version" = "latest" ]; then
+          if [ "$PIP_VERSION" = "latest" ]; then
             python -m pip install --upgrade pip
           else
-            python -m pip install --upgrade "pip==$pip_version"
+            python -m pip install --upgrade "pip==$PIP_VERSION"
           fi
-          if [ "${{ inputs.build-backend }}" = "poetry" ]; then
+          if [ "$BUILD_BACKEND" = "poetry" ]; then
             pip install poetry twine
           else
             pip install build twine
           fi
       - name: Build
+        env:
+          BUILD_BACKEND: ${{ inputs.build-backend }}
         run: |
-          if [ "${{ inputs.build-backend }}" = "poetry" ]; then
+          set -euo pipefail
+          if [ "$BUILD_BACKEND" = "poetry" ]; then
             poetry build
           else
             python -m build
@@ -77,6 +82,8 @@ jobs:
       - name: Publish to PyPI (trusted publishing)
         uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e
         with:
+          # Actions do not inherit defaults.run.working-directory, so point at the built files.
+          packages-dir: ${{ inputs.working-directory }}/dist
           skip-existing: true
           verbose: true
           print-hash: true
