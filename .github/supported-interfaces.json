@@ -351,6 +351,11 @@
           "deprecated": false,
           "required": false
         },
+        "poetry-version": {
+          "default": "2.5.1",
+          "deprecated": false,
+          "required": false
+        },
         "python-version": {
           "default": "3.12",
           "deprecated": false,

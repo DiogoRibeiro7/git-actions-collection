@@ -9,6 +9,10 @@ inputs:
     description: "Run 'poetry install'"
     required: false
     default: "true"
+  poetry-version:
+    description: "Poetry release to install"
+    required: false
+    default: "2.5.1"
   pip-version:
     description: "pip release to install (set to 'latest' to track upstream)"
     required: false
@@ -26,6 +30,7 @@ runs:
       run: bash "${{ github.action_path }}/../../../scripts/setup-poetry/install.sh"
       env:
         INPUT_PIP_VERSION: ${{ inputs.pip-version }}
+        INPUT_POETRY_VERSION: ${{ inputs.poetry-version }}
 
     - name: Configure Poetry cache
       shell: bash
