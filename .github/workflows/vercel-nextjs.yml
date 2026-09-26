@@ -49,21 +49,24 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       - name: Validate inputs
+        env:
+          VERCEL_ORG_ID: ${{ inputs.vercel-org-id }}
+          VERCEL_PROJECT_ID: ${{ inputs.vercel-project-id }}
         run: |
           set -euo pipefail
-          if [[ -z "${{ inputs.vercel-org-id }}" || -z "${{ inputs.vercel-project-id }}" ]]; then
+          if [[ -z "$VERCEL_ORG_ID" || -z "$VERCEL_PROJECT_ID" ]]; then
             echo "vercel-org-id and vercel-project-id are required" >&2
             exit 1
           fi
 
+      # setup-node's `cache: yarn` asks the runner's global Yarn 1 for its cache folder, which
+      # fails in projects that pin Yarn 2+ through packageManager. Cache after Corepack.
       - name: Setup Node
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
           node-version: ${{ inputs.node-version }}
-          cache: yarn
 
-      - name: Install dependencies
-        working-directory: ${{ inputs.working-directory }}
+      - name: Enable Corepack
         run: |
           set -euo pipefail
           # Node.js 25 and newer no longer bundle Corepack.
@@ -71,7 +74,30 @@ jobs:
             npm install --global corepack@0.36.0
           fi
           corepack enable
-          yarn install --immutable
+
+      - name: Locate the Yarn cache
+        id: yarn-cache
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          set -euo pipefail
+          if [ "$(yarn --version | cut -d. -f1)" = "1" ]; then
+            dir="$(yarn cache dir)"
+          else
+            dir="$(yarn config get cacheFolder)"
+          fi
+          echo "dir=$dir" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Yarn packages
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25
+        with:
+          path: ${{ steps.yarn-cache.outputs.dir }}
+          key: yarn-${{ runner.os }}-${{ hashFiles(format('{0}/yarn.lock', inputs.working-directory)) }}
+          restore-keys: |
+            yarn-${{ runner.os }}-
+
+      - name: Install dependencies
+        working-directory: ${{ inputs.working-directory }}
+        run: yarn install --immutable
 
       - name: Build
         working-directory: ${{ inputs.working-directory }}
@@ -79,6 +105,8 @@ jobs:
           set -euo pipefail
           yarn build
 
+      # The CLI prints the deployment URL on stdout and its progress on stderr. Capturing both
+      # wrote a multi-line value to GITHUB_OUTPUT, which the runner rejects after a good deploy.
       - name: Deploy to Vercel
         id: deploy
         working-directory: ${{ inputs.working-directory }}
@@ -86,23 +114,27 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.vercel-token }}
           VERCEL_ORG_ID: ${{ inputs.vercel-org-id }}
           VERCEL_PROJECT_ID: ${{ inputs.vercel-project-id }}
+          PROD: ${{ inputs.prod }}
         run: |
           set -euo pipefail
-          if [[ "${{ inputs.prod }}" == "true" ]]; then
-            prod_flag="--prod"
-          else
-            prod_flag=""
+          args=(deploy --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID" --project "$VERCEL_PROJECT_ID" --yes)
+          if [[ "$PROD" == "true" ]]; then
+            args+=(--prod)
           fi
           for attempt in 1 2 3; do
-            url=$(npx --yes vercel@33 deploy --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID" --project "$VERCEL_PROJECT_ID" $prod_flag --confirm 2>&1) && break
-            status=$?
-            echo "$url"
-            if [[ $attempt -eq 3 ]]; then
-              exit $status
+            if output=$(npx --yes vercel@33 "${args[@]}"); then
+              break
+            else
+              status=$?
             fi
-            echo "Rate limit hit, retrying in $((attempt * 10))s" >&2
+            if [[ $attempt -eq 3 ]]; then
+              exit "$status"
+            fi
+            echo "Deploy failed (attempt $attempt); retrying in $((attempt * 10))s" >&2
             sleep $((attempt * 10))
           done
+          url="$(printf '%s\n' "$output" | tail -n1)"
+          echo "Deployed to $url"
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
     outputs:
