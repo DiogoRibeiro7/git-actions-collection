@@ -43,7 +43,7 @@ Before expanding the catalogue aggressively, improve the guarantees around every
 - [x] Validate workflow syntax and semantics with dedicated GitHub Actions linters.
 - [x] Add checks for overly broad `permissions` blocks.
 - [x] Detect mutable or unpinned third-party action references.
-- [ ] Keep `.github/support-matrix.yml`, documentation, examples, and release metadata consistent automatically.
+- [x] Keep `.github/support-matrix.yml`, documentation, examples, and release metadata consistent automatically.
 - [x] Add a formal deprecation policy for supported workflow inputs and outputs.
 - [x] Add compatibility tests that fail when a supported public interface changes unexpectedly.
 - [x] Extend release preflight checks to validate the complete supported surface.
