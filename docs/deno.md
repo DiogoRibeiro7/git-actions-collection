@@ -34,6 +34,9 @@ jobs:
       deno-deploy-token: ${{ secrets.DENO_DEPLOY_TOKEN }}
 ```
 
+The deployment runs once, in its own job, after lint and tests pass on every operating system in
+`os-matrix`.
+
 ## Feedback
 
 Have suggestions? Open an issue to help improve Deno support.
