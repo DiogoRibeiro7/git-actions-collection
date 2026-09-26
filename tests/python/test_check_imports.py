@@ -33,7 +33,35 @@ def test_extract_top_level_imports(fixtures_dir: Path):
 
 def test_load_pyproject_deps(fixtures_dir: Path):
     deps = load_pyproject_deps(fixtures_dir / "pyproject_min.toml")
-    assert any(dep.startswith("requests") for dep in deps)
+    assert deps == {"requests"}
+
+
+def test_pep_508_requirements_reduce_to_their_names(tmp_path: Path):
+    """`packaging>=25.0` used to be kept whole, so a declared, imported
+    dependency was reported both missing and unused."""
+    pyproject = tmp_path / "pyproject.toml"
+    pyproject.write_text(
+        "[project]\n"
+        "name = 'demo'\n"
+        "dependencies = [\n"
+        "  'packaging>=25.0',\n"
+        "  'requests[socks] >= 2.32',\n"
+        "  \"numpy<2; python_version < '3.13'\",\n"
+        "  'typing_extensions',\n"
+        "  'zope.interface (>=6)',\n"
+        "  'pip @ https://example.com/pip.whl',\n"
+        "]\n",
+        encoding="utf-8",
+    )
+
+    assert load_pyproject_deps(pyproject) == {
+        "packaging",
+        "requests",
+        "numpy",
+        "typing-extensions",
+        "zope.interface",
+        "pip",
+    }
 
 
 def test_write_missing_to_pyproject(tmp_path: Path):

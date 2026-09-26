@@ -46,6 +46,51 @@ def test_supported_composite_actions_have_contract_tests() -> None:
         assert path.exists(), f"supported action {name} lacks contract test {path}"
 
 
+# Supported actions whose only coverage is still the Bats contract test with fake
+# tools. Remove each one when an internal workflow starts running it; the set must
+# only shrink.
+AWAITING_RUNNER_SELF_TEST = {
+    "apm-integration",
+    "gradle-build",
+    "markdown-lint",
+    "pr-template-enforcer",
+    "secret-scan",
+    "setup-yarn",
+}
+LOCAL_ACTION = re.compile(r"uses:\s*\./(?:[\w.-]+/)?\.github/actions/([\w-]+)")
+LOCAL_WORKFLOW = re.compile(r"uses:\s*\./\.github/workflows/([\w.-]+\.ya?ml)")
+
+
+def _actions_run_by_internal_workflows(matrix: dict) -> set[str]:
+    """Actions that an internal workflow runs, directly or through a workflow it calls."""
+    workflows = ROOT / ".github" / "workflows"
+    run: set[str] = set()
+    for name in matrix["workflows"]["internal"]:
+        text = (workflows / name).read_text(encoding="utf-8")
+        run.update(LOCAL_ACTION.findall(text))
+        for called in LOCAL_WORKFLOW.findall(text):
+            run.update(LOCAL_ACTION.findall((workflows / called).read_text(encoding="utf-8")))
+    return run
+
+
+def test_supported_composite_actions_run_on_a_real_runner() -> None:
+    """Contract tests replace every tool with a fake, so they cannot notice a
+    changed upstream tool or a runner difference; a self-test on a runner can."""
+    matrix = _load_matrix()
+    supported = set(matrix["composite_actions"]["supported"])
+    run = _actions_run_by_internal_workflows(matrix)
+
+    assert not supported - run - AWAITING_RUNNER_SELF_TEST, (
+        "supported actions without a real-runner self-test: "
+        f"{sorted(supported - run - AWAITING_RUNNER_SELF_TEST)}"
+    )
+    assert not AWAITING_RUNNER_SELF_TEST & run, (
+        "these actions now have a self-test; remove them from AWAITING_RUNNER_SELF_TEST: "
+        f"{sorted(AWAITING_RUNNER_SELF_TEST & run)}"
+    )
+    assert AWAITING_RUNNER_SELF_TEST <= supported
+
+
 def test_supported_composite_actions_pin_external_dependencies() -> None:
     matrix = _load_matrix()
 

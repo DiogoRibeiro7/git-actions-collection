@@ -22,11 +22,21 @@ else
   python -m pip install --upgrade "pip==$pip_version"
 fi
 
-mkdir -p artifact build/python
+# zip runs inside build/, so resolve the archive path first and create its
+# directory: a relative path outside artifact/ used to fail, and an absolute
+# one was written under the workspace instead.
+case "$output_zip" in
+  /*) output_path="$output_zip" ;;
+  *) output_path="$PWD/$output_zip" ;;
+esac
+mkdir -p "$(dirname "$output_path")" build/python
+# zip -r adds to an existing archive, which would keep files from an older build.
+rm -f "$output_path"
+
 rsync -av --exclude '__pycache__' --exclude '*.pyc' "$src/" build/
 if [ -f "$src/requirements.txt" ]; then
   pip install -r "$src/requirements.txt" -t build/
 fi
 
-(cd build && zip -r "../$output_zip" .)
+(cd build && zip -r "$output_path" .)
 echo "Created $output_zip"

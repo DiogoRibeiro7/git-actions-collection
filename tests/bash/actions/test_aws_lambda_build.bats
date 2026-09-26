@@ -15,3 +15,10 @@ load "$(dirname "$BATS_TEST_FILENAME")/../lib/action_harness.bash"
   grep -q "zip" "$FAKEBIN_LOG"
 }
 
+@test "aws-lambda-build writes the archive to any output directory" {
+  run_action "$REPO_ROOT/.github/actions/aws-lambda-build" src=missing output-zip=dist/fn.zip
+  assert_exit_code 0
+  [ -d "$GITHUB_WORKSPACE/dist" ]
+  grep -qx "zip -r $GITHUB_WORKSPACE/dist/fn.zip ." "$FAKEBIN_LOG"
+}
+
