@@ -1,5 +1,5 @@
-# Runs semantic-release (Node 24 by default) with the git, changelog and GitHub plugins and
-# conventionalcommits preset installed, driven by the caller's release config.
+# Runs pinned semantic-release (Node 24 by default) with the git, changelog and GitHub plugins and
+# conventionalcommits preset available, driven by the caller's release config.
 name: Semantic Release
 on:
   workflow_call:
@@ -9,6 +9,10 @@ on:
         required: false
         type: string
         default: '24'
+    secrets:
+      NPM_TOKEN:
+        description: 'npm token for configs that publish with @semantic-release/npm'
+        required: false
 permissions:
   contents: write
   issues: write
@@ -23,9 +27,18 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
           node-version: ${{ inputs.node-version }}
-      - name: Install semantic-release
-        run: npm i -D semantic-release @semantic-release/git @semantic-release/changelog @semantic-release/github conventional-changelog-conventionalcommits
+      # `npm i -D` added these tools to the caller's package.json and lockfile, which the git
+      # plugin then committed. npx -p installs them outside the project. The preset stays on
+      # 9.x: 10.x needs a newer changelog writer than semantic-release 25 bundles.
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx semantic-release
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          npx --yes \
+            -p semantic-release@25.0.9 \
+            -p @semantic-release/git@11.0.1 \
+            -p @semantic-release/changelog@7.0.0 \
+            -p @semantic-release/github@12.0.10 \
+            -p conventional-changelog-conventionalcommits@9.3.1 \
+            semantic-release
