@@ -9,6 +9,7 @@ Install [Poetry](https://python-poetry.org/), configure caches and optionally in
 | --- | --- | --- | --- |
 | `python-version` | no | `3.12` | Python version |
 | `install-deps` | no | `true` | Run 'poetry install' |
+| `poetry-version` | no | `2.5.1` | Poetry release to install |
 | `pip-version` | no | `26.2.1` | pip release to install (set to 'latest' to track upstream) |
 
 ## Outputs
@@ -22,5 +23,6 @@ This action has no outputs.
 - uses: DiogoRibeiro7/git-actions-collection/.github/actions/setup-poetry@v1
   with:
     python-version: '3.12'
+    poetry-version: '2.5.1'
     install-deps: true
 ```
