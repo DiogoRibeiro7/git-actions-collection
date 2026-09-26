@@ -92,6 +92,51 @@ descriptions in `action.yml`, not the README table, then regenerate:
 python scripts/action_docs.py --write
 ```
 
+## Change a support tier
+
+`.github/support-matrix.yml` decides each workflow's and action's tier, and the
+docs site's catalogue and reference pages are generated from it. Four other
+copies are kept by hand, and a test fails when any of them falls behind:
+
+- the supported tables in `README.md` (`tests/test_workflow_docs.py`);
+- the supported-workflow list and the composite-action count in `SUPPORT.md`
+  (`tests/test_support_matrix.py`);
+- `.github/supported-interfaces.json`, rewritten with
+  `python scripts/interface_snapshot.py --write`;
+- the `evidence` paths listed for each supported workflow, which must exist.
+
+Promote a component only when it meets the criteria in
+[SUPPORT.md](SUPPORT.md#promotion-criteria). A supported composite action must
+also run on a real runner; see [CI integration coverage](#ci-integration-coverage).
+
+## Prepare a release
+
+The release pull request bumps the version in `pyproject.toml` and turns the
+`Unreleased` section of `CHANGELOG.md` into `## <version> - <YYYY-MM-DD>`. A test
+requires the newest dated changelog section to match `pyproject.toml`, and the
+release preflight checks both again before it tags. [RELEASES.md](RELEASES.md)
+describes the rest of the procedure.
+
+## Write examples and documentation snippets
+
+Consumers copy the projects under `examples/`, fenced YAML in Markdown, the
+`.vscode` snippets, and the workflows that `migrate_starter_workflows.py` and the
+PyPI trusted-publishing wizard generate. `tests/test_consumer_references.py`
+checks every reference to this collection in them:
+
+- the workflow or action must exist, and a workflow must be callable through
+  `workflow_call`;
+- the ref must be `@v1` or a full commit SHA, never a branch;
+- `with:` and `secrets:` may use only names the target declares and does not
+  deprecate, and must include every required one;
+- a job that calls a reusable workflow declares job-level `permissions` that grant
+  at least what the called workflow's jobs request. Each workflow's reference page
+  on the docs site lists them. GitHub checks these grants before any job starts,
+  so a missing one fails the whole run.
+
+Example workflows are also linted with actionlint and ShellCheck; see
+[CI integration coverage](#ci-integration-coverage).
+
 ## Choose the right test
 
 | Layer | What it proves | Example |
