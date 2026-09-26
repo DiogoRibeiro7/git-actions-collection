@@ -1,8 +1,8 @@
-"""Every executable action reference must be immutable.
+"""Every executable action reference must use an explicit stable reference.
 
-A tag or branch can be moved to different code after review, and a mistyped tag
-(for example `actions/checkout@5`) fails every caller at runtime. Third-party
-actions therefore use full commit SHAs and Docker actions use image digests.
+Version tags such as `v1`, `v7`, and `v1.2.3` are accepted alongside full
+commit SHAs. Floating branch references remain invalid, and Docker actions must
+use image digests.
 """
 
 from __future__ import annotations
@@ -17,6 +17,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 SELF = "DiogoRibeiro7/git-actions-collection/"
 COMMIT_SHA = re.compile(r"[0-9a-f]{40}")
+VERSION_TAG = re.compile(r"v\d+(?:\.\d+){0,2}")
 
 
 def _references(path: Path) -> Iterator[str]:
@@ -31,7 +32,7 @@ def _references(path: Path) -> Iterator[str]:
 
 
 def pinning_problem(uses: str, *, consumer_example: bool = False) -> str | None:
-    """Explain why a `uses:` reference is not immutable, or return None."""
+    """Explain why a `uses:` reference is not acceptable, or return None."""
     if uses.startswith("./"):
         return None
     if uses.startswith("docker://"):
@@ -43,10 +44,10 @@ def pinning_problem(uses: str, *, consumer_example: bool = False) -> str | None:
         return "reference this repository's own workflows and actions with ./ paths"
     _, separator, ref = uses.rpartition("@")
     if not separator:
-        return "no ref; pin a full commit SHA"
-    if not COMMIT_SHA.fullmatch(ref):
-        return f"mutable ref {ref!r}; pin a full 40-character commit SHA"
-    return None
+        return "no ref; use a version tag or full commit SHA"
+    if COMMIT_SHA.fullmatch(ref) or VERSION_TAG.fullmatch(ref):
+        return None
+    return f"unsupported ref {ref!r}; use a version tag or full commit SHA"
 
 
 def _problems(paths: list[Path], *, consumer_example: bool) -> list[str]:
@@ -95,6 +96,8 @@ def test_each_action_repository_is_pinned_to_one_commit() -> None:
             if uses.startswith(("./", "docker://")):
                 continue
             action, _, ref = uses.rpartition("@")
+            if VERSION_TAG.fullmatch(ref):
+                continue
             repository = "/".join(action.split("/")[:2])
             refs.setdefault(repository, {}).setdefault(ref, set()).add(
                 path.relative_to(ROOT).as_posix()
@@ -119,11 +122,12 @@ SHA = "fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09"
         (f"github/codeql-action/init@{SHA}", False, None),
         ("./.github/actions/setup-yarn", False, None),
         ("docker://alpine@sha256:" + "a" * 64, False, None),
-        ("actions/checkout@v5", False, "mutable ref 'v5'"),
-        ("actions/checkout@5", False, "mutable ref '5'"),
-        ("actions/dependency-review-action@main", False, "mutable ref 'main'"),
-        ("dtolnay/rust-toolchain@stable", False, "mutable ref 'stable'"),
-        (f"actions/checkout@{SHA[:7]}", False, "mutable ref 'fbc6f39'"),
+        ("actions/checkout@v7", False, None),
+        ("actions/checkout@v7.0.1", False, None),
+        ("actions/checkout@5", False, "unsupported ref '5'"),
+        ("actions/dependency-review-action@main", False, "unsupported ref 'main'"),
+        ("dtolnay/rust-toolchain@stable", False, "unsupported ref 'stable'"),
+        (f"actions/checkout@{SHA[:7]}", False, "unsupported ref 'fbc6f39'"),
         ("actions/checkout", False, "no ref"),
         ("docker://alpine:3.20", False, "without an @sha256 digest"),
         (f"{SELF}.github/workflows/rust-ci.yml@v1", False, "with ./ paths"),

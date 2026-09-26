@@ -128,6 +128,7 @@ workflows:
     - terraform-plan-comment.yml
     - vercel-nextjs.yml
   internal:
+    - dependabot-policy.yml
     - test-helm-chart-release.yml
     - auto-upgrade-pyproject.yml
     - bash-unit-tests.yml
