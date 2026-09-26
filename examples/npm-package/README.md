@@ -30,7 +30,7 @@ Set the `NPM_TOKEN` secret with an npm token that has publish rights.
 
 ## Canary Release
 
-Use `.github/workflows/canary.yml` to publish pre-release packages under the `next` dist-tag when pushing to `main` or tagging an `*-rc` version.
+Use `.github/workflows/canary.yml` to publish pre-release packages under the `next` dist-tag when pushing to `main` or tagging an `*-rc` version. Each run publishes a unique version, `<package.json version>-canary.<run number>.<run attempt>`, because npm refuses to publish the same version twice.
 
 ```yaml
 jobs:
