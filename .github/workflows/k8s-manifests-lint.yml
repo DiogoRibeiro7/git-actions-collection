@@ -1,11 +1,11 @@
-# Validates Kubernetes manifests under the given paths against upstream schemas using the latest
-# kubeconform release, printing a summary.
+# Validates Kubernetes manifests under the given paths against upstream schemas with kubeconform
+# 0.8.0, skipping custom resources without a published schema and files under .github.
 name: Kubernetes Manifests Lint
 on:
   workflow_call:
     inputs:
       paths:
-        description: 'Paths to Kubernetes manifests'
+        description: 'Space-separated files or directories with Kubernetes manifests'
         required: false
         type: string
         default: '.'
@@ -17,8 +17,26 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Install kubeconform
+        shell: bash
+        env:
+          VERSION: v0.8.0
+          SHA256: 9bc2bffbf71f261128533edaf912153948b7ff238f9a531ae6d34466ec287883
         run: |
-          curl -L https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz \
-            | tar xz -C /usr/local/bin
+          set -euo pipefail
+          archive="$RUNNER_TEMP/kubeconform.tar.gz"
+          curl -fsSL -o "$archive" \
+            "https://github.com/yannh/kubeconform/releases/download/$VERSION/kubeconform-linux-amd64.tar.gz"
+          echo "$SHA256  $archive" | sha256sum --check --quiet
+          mkdir -p "$RUNNER_TEMP/kubeconform"
+          tar -xzf "$archive" -C "$RUNNER_TEMP/kubeconform"
+          echo "$RUNNER_TEMP/kubeconform" >> "$GITHUB_PATH"
+      # Custom resources have no upstream schema, and workflow YAML has no `kind`; both used to
+      # fail every repository scanned from its root.
       - name: Validate manifests
-        run: kubeconform -summary ${{ inputs.paths }}
+        shell: bash
+        env:
+          MANIFEST_PATHS: ${{ inputs.paths }}
+        run: |
+          set -euo pipefail
+          read -r -a paths <<< "$MANIFEST_PATHS"
+          kubeconform -summary -ignore-missing-schemas -ignore-filename-pattern '(^|/)[.]github/' "${paths[@]}"
