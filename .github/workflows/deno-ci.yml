@@ -1,5 +1,5 @@
 # Runs deno lint and deno test across an OS matrix with dependency caching, and optionally deploys
-# to Deno Deploy production with deployctl.
+# to Deno Deploy production with deployctl once every OS has passed.
 name: Deno CI
 
 on:
@@ -67,20 +67,34 @@ jobs:
       - name: Test
         if: inputs.run-tests == true
         run: deno test
-      - name: Validate deploy inputs
-        if: inputs.deploy == true
+
+  # Deploy once, after every OS passed; deploying from the matrix pushed to production once per OS.
+  deploy:
+    needs: build
+    if: inputs.deploy == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Setup Deno
+        uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed
+        with:
+          deno-version: ${{ inputs.deno-version }}
+      - name: Deploy
+        shell: bash
+        env:
+          DENO_DEPLOY_TOKEN: ${{ secrets.deno-deploy-token }}
+          PROJECT: ${{ inputs.project }}
         run: |
           set -euo pipefail
-          if [ -z "${{ inputs.project }}" ]; then
+          if [ -z "$PROJECT" ]; then
             echo 'project is required when deploy is true' >&2
             exit 1
           fi
-          if [ -z "${{ secrets.deno-deploy-token }}" ]; then
+          if [ -z "$DENO_DEPLOY_TOKEN" ]; then
             echo 'deno-deploy-token secret is required when deploy is true' >&2
             exit 1
           fi
-      - name: Deploy
-        if: inputs.deploy == true
-        env:
-          DENO_DEPLOY_TOKEN: ${{ secrets.deno-deploy-token }}
-        run: deno run --allow-read --allow-net --allow-env https://deno.land/x/deploy@1.9.1/deployctl.ts deploy --project="${{ inputs.project }}" --prod
+          deno run --allow-read --allow-net --allow-env https://deno.land/x/deploy@1.9.1/deployctl.ts \
+            deploy --project="$PROJECT" --prod
