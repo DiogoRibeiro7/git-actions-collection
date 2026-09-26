@@ -1,6 +1,6 @@
 # Runs pip-audit and Bandit (SARIF uploaded to code scanning), opt-in Trivy filesystem scanning, and
-# npm signature, Maven/Gradle and Go module checks when detected, then attests reports with SLSA
-# provenance.
+# npm signature, Maven/Gradle and Go module checks when detected, lists each result and its findings
+# on the run page, then attests reports with SLSA provenance.
 name: Security Scan
 on:
   workflow_call:
@@ -238,6 +238,7 @@ jobs:
           )
           PY
       - name: Trivy (optional)
+        id: trivy
         if: ${{ inputs['skip-trivy'] == false }}
         uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8
         with:
@@ -255,6 +256,7 @@ jobs:
           node-version: '24'
           cache: npm
       - name: Verify npm signatures
+        id: npm-signatures
         if: hashFiles('package-lock.json') != '' && inputs['skip-npm-signatures'] == false
         run: |
           set -euo pipefail
@@ -266,6 +268,7 @@ jobs:
           distribution: temurin
           java-version: '17'
       - name: Verify Maven dependencies
+        id: maven
         if: hashFiles('pom.xml') != '' && inputs['skip-java-verify'] == false
         run: |
           set -euo pipefail
@@ -273,6 +276,7 @@ jobs:
       # --write-verification-metadata regenerates the checksums instead of checking them.
       # Verification happens when Gradle resolves dependencies against the committed file.
       - name: Verify Gradle dependencies
+        id: gradle
         if: (hashFiles('build.gradle') != '' || hashFiles('build.gradle.kts') != '') && inputs['skip-java-verify'] == false
         shell: bash
         run: |
@@ -288,6 +292,7 @@ jobs:
         with:
           go-version: '1.22'
       - name: Verify Go modules
+        id: go-modules
         if: hashFiles('go.sum') != '' && inputs['skip-go-verify'] == false
         run: |
           set -euo pipefail
@@ -333,6 +338,156 @@ jobs:
         uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2
         with:
           sarif_file: trivy.sarif
+
+      # Lists every scanner that applied, with its findings, on the run page. Locations stay in
+      # code scanning, which already receives the SARIF reports.
+      - name: Summary
+        if: ${{ always() }}
+        shell: bash
+        env:
+          STEPS: ${{ toJSON(steps) }}
+          SKIP_PYTHON: ${{ inputs.skip-python-scans }}
+          SKIP_TRIVY: ${{ inputs.skip-trivy }}
+          SKIP_NPM: ${{ inputs.skip-npm-signatures }}
+          SKIP_JAVA: ${{ inputs.skip-java-verify }}
+          SKIP_GO: ${{ inputs.skip-go-verify }}
+        run: |
+          # The summary is best effort: it must not fail a job that passed.
+          python - <<'PY' || echo "::warning title=Security summary::Could not write the summary"
+          import json
+          import os
+          from pathlib import Path
+
+          OUTCOMES = {
+              "success": "✅ Passed",
+              "failure": "❌ Failed",
+              "cancelled": "Cancelled",
+              "skipped": "Skipped",
+          }
+          steps = json.loads(os.environ.get("STEPS") or "{}")
+          ARTIFACT = "see the security-reports artifact"
+
+
+          def enabled(name):
+              return os.environ.get(f"SKIP_{name}") != "true"
+
+
+          def load(path, default):
+              try:
+                  return json.loads(Path(path).read_text(encoding="utf-8", errors="replace"))
+              except (OSError, ValueError):
+                  return default
+
+
+          def cell(value):
+              return " ".join(str(value).split()).replace("|", "\\|")
+
+
+          def plural(count, noun):
+              return f"{count} {noun}{'' if count == 1 else 's'}"
+
+
+          def outcome(step_id, detail=""):
+              text = OUTCOMES.get((steps.get(step_id) or {}).get("outcome"), "Not run")
+              return f"{text}: {detail}" if detail else text
+
+
+          rows, sections = [], []
+          if enabled("PYTHON"):
+              scans = (steps.get("python-scans") or {}).get("outputs") or {}
+              # pip-audit reports an advisory once per source, so count each ID once.
+              audit = load("pip-audit.json", {})
+              advisories, packages = {}, set()
+              for dependency in audit.get("dependencies") or []:
+                  for vuln in dependency.get("vulns") or []:
+                      key = (dependency.get("name"), vuln.get("id"))
+                      advisories.setdefault(key, (dependency, vuln))
+                      packages.add(dependency.get("name"))
+              status = scans.get("pip-audit-status")
+              audited = sum(1 for item in audit.get("dependencies") or [] if not item.get("skip_reason"))
+              if status is None:
+                  result = "Not run"
+              elif status == "0":
+                  result = f"✅ Passed: {plural(audited, 'package')} audited" if audited else "✅ Passed: nothing to audit"
+              elif advisories:
+                  found = f"{len(advisories)} {'advisory' if len(advisories) == 1 else 'advisories'}"
+                  result = f"❌ Failed: {found} in {plural(len(packages), 'package')}"
+              else:
+                  result = f"❌ Failed: exit {status}, {ARTIFACT}"
+              rows.append(("pip-audit", result))
+              if advisories:
+                  table = ["**pip-audit findings**", "", "| Package | Version | Advisory | Fixed in |", "| --- | --- | --- | --- |"]
+                  for (name, advisory_id), (dependency, vuln) in list(advisories.items())[:50]:
+                      cves = [alias for alias in vuln.get("aliases") or [] if alias.startswith("CVE-")]
+                      advisory = f"[{advisory_id}](https://osv.dev/vulnerability/{advisory_id})"
+                      if cves:
+                          advisory += f" ({cves[0]})"
+                      fixed = ", ".join(f"`{version}`" for version in vuln.get("fix_versions") or []) or "none"
+                      table.append(f"| `{name}` | {dependency.get('version')} | {advisory} | {fixed} |")
+                  sections.append(table)
+
+              bandit = load("bandit.json", {})
+              findings = bandit.get("results") or []
+              status = scans.get("bandit-status")
+              severities = [item.get("issue_severity", "").lower() for item in findings]
+              counts = ", ".join(f"{severities.count(level)} {level}" for level in ("high", "medium", "low") if level in severities)
+              if status is None:
+                  result = "Not run"
+              elif status == "0":
+                  result = "✅ Passed"
+              elif findings:
+                  result = f"❌ Failed: {counts}"
+              else:
+                  result = f"❌ Failed: exit {status}, {ARTIFACT}"
+              if bandit.get("errors"):
+                  result += f" ({plural(len(bandit['errors']), 'file')} could not be scanned)"
+              rows.append(("Bandit", result))
+              if findings:
+                  table = ["**Bandit findings**", "", "| Severity | Test | Location | Issue |", "| --- | --- | --- | --- |"]
+                  for item in findings[:50]:
+                      test = f"[{item.get('test_id')}]({item['more_info']})" if item.get("more_info") else item.get("test_id")
+                      where = f"`{str(item.get('filename', '')).removeprefix('./')}:{item.get('line_number')}`"
+                      table.append(f"| {item.get('issue_severity')} | {test} {item.get('test_name', '')} | {where} | {cell(item.get('issue_text', ''))} |")
+                  sections.append(table)
+
+          if enabled("TRIVY"):
+              runs = load("trivy.sarif", {}).get("runs") or []
+              results = [result for run in runs for result in run.get("results") or []]
+              rules = {rule.get("id"): rule for run in runs for rule in (run.get("tool") or {}).get("driver", {}).get("rules") or []}
+              rows.append(("Trivy", outcome("trivy", plural(len(results), "finding") if results else "")))
+              if results:
+                  table = ["**Trivy findings**", "", "| Rule | Level | Location | Description |", "| --- | --- | --- | --- |"]
+                  for result in results[:50]:
+                      rule = rules.get(result.get("ruleId")) or {}
+                      text = (rule.get("shortDescription") or {}).get("text") or (result.get("message") or {}).get("text", "")
+                      physical = ((result.get("locations") or [{}])[0].get("physicalLocation") or {})
+                      uri = (physical.get("artifactLocation") or {}).get("uri", "")
+                      line = (physical.get("region") or {}).get("startLine")
+                      where = f"`{uri}:{line}`" if uri and line else (f"`{uri}`" if uri else "")
+                      table.append(f"| {result.get('ruleId')} | {result.get('level', '')} | {where} | {cell(text.splitlines()[0] if text else '')} |")
+                  sections.append(table)
+
+          if enabled("NPM") and Path("package-lock.json").is_file():
+              rows.append(("npm signatures", outcome("npm-signatures")))
+          if enabled("JAVA") and Path("pom.xml").is_file():
+              rows.append(("Maven dependencies", outcome("maven")))
+          if enabled("JAVA") and (Path("build.gradle").is_file() or Path("build.gradle.kts").is_file()):
+              if Path("gradle/verification-metadata.xml").is_file():
+                  rows.append(("Gradle dependencies", outcome("gradle")))
+              else:
+                  rows.append(("Gradle dependencies", "⚠️ Not verified: no gradle/verification-metadata.xml"))
+          if enabled("GO") and Path("go.sum").is_file():
+              rows.append(("Go modules", outcome("go-modules")))
+
+          out = ["## Security scan", "", "| Check | Result |", "| --- | --- |"]
+          out += [f"| {name} | {result} |" for name, result in rows] or ["| (none) | Every scanner is disabled |"]
+          for section in sections:
+              out += ["", *section]
+          summary = "\n".join(out) + "\n"
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as handle:
+              handle.write(summary)
+          print(summary)
+          PY
 
       - name: Fail on Python scanner findings
         if: ${{ inputs['skip-python-scans'] == false && always() }}
