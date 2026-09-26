@@ -2,6 +2,10 @@
 
 Deploy a Next.js application to Vercel using the official CLI, retrying failed deploys.
 
+The workflow runs `yarn build` first as a check, so a broken build fails before anything is
+deployed. Vercel then builds the deployment itself from the source, because the workflow does not
+upload a prebuilt output.
+
 ## Usage
 
 ```yaml

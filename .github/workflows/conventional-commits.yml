@@ -1,5 +1,5 @@
 # Checks commit messages against Conventional Commits, using webiny/action-conventional-commits on
-# pull requests and commitlint on push events.
+# pull requests and commitlint on every commit a push adds.
 name: Conventional Commits
 on:
   workflow_call: {}
@@ -18,9 +18,38 @@ jobs:
         uses: webiny/action-conventional-commits@8bc41ff4e7d423d56fa4905f6ff79209a78776c7
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up Node.js
+        if: github.event_name == 'push'
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24'
+      # The old step piped only HEAD's subject into commitlint, so earlier commits in a push were
+      # never checked, and it ignored the conventional config it installed.
       - name: Conventional commits check (push)
         if: github.event_name == 'push'
+        shell: bash
+        env:
+          BEFORE: ${{ github.event.before }}
         run: |
-          npx commitlint --version >/dev/null 2>&1 || npm i -g @commitlint/{config-conventional,cli}
-          range="$(git rev-parse HEAD^)..HEAD"
-          git log --format=%s "$range" | npx commitlint
+          set -euo pipefail
+          # New branches and force pushes have no usable previous commit; check the last one.
+          range=(--last)
+          if [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] \
+            && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            range=(--from "$BEFORE" --to HEAD)
+          fi
+          # Use the caller's commitlint config when there is one, else the conventional preset.
+          has_config=false
+          for file in commitlint.config.* .commitlintrc*; do
+            [ -e "$file" ] && has_config=true
+          done
+          grep -q '"commitlint"' package.json 2>/dev/null && has_config=true
+          config=()
+          if [ "$has_config" = false ]; then
+            config=(--extends @commitlint/config-conventional)
+          fi
+          npx --yes -p @commitlint/cli@21.2.3 -p @commitlint/config-conventional@21.2.3 \
+            commitlint "${range[@]}" "${config[@]}"
+      - name: Other events
+        if: github.event_name != 'pull_request' && github.event_name != 'push'
+        run: echo "::notice::Commit messages are checked on pull_request and push events only; skipped for $GITHUB_EVENT_NAME."

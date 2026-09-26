@@ -1,4 +1,4 @@
-# Deploys each Lambda in a JSON matrix via AWS OIDC when its path changed in the last commit,
+# Deploys each Lambda in a JSON matrix via AWS OIDC when the push or pull request changed its path,
 # building per runtime, publishing a version and optionally moving an alias with rollback.
 name: AWS Lambda Deploy
 
@@ -50,13 +50,21 @@ jobs:
         with:
           role-to-assume: ${{ inputs.aws-role }}
           aws-region: ${{ inputs.aws-region }}
+      # Compare with everything the push or pull request changed: HEAD^ alone missed functions
+      # changed in earlier commits of a multi-commit push, so they were never deployed.
       - name: Detect changes
         id: changed
         shell: bash
+        env:
+          FUNCTION_PATH: ${{ matrix.function.path }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: |
           set -euo pipefail
-          path="${{ matrix.function.path }}"
-          if git diff --quiet HEAD^ -- "$path"; then
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ] \
+            || ! git fetch --no-tags --quiet --depth=1 origin "$BASE"; then
+            echo "No base commit to compare with; deploying $FUNCTION_PATH"
+            echo "changed=true" >>"$GITHUB_OUTPUT"
+          elif git diff --quiet "$BASE" HEAD -- "$FUNCTION_PATH"; then
             echo "changed=false" >>"$GITHUB_OUTPUT"
           else
             echo "changed=true" >>"$GITHUB_OUTPUT"
