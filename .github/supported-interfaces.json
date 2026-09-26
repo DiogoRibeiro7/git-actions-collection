@@ -355,6 +355,11 @@
           "default": "3.12",
           "deprecated": false,
           "required": false
+        },
+        "poetry-version": {
+          "default": "2.5.1",
+          "deprecated": false,
+          "required": false
         }
       },
       "outputs": []
