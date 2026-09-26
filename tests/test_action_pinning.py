@@ -17,7 +17,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 SELF = "DiogoRibeiro7/git-actions-collection/"
 COMMIT_SHA = re.compile(r"[0-9a-f]{40}")
-VERSION_TAG = re.compile(r"v\\d+(?:\\.\\d+){0,2}")
+VERSION_TAG = re.compile(r"v\d+(?:\.\d+){0,2}")
 
 
 def _references(path: Path) -> Iterator[str]:
