@@ -2,7 +2,7 @@
 
 All notable changes to this repository are documented here.
 
-## Unreleased
+## 1.4.0 - 2026-09-26
 
 ### Added
 
@@ -13,6 +13,11 @@ All notable changes to this repository are documented here.
 - `rust-coverage.yml`, `rust-security.yml` and `rust-benchmark.yml` write their results to the run's summary page: line and function coverage with the least covered files, cargo-audit and cargo-deny findings with their advisories and fixed versions, and each Criterion benchmark's mean and confidence interval. cargo-audit findings are annotated on their `Cargo.lock` entry and a missed coverage minimum on the run. cargo-audit and cargo-deny run a second time, offline and in JSON, to collect the findings; the first run still decides the result.
 - The supported `python-test-matrix.yml` shows each matrix entry's test results on the run's summary page: passed, failed, errored and skipped counts, the time, and every failed test with its message. Failures are annotated on the deepest traceback line inside the repository. pytest writes the JUnit report these come from through `PYTEST_ADDOPTS`, so any pytest-based `test-command` works unchanged; other commands show only whether they passed.
 - The supported `security-scan.yml` lists each scanner that applied on the run's summary page: pip-audit, Bandit, Trivy, npm signatures, Maven, Gradle and Go modules, each with its result. Below the list it shows pip-audit advisories (deduplicated, with OSV links and fixed versions), Bandit findings with file and line, and Trivy findings. A Gradle build without `gradle/verification-metadata.xml` is shown as not verified instead of passed. Before, the log only said `pip-audit=1 bandit=0`.
+- Every public workflow has a reference page on the documentation site: what it does, its support tier, a usage snippet with the permissions the caller must grant, and its inputs, outputs and secrets. A catalogue page lists them all. Composite action READMEs get generated Inputs and Outputs tables, and the README was rewritten around a quick start and the supported workflows and actions.
+
+### Changed
+
+- `python-test-matrix.yml` exports `PYTEST_ADDOPTS=--junitxml=...` before running `test-command`, so pytest writes the report its summary reads. A pytest configuration that disables the JUnit plugin (`-p no:junitxml`) now fails with an unrecognized-argument error; drop that option to use this release.
 
 ### Deprecated
 
