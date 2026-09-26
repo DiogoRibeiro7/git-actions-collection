@@ -1,5 +1,5 @@
 # Builds and pushes a multi-arch image (amd64/arm64, GHCR by default) via docker-build-push.yml,
-# tagged with the Git tag plus latest, after a Trivy scan of the first platform passes.
+# tagged with the Git tag plus latest (or just the commit SHA off a tag), after a Trivy scan passes.
 name: Publish Docker (compatibility alias)
 
 on:
@@ -64,7 +64,8 @@ jobs:
       context: ${{ inputs.context }}
       dockerfile: ${{ inputs.dockerfile }}
       platforms: ${{ inputs.platforms }}
-      tags: ${{ github.ref_type == 'tag' && format('{0},latest', github.ref_name) || format('{0},latest', github.sha) }}
+      # latest moves only with a release tag; other refs push just the commit SHA.
+      tags: ${{ github.ref_type == 'tag' && format('{0},latest', github.ref_name) || github.sha }}
       build-args: ${{ inputs.build-args }}
       target: ${{ inputs.target }}
       labels: ${{ inputs.labels }}
