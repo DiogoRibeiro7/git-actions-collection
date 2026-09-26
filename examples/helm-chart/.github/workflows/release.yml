@@ -1,0 +1,14 @@
+name: Release Helm Chart
+on:
+  push:
+    tags: ['v*']
+jobs:
+  release:
+    # The push job needs packages: write for GHCR.
+    permissions:
+      contents: read
+      packages: write
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/helm-chart-release.yml@v1
+    with:
+      chart-path: .
+      dry-run: false

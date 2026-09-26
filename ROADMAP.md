@@ -263,7 +263,7 @@ Existing deployment workflows should remain experimental until they have strong 
 - [ ] Keep apply operations behind protected environments and explicit permissions.
 - [ ] Expand OIDC-first cloud authentication examples for AWS, Azure, and GCP.
 - [ ] Add policy/static checks for Terraform and Kubernetes manifests.
-- [ ] Harden Helm lint/test workflows.
+- [x] Harden Helm lint/test workflows.
 - [ ] Add deployment smoke-test hooks without coupling them to a specific cloud provider.
 
 ---

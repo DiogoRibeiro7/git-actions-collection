@@ -4,8 +4,13 @@ All notable changes to this repository are documented here.
 
 ## Unreleased
 
+### Added
+
+- Experimental `helm-chart-release.yml`: lints and packages a Helm chart, then pushes it to an OCI registry (`ghcr.io/<owner>/charts` by default) from a GitHub environment. It is a dry run unless `dry-run: false` is set. The `helm-chart` example gains a tag-triggered release workflow.
+
 ### Deprecated
 
+- `helm-chart-lint-test.yml`'s `publish` and `oci-registry` inputs. Publishing moved to `helm-chart-release.yml`, and `publish: true` now fails with directions to it.
 - `database-migration.yml`'s `flyway-license-key` secret. Pass `FLYWAY_LICENSE_KEY` instead, which `secrets: inherit` also provides.
 
 ### Removed
@@ -28,6 +33,7 @@ All notable changes to this repository are documented here.
 - `java-ci.yml` passed without running any tests when `build-tool` was neither `maven` nor `gradle`, because both test steps were skipped. It now fails with an error naming the accepted values.
 - Security fix in the supported `security-scan.yml`: without `dependency-install-command`, pip-audit audited its own scanner environment instead of the caller's dependencies, so projects always passed. It now audits the root `requirements.txt`, or the dependencies `pyproject.toml` resolves to, and warns when there is nothing to audit. The scanner environments also lived in the workspace, so with the default `paths: .` Bandit scanned the scanners' own packages (55 findings in a clean project) and failed. They now live in `RUNNER_TEMP`. Expect real pip-audit findings where there were none.
 - Security fix in the supported `security-scan.yml`: its "Verify Gradle dependencies" step ran `--write-verification-metadata`, which regenerates Gradle's dependency checksums instead of checking them, so it always passed. It now resolves dependencies with `--dependency-verification strict` against the committed `gradle/verification-metadata.xml`, and warns when a project has none.
+- `helm-chart-lint-test.yml` could never publish: its token could only read the repository, so the OCI push and the chart-releaser step always failed. Publishing now lives in `helm-chart-release.yml`. The lint workflow installs a pinned Helm 4.3.0 instead of running the unpinned `get-helm-3` script from Helm's `main` branch, passes the chart path through the environment, and no longer passes Helm 4's deprecated `--dry-run` to `helm template`.
 - The documented `database-migration.yml` call passed per-environment secrets explicitly, which GitHub rejects because the workflow cannot declare them. The guide and example now use `secrets: inherit`.
 - `docker-build-push.yml` (and `publish-docker-on-tag.yml` and `release-container.yml`, which call it) pushed the image before scanning it, so a failing Trivy scan could not stop a vulnerable image from being published. It now builds the first platform into the local Docker engine, scans that, and pushes only after the scan passes. Other platforms in a multi-platform build are not scanned.
 - `ci-monorepo-matrix.yml` failed whenever more than one top-level folder changed, because it wrote the folder list to a step output over several lines. On pull requests it also diffed from the repository's first commit, so every folder ran. It now writes one line and compares pull requests with their base. `ci-monorepo-runner.yml` now lints a folder's own `.github/workflows` (it looked for the folder inside itself), fails on invalid Kubernetes manifests instead of ignoring them (custom resources without a schema are skipped), and runs `terraform validate` after `terraform init`.

@@ -1,0 +1,52 @@
+name: Test Helm Chart Release Workflow
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/helm-chart-release.yml'
+      - '.github/workflows/test-helm-chart-release.yml'
+      - 'examples/helm-chart/**'
+      - 'tests/python/test_helm_chart_release_workflow.py'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  dry-run:
+    # GitHub checks nested job permissions before evaluating if:, so the
+    # skipped push job's packages: write must be allowed here. The package
+    # job itself requests only contents: read.
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/helm-chart-release.yml
+    with:
+      chart-path: examples/helm-chart
+      dry-run: true
+
+  check-package:
+    needs: dry-run
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Download packaged chart
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        with:
+          name: helm-chart
+          path: chart
+      - name: Check the packaged chart
+        shell: bash
+        env:
+          CHART: ${{ needs.dry-run.outputs.chart }}
+        run: |
+          set -euo pipefail
+          test "$CHART" = demo-0.1.0.tgz
+          tar -tzf "chart/$CHART" | grep -qx 'demo/Chart.yaml'
