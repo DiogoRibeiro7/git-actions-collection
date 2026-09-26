@@ -122,7 +122,6 @@ workflows:
     - pypi-publish.yml
     - rust-github-release.yml
     - rust-publish.yml
-    - pytorch-train-deploy.yml
     - release.yml
     - terraform-aws.yml
     - terraform-plan-comment.yml
