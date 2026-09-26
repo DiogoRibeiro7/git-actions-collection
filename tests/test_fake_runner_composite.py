@@ -456,7 +456,10 @@ def test_markdown_lint_with_config(tmp_path: Path):
         env=_env_with_path(fakebin),
         workdir=tmp_path,
     )
-    assert "markdownlint -c .markdownlint.yml README.md" in result.stdout
+    assert (
+        "markdownlint --ignore **/node_modules/** -c .markdownlint.yml README.md"
+        in result.stdout
+    )
 
 
 def test_markdown_lint_failure(tmp_path: Path):
@@ -478,7 +481,7 @@ def test_markdown_lint_default(tmp_path: Path):
         env=_env_with_path(fakebin),
         workdir=tmp_path,
     )
-    assert "markdownlint README.md" in result.stdout
+    assert "markdownlint --ignore **/node_modules/** README.md" in result.stdout
 
 
 def test_setup_poetry_install(tmp_path: Path):
