@@ -184,7 +184,8 @@ def test_summary_counts_pytest_results_and_annotates_failures(tmp_path):
         "| Tests | ❌ Failed: 1 passed, 1 failed, 1 error, 1 skipped in "
     )
     assert "| `tests.test_sample.test_fails` | assert 1 == 2 |" in summary.summary
-    assert "| `tests.test_sample.test_errors` | fixture 'missing_fixture' not found |" in summary.summary
+    missing = "| `tests.test_sample.test_errors` | fixture 'missing_fixture' not found |"
+    assert missing in summary.summary
     # The failure is annotated at the assertion inside the helper, the deepest frame.
     helper_line = SAMPLE_TESTS.splitlines().index("    assert 1 == 2") + 1
     annotations = _annotations(summary.stdout)
@@ -201,18 +202,24 @@ def test_summary_counts_pytest_results_and_annotates_failures(tmp_path):
 
 
 @posix_only
-def test_summary_without_a_junit_report(tmp_path):
-    """A test command that is not pytest writes no report; the result is still shown."""
+@pytest.mark.parametrize("encoding", ["utf-8", "cp1252"])
+def test_summary_without_a_junit_report(tmp_path, encoding):
+    """A test command that is not pytest writes no report; the result is still shown.
+
+    cp1252 is the Windows runners' default, which cannot encode the result emoji.
+    """
     result = run_workflow_step(
         WORKFLOW,
         "test",
         "Summary",
         context={"steps.tests.outcome": "success", **MATRIX},
-        env={"RUNNER_TEMP": str(tmp_path)},
+        env={"RUNNER_TEMP": str(tmp_path), "PYTHONIOENCODING": encoding},
         workdir=tmp_path,
     )
 
     assert result.code == 0, result.stderr
+    assert "Could not write the summary" not in result.stdout, result.stderr
+    assert "| Tests | ✅ Passed |" in result.stdout
     assert result.summary == (
         "## Python 3.12 on ubuntu-latest\n\n| Check | Result |\n| --- | --- |\n"
         "| Tests | ✅ Passed |\n\n"
