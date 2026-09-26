@@ -52,10 +52,8 @@ def test_supported_composite_actions_have_contract_tests() -> None:
 AWAITING_RUNNER_SELF_TEST = {
     "apm-integration",
     "gradle-build",
-    "markdown-lint",
     "pr-template-enforcer",
     "secret-scan",
-    "setup-yarn",
 }
 LOCAL_ACTION = re.compile(r"uses:\s*\./(?:[\w.-]+/)?\.github/actions/([\w-]+)")
 LOCAL_WORKFLOW = re.compile(r"uses:\s*\./\.github/workflows/([\w.-]+\.ya?ml)")
