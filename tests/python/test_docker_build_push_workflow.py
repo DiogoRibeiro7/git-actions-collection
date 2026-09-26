@@ -63,3 +63,40 @@ def test_the_first_platform_is_scanned(tmp_path: Path, platforms: str, expected:
 
     assert result.code == 0, result.stderr
     assert result.outputs["value"] == expected
+
+
+@pytest.mark.skipif(os.name != "posix", reason="Requires Bash (Linux/WSL)")
+def test_image_names_are_lowercased_for_the_registry(tmp_path: Path) -> None:
+    """github.repository keeps the owner's case, which registries reject."""
+    result = run_workflow_step(
+        WORKFLOW,
+        "build",
+        "Normalize image tags",
+        context={"inputs.image": "ghcr.io/MyOrg/My-App", "inputs.tags": "v1.2.0, latest"},
+        workdir=tmp_path,
+    )
+
+    assert result.code == 0, result.stderr
+    assert result.outputs["value"].splitlines() == [
+        "ghcr.io/myorg/my-app:v1.2.0",
+        "ghcr.io/myorg/my-app:latest",
+    ]
+
+
+@pytest.mark.parametrize("alias", ["publish-docker-on-tag.yml", "release-container.yml"])
+def test_aliases_move_latest_only_for_release_tags(alias: str) -> None:
+    data = yaml.safe_load((ROOT / ".github/workflows" / alias).read_text(encoding="utf-8"))
+
+    assert data["jobs"]["publish"]["with"]["tags"] == (
+        "${{ github.ref_type == 'tag' && format('{0},latest', github.ref_name) || github.sha }}"
+    )
+
+
+def test_release_container_has_no_placeholder_build_settings() -> None:
+    data = yaml.safe_load(
+        (ROOT / ".github/workflows/release-container.yml").read_text(encoding="utf-8")
+    )
+    build = data["jobs"]["publish"]["with"]
+
+    assert build["target"] == "${{ inputs.target }}"
+    assert build["build-args"] == "${{ inputs.build-args }}"

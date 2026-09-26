@@ -131,10 +131,12 @@ jobs:
           TAGS: ${{ inputs.tags }}
         run: |
           set -euo pipefail
+          # Registry repository names must be lowercase; github.repository often is not.
+          image="${IMAGE,,}"
           {
             echo 'value<<EOF'
             printf '%s\n' "$TAGS" | tr ',' '\n' | sed '/^[[:space:]]*$/d; s/^[[:space:]]*//; s/[[:space:]]*$//' | while IFS= read -r tag; do
-              printf '%s:%s\n' "$IMAGE" "$tag"
+              printf '%s:%s\n' "$image" "$tag"
             done
             echo EOF
           } >> "$GITHUB_OUTPUT"

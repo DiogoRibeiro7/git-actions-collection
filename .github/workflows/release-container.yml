@@ -1,9 +1,20 @@
 # Calls docker-build-push.yml (compatibility alias) to Trivy-scan and push a linux/amd64+arm64 image
-# to ghcr.io/<owner>/<repo>, tagged with the Git tag or SHA plus latest.
+# to ghcr.io/<owner>/<repo>, tagged with the Git tag plus latest, or with the commit SHA off a tag.
 name: Release Container (compatibility alias)
 
 on:
   workflow_call:
+    inputs:
+      target:
+        description: 'Optional Dockerfile target stage'
+        required: false
+        type: string
+        default: ''
+      build-args:
+        description: 'Build arguments as multiline KEY=VALUE entries'
+        required: false
+        type: string
+        default: ''
     secrets:
       GHCR_USERNAME:
         required: false
@@ -23,11 +34,10 @@ jobs:
       context: .
       dockerfile: Dockerfile
       platforms: linux/amd64,linux/arm64
-      tags: ${{ github.ref_type == 'tag' && format('{0},latest', github.ref_name) || format('{0},latest', github.sha) }}
-      target: prod
-      build-args: |
-        NODE_ENV=production
-        API_URL=https://api.example.com
+      # latest moves only with a release tag; other refs push just the commit SHA.
+      tags: ${{ github.ref_type == 'tag' && format('{0},latest', github.ref_name) || github.sha }}
+      target: ${{ inputs.target }}
+      build-args: ${{ inputs.build-args }}
       labels: true
       registry: ghcr.io
       scan: true
