@@ -40,7 +40,8 @@ jobs:
         uses: actions/setup-dotnet@d4c94342e560b34958eacfc5d055d21461ed1c5d
         with:
           dotnet-version: ${{ inputs.dotnet-version }}
-          cache: true
+          # setup-dotnet's cache needs packages.lock.json and fails the job without one.
+          cache: ${{ hashFiles('**/packages.lock.json') != '' }}
       - name: Validate inputs
         shell: bash
         run: |
