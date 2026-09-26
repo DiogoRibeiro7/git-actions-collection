@@ -1,5 +1,6 @@
 # Runs pytest (or a custom test command) across a Python version and OS matrix, installing the
-# project from pyproject.toml or requirements.txt with pip caching.
+# project from pyproject.toml or requirements.txt with pip caching. With pytest, each matrix entry
+# summarizes its test counts and failed tests on the run page and annotates failures on their line.
 name: Python Test Matrix
 on:
   workflow_call:
@@ -60,5 +61,107 @@ jobs:
             pip install -r requirements.txt
           fi
           pip install pytest
+      # pytest reads PYTEST_ADDOPTS, so any pytest-based command writes a JUnit report for the
+      # Summary step; other commands ignore it. pytest would read backslashes as escapes.
       - name: Run tests
-        run: ${{ inputs.test-command }}
+        id: tests
+        run: |
+          export PYTEST_ADDOPTS="--junitxml='${RUNNER_TEMP//\\//}/pytest-junit.xml'"
+          ${{ inputs.test-command }}
+
+      # Adds this matrix entry's counts and failed tests to the run page, and annotates each
+      # failure at the line pytest reports.
+      - name: Summary
+        if: always()
+        env:
+          OUTCOME: ${{ steps.tests.outcome }}
+          PYTHON_VERSION: ${{ matrix.python }}
+          RUNNER_LABEL: ${{ matrix.os }}
+        run: |
+          # The summary is best effort: it must not fail a job that passed.
+          python - <<'PY' || echo "::warning title=Test summary::Could not write the summary"
+          import os
+          import re
+          import xml.etree.ElementTree as ElementTree
+
+          OUTCOMES = {
+              "success": "✅ Passed",
+              "failure": "❌ Failed",
+              "cancelled": "Cancelled",
+              "skipped": "Skipped",
+          }
+          # pytest ends each failure's traceback with "path.py:line: ExceptionType".
+          LOCATION = re.compile(r"^(.+?\.py):(\d+): ")
+          workspace = os.environ.get("GITHUB_WORKSPACE") or os.getcwd()
+
+
+          def escape(value, prop=False):
+              value = str(value).replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+              return value.replace(":", "%3A").replace(",", "%2C") if prop else value
+
+
+          def cell(value):
+              return str(value).replace("|", "\\|")
+
+
+          def duration(seconds):
+              return f"{seconds:.1f} s" if seconds < 60 else f"{int(seconds // 60)} min {seconds % 60:.0f} s"
+
+
+          def location(text):
+              """Return the deepest traceback line inside the checkout as annotation properties."""
+              found = [match for match in map(LOCATION.match, (text or "").splitlines()) if match]
+              for match in reversed(found):
+                  path = os.path.join(workspace, match[1])
+                  relative = os.path.relpath(path, workspace).replace("\\", "/")
+                  if not relative.startswith("..") and os.path.isfile(path):
+                      return f"file={escape(relative, True)},line={match[2]},"
+              return None
+
+
+          try:
+              root = ElementTree.parse(os.path.join(os.environ.get("RUNNER_TEMP", ""), "pytest-junit.xml")).getroot()
+          except (OSError, ElementTree.ParseError):
+              root = None
+          counts = dict.fromkeys(("tests", "failures", "errors", "skipped"), 0)
+          seconds, failed = 0.0, []
+          if root is not None:
+              for suite in [root] if root.tag == "testsuite" else root.iter("testsuite"):
+                  for key in counts:
+                      counts[key] += int(suite.get(key) or 0)
+                  seconds += float(suite.get("time") or 0)
+              for case in root.iter("testcase"):
+                  node = case.find("failure")
+                  node = case.find("error") if node is None else node
+                  if node is not None:
+                      name = ".".join(part for part in (case.get("classname"), case.get("name")) if part)
+                      # pytest prefixes the exception's lines with "E"; the first one says the most.
+                      details = [line[1:].strip() for line in (node.text or "").splitlines() if line.startswith("E ")]
+                      message = (details or (node.get("message") or "").strip().splitlines() or [node.tag])[0]
+                      failed.append((name, message[:200], node.text))
+
+          result = OUTCOMES.get(os.environ.get("OUTCOME"), "Not run")
+          if root is not None:
+              passed = counts["tests"] - counts["failures"] - counts["errors"] - counts["skipped"]
+              parts = [f"{passed} passed", f"{counts['failures']} failed"]
+              if counts["errors"]:
+                  parts.append(f"{counts['errors']} error{'' if counts['errors'] == 1 else 's'}")
+              parts.append(f"{counts['skipped']} skipped")
+              result += f": {', '.join(parts)} in {duration(seconds)}"
+          title = f"Python {os.environ.get('PYTHON_VERSION')} on {os.environ.get('RUNNER_LABEL')}"
+          out = [f"## {title}", "", "| Check | Result |", "| --- | --- |", f"| Tests | {result} |"]
+          if root is None and os.environ.get("OUTCOME") in ("success", "failure"):
+              out += ["", "No pytest JUnit report was written, so there are no test counts."]
+          if failed:
+              out += ["", "**Failed tests**", "", "| Test | Message |", "| --- | --- |"]
+              out += [f"| `{name}` | {cell(message)} |" for name, message, _ in failed[:30]]
+              if len(failed) > 30:
+                  out.append(f"| and {len(failed) - 30} more | |")
+          summary = "\n".join(out) + "\n"
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as handle:
+              handle.write(summary)
+          print(summary)
+          for name, message, text in failed[:20]:
+              place = location(text) or ""
+              print(f"::error {place}title=pytest::{escape(f'{name} failed: {message}')}")
+          PY
