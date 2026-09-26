@@ -270,11 +270,18 @@ jobs:
         run: |
           set -euo pipefail
           mvn -B -q -e -DskipTests verify
+      # --write-verification-metadata regenerates the checksums instead of checking them.
+      # Verification happens when Gradle resolves dependencies against the committed file.
       - name: Verify Gradle dependencies
         if: (hashFiles('build.gradle') != '' || hashFiles('build.gradle.kts') != '') && inputs['skip-java-verify'] == false
+        shell: bash
         run: |
           set -euo pipefail
-          ./gradlew --no-daemon --write-verification-metadata sha256
+          if [ ! -f gradle/verification-metadata.xml ]; then
+            echo "::warning::Gradle dependency verification skipped: gradle/verification-metadata.xml is missing. Generate it with ./gradlew --write-verification-metadata sha256 and commit it."
+            exit 0
+          fi
+          ./gradlew --no-daemon --dependency-verification strict dependencies
       - name: Set up Go (if needed)
         if: hashFiles('go.sum') != '' && inputs['skip-go-verify'] == false
         uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16

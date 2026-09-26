@@ -124,3 +124,27 @@ def test_scanner_environments_live_outside_the_workspace() -> None:
     assert "venv .security-scan" not in scripts
     assert 'python -m venv "$RUNNER_TEMP/security-scan-tools"' in scripts
     assert 'python -m venv "$RUNNER_TEMP/security-scan-project"' in scripts
+
+
+@pytest.mark.parametrize("committed", [True, False])
+def test_gradle_verifies_against_committed_checksums(tmp_path: Path, committed: bool) -> None:
+    """--write-verification-metadata rewrote the checksums instead of checking them."""
+    gradlew = tmp_path / "gradlew"
+    gradlew.write_text('#!/usr/bin/env bash\necho "gradlew $*"\n', encoding="utf-8")
+    gradlew.chmod(0o755)
+    if committed:
+        (tmp_path / "gradle").mkdir()
+        (tmp_path / "gradle/verification-metadata.xml").write_text("<x/>", encoding="utf-8")
+
+    result = run_workflow_step(
+        WORKFLOW, "security", "Verify Gradle dependencies", context={}, workdir=tmp_path
+    )
+
+    assert result.code == 0, result.stderr
+    if committed:
+        assert result.stdout.splitlines() == [
+            "gradlew --no-daemon --dependency-verification strict dependencies"
+        ]
+    else:
+        assert "::warning::Gradle dependency verification skipped" in result.stdout
+        assert not any(line.startswith("gradlew ") for line in result.stdout.splitlines())
