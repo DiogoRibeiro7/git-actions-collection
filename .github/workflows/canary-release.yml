@@ -1,5 +1,5 @@
-# Publishes pre-release builds from main or -rc refs: Python to TestPyPI, npm under the next dist-
-# tag, or a multi-arch Docker image tagged rc.
+# Publishes pre-release builds from main or -rc refs: Python to TestPyPI (skipped when that version
+# exists), npm as <version>-canary.<run> under the next dist-tag, or a multi-arch Docker image tagged rc.
 name: Canary Release
 
 on:
@@ -52,6 +52,7 @@ jobs:
     with:
       working-directory: ${{ inputs.working-directory }}
       tag: next
+      prerelease-id: canary
     secrets:
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
