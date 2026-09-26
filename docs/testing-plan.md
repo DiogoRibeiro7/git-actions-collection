@@ -79,7 +79,6 @@ internal; only metadata-declared outputs such as smart-dependency-update's
 | Python Test Matrix | `.github/workflows/python-test-matrix.yml` | reusable | bash | `python-versions`, `os-matrix`, `test-command`, `pip-version` | - |
 | Python Type Check | `.github/workflows/python-type-check.yml` | workflow | - | - | - |
 | Python Unit Tests | `.github/workflows/python-unit-tests.yml` | workflow | bash, python | - | - |
-| PyTorch Train and Deploy | `.github/workflows/pytorch-train-deploy.yml` | workflow | bash | - | - |
 | R Package Check | `.github/workflows/r-cmd-check.yml` | workflow | Rscript | - | - |
 | R Lint | `.github/workflows/r-lint.yml` | workflow | - | - | - |
 | R Tests (testthat) | `.github/workflows/r-testthat.yml` | workflow | - | - | - |
