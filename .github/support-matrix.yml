@@ -113,6 +113,7 @@ workflows:
     - release-drafter.yml
     - ruby-ci.yml
   experimental:
+    - helm-chart-release.yml
     - aws-lambda-deploy.yml
     - canary-release.yml
     - database-migration.yml
@@ -128,6 +129,7 @@ workflows:
     - terraform-plan-comment.yml
     - vercel-nextjs.yml
   internal:
+    - test-helm-chart-release.yml
     - auto-upgrade-pyproject.yml
     - bash-unit-tests.yml
     - ci-tests.yml
