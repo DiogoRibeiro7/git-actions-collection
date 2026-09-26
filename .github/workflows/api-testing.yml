@@ -56,7 +56,8 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
           node-version: '24'
-          cache: 'npm'
+          # No cache: the tools are installed globally, and setup-node's npm cache
+          # fails in repositories without a lockfile.
       - name: Install tooling
         run: |
           set -euo pipefail
