@@ -86,7 +86,7 @@ jobs:
         run: |
           set -euo pipefail
           npm ci --omit=dev
-          zip -r ../package.zip .
+          zip -r "$GITHUB_WORKSPACE/package.zip" .
       - name: Setup .NET
         if: steps.changed.outputs.changed == 'true' && startsWith(matrix.function.runtime, 'dotnet')
         uses: actions/setup-dotnet@d4c94342e560b34958eacfc5d055d21461ed1c5d
@@ -99,7 +99,7 @@ jobs:
         run: |
           set -euo pipefail
           dotnet publish -c Release -o build
-          (cd build && zip -r ../package.zip .)
+          (cd build && zip -r "$GITHUB_WORKSPACE/package.zip" .)
       - name: Setup Go
         if: steps.changed.outputs.changed == 'true' && startsWith(matrix.function.runtime, 'go')
         uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
@@ -112,7 +112,7 @@ jobs:
         run: |
           set -euo pipefail
           go build -o bootstrap
-          zip -j package.zip bootstrap
+          zip -j "$GITHUB_WORKSPACE/package.zip" bootstrap
       - name: Setup Java
         if: steps.changed.outputs.changed == 'true' && startsWith(matrix.function.runtime, 'java')
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6
@@ -126,68 +126,95 @@ jobs:
         run: |
           set -euo pipefail
           mvn -q package
-          zip -r ../package.zip target
+          # Lambda takes the application jar itself; zipping target/ nested the classes.
+          jar="$(find target -maxdepth 1 -name '*.jar' ! -name 'original-*' | head -n1)"
+          if [ -z "$jar" ]; then
+            echo "::error::mvn package produced no jar in $PWD/target" >&2
+            exit 1
+          fi
+          cp "$jar" "$GITHUB_WORKSPACE/package.zip"
+      # Lambda applies configuration and code updates asynchronously, and a second update
+      # while one is in progress fails with ResourceConflictException, so wait between them.
       - name: Update function configuration
         if: steps.changed.outputs.changed == 'true'
         shell: bash
+        env:
+          FUNCTION: ${{ matrix.function.name }}
+          RUNTIME: ${{ matrix.function.runtime }}
+          HANDLER: ${{ matrix.function.handler || '' }}
+          ENVIRONMENT: ${{ matrix.function.env || '' }}
+          LAYERS: ${{ matrix.function.layers || '' }}
+          SUBNETS: ${{ matrix.function.subnet-ids || '' }}
+          SECURITY_GROUPS: ${{ matrix.function.security-group-ids || '' }}
         run: |
           set -euo pipefail
-          fn="${{ matrix.function.name }}"
-          cmd=(aws lambda update-function-configuration --function-name "$fn")
-          runtime='${{ matrix.function.runtime }}'
-          [ -n "$runtime" ] && cmd+=(--runtime "$runtime")
-          handler='${{ matrix.function.handler || '' }}'
-          [ -n "$handler" ] && cmd+=(--handler "$handler")
-          env='${{ matrix.function.env || '' }}'
-          [ -n "$env" ] && cmd+=(--environment "Variables=$env")
-          layers='${{ matrix.function.layers || '' }}'
-          [ -n "$layers" ] && cmd+=(--layers "$layers")
-          subnets='${{ matrix.function.subnet-ids || '' }}'
-          sgs='${{ matrix.function.security-group-ids || '' }}'
-          if [ -n "$subnets" ] && [ -n "$sgs" ]; then
-            cmd+=(--vpc-config "SubnetIds=$subnets,SecurityGroupIds=$sgs")
+          cmd=(aws lambda update-function-configuration --function-name "$FUNCTION")
+          [ -n "$RUNTIME" ] && cmd+=(--runtime "$RUNTIME")
+          [ -n "$HANDLER" ] && cmd+=(--handler "$HANDLER")
+          # env is a JSON map; the CLI's shorthand Variables=... syntax cannot take JSON.
+          [ -n "$ENVIRONMENT" ] && cmd+=(--environment "{\"Variables\":$ENVIRONMENT}")
+          [ -n "$LAYERS" ] && cmd+=(--layers "$LAYERS")
+          if [ -n "$SUBNETS" ] && [ -n "$SECURITY_GROUPS" ]; then
+            cmd+=(--vpc-config "SubnetIds=$SUBNETS,SecurityGroupIds=$SECURITY_GROUPS")
           fi
-          aws "${cmd[@]}"
+          "${cmd[@]}"
+          aws lambda wait function-updated-v2 --function-name "$FUNCTION"
       - name: Capture current alias
         if: steps.changed.outputs.changed == 'true' && matrix.function.alias != ''
         id: current
         shell: bash
+        env:
+          FUNCTION: ${{ matrix.function.name }}
+          ALIAS: ${{ matrix.function.alias }}
         run: |
           set -euo pipefail
-          prev=$(aws lambda get-alias --function-name "${{ matrix.function.name }}" --name "${{ matrix.function.alias }}" --query FunctionVersion --output text || echo '')
+          prev=$(aws lambda get-alias --function-name "$FUNCTION" --name "$ALIAS" --query FunctionVersion --output text || echo '')
           echo "previous=$prev" >>"$GITHUB_OUTPUT"
       - name: Deploy function code
         if: steps.changed.outputs.changed == 'true'
         id: deploy
         shell: bash
+        env:
+          FUNCTION: ${{ matrix.function.name }}
+          FUNCTION_PATH: ${{ matrix.function.path }}
+          PACKAGE_TYPE: ${{ matrix.function.package-type || 'zip' }}
+          IMAGE: ${{ matrix.function.image || '' }}
+          S3_BUCKET: ${{ matrix.function.s3-bucket || '' }}
+          ALIAS: ${{ matrix.function.alias || '' }}
         run: |
           set -euo pipefail
-          fn="${{ matrix.function.name }}"
-          pkg="package.zip"
-          type='${{ matrix.function.package-type || 'zip' }}'
-          if [ "$type" = "image" ]; then
-            image='${{ matrix.function.image }}'
-            docker build -t "$image" "${{ matrix.function.path }}"
-            docker push "$image"
-            aws lambda update-function-code --function-name "$fn" --image-uri "$image"
+          pkg="$GITHUB_WORKSPACE/package.zip"
+          if [ "$PACKAGE_TYPE" = "image" ]; then
+            docker build -t "$IMAGE" "$FUNCTION_PATH"
+            docker push "$IMAGE"
+            aws lambda update-function-code --function-name "$FUNCTION" --image-uri "$IMAGE"
           else
+            if [ ! -f "$pkg" ]; then
+              echo "::error::No package.zip was built for $FUNCTION" >&2
+              exit 1
+            fi
             size=$(stat -c%s "$pkg")
-            if [ "$size" -gt 52428800 ] && [ -n "${{ matrix.function.s3-bucket || '' }}" ]; then
-              key="$fn-$(date +%s).zip"
-              aws s3 cp "$pkg" "s3://${{ matrix.function.s3-bucket }}/$key"
-              aws lambda update-function-code --function-name "$fn" --s3-bucket "${{ matrix.function.s3-bucket }}" --s3-key "$key"
+            if [ "$size" -gt 52428800 ] && [ -n "$S3_BUCKET" ]; then
+              key="$FUNCTION-$(date +%s).zip"
+              aws s3 cp "$pkg" "s3://$S3_BUCKET/$key"
+              aws lambda update-function-code --function-name "$FUNCTION" --s3-bucket "$S3_BUCKET" --s3-key "$key"
             else
-              aws lambda update-function-code --function-name "$fn" --zip-file "fileb://$pkg"
+              aws lambda update-function-code --function-name "$FUNCTION" --zip-file "fileb://$pkg"
             fi
           fi
-          version=$(aws lambda publish-version --function-name "$fn" --output text --query Version)
+          aws lambda wait function-updated-v2 --function-name "$FUNCTION"
+          version=$(aws lambda publish-version --function-name "$FUNCTION" --output text --query Version)
           echo "version=$version" >>"$GITHUB_OUTPUT"
-          if [ -n "${{ matrix.function.alias || '' }}" ]; then
-            aws lambda update-alias --function-name "$fn" --name "${{ matrix.function.alias }}" --function-version "$version"
+          if [ -n "$ALIAS" ]; then
+            aws lambda update-alias --function-name "$FUNCTION" --name "$ALIAS" --function-version "$version"
           fi
       - name: Rollback on failure
         if: failure() && steps.current.outputs.previous != ''
         shell: bash
+        env:
+          FUNCTION: ${{ matrix.function.name }}
+          ALIAS: ${{ matrix.function.alias }}
+          PREVIOUS: ${{ steps.current.outputs.previous }}
         run: |
           set -euo pipefail
-          aws lambda update-alias --function-name "${{ matrix.function.name }}" --name "${{ matrix.function.alias }}" --function-version "${{ steps.current.outputs.previous }}"
+          aws lambda update-alias --function-name "$FUNCTION" --name "$ALIAS" --function-version "$PREVIOUS"
