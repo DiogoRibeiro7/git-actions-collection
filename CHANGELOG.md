@@ -7,6 +7,7 @@ All notable changes to this repository are documented here.
 ### Added
 
 - Experimental `helm-chart-release.yml`: lints and packages a Helm chart, then pushes it to an OCI registry (`ghcr.io/<owner>/charts` by default) from a GitHub environment. It is a dry run unless `dry-run: false` is set. The `helm-chart` example gains a tag-triggered release workflow.
+- The supported `setup-poetry` action accepts an optional `poetry-version` input (default `2.5.1`, the version it always installed).
 
 ### Deprecated
 
