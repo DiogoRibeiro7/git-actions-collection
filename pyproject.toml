@@ -82,7 +82,9 @@ smart-deps = "scripts.smart_dependency_update:main"
 pyproject-updater = "scripts.pyproject_updater:main"
 
 [tool.setuptools.packages.find]
-where = ["scripts"]
+# The package is `scripts` itself, found from the project root; `where = ["scripts"]`
+# looked for it inside itself and built a wheel with no modules.
+where = ["."]
 include = ["scripts*"]
 
 [tool.setuptools.package-data]
