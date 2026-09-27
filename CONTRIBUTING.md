@@ -227,7 +227,9 @@ workflow or in another internal workflow, directly or through a workflow it
 calls. `test_supported_composite_actions_run_on_a_real_runner` enforces this.
 Its `AWAITING_RUNNER_SELF_TEST` set lists the actions still covered only by Bats
 contract tests; remove an action from it in the pull request that adds its job,
-and never add one.
+and never add one. SUPPORT.md and the ROADMAP progress note repeat that list, and
+`test_docs_name_the_actions_still_awaiting_a_self_test` keeps both equal to it,
+so update them in the same pull request.
 
 The existing `test-python-test-matrix.yml` workflow calls the reusable workflow
 directly with small test fixtures. New reusable workflows should have similarly
