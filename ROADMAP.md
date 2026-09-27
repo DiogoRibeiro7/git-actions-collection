@@ -53,8 +53,8 @@ Before expanding the catalogue aggressively, improve the guarantees around every
 
 - [ ] Extend `migrate_starter_workflows.py` beyond Python and Node.
 - [ ] Detect Rust, R, Ruby, Go, Java, .NET, and common JavaScript package-manager configurations.
-- [ ] Add a dry-run mode that explains the proposed migration without changing files.
-- [ ] Produce machine-readable migration reports.
+- [x] Add a dry-run mode that explains the proposed migration without changing files.
+- [x] Produce machine-readable migration reports.
 - [ ] Add migration fixtures and regression tests for every supported ecosystem.
 
 ---

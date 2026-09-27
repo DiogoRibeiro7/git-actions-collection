@@ -50,6 +50,10 @@ pip-audit --strict -r /tmp/action-requirements.txt
 ```
 
 Dependabot checks the root and maintained example dependency manifests weekly.
+The Dependabot Policy workflow requires an update block for every ecosystem whose
+manifests it finds anywhere in the repository, test fixtures included, so a new
+fixture in another ecosystem needs one too. The Gradle fixture's block opens no
+pull requests because the fixture declares no dependencies.
 
 Every third-party action is pinned to the commit of a release tag. CI checks
 this against each action repository's tags (it needs network access, not a

@@ -12,6 +12,9 @@ on:
       - "examples/**/go.mod"
       - "examples/**/pom.xml"
       - "examples/**/deno.json"
+      - "**/*.gradle"
+      - "**/*.gradle.kts"
+      - "tests/fixtures/**"
       - ".github/workflows/dependabot-policy.yml"
   push:
     branches:
@@ -26,6 +29,9 @@ on:
       - "examples/**/go.mod"
       - "examples/**/pom.xml"
       - "examples/**/deno.json"
+      - "**/*.gradle"
+      - "**/*.gradle.kts"
+      - "tests/fixtures/**"
       - ".github/workflows/dependabot-policy.yml"
 
 permissions:
