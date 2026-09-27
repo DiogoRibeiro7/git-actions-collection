@@ -2,14 +2,7 @@ name: Example API Tests
 on: [push]
 
 jobs:
-  build:
-    permissions:
-      contents: read
-    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/node-ci.yml@v1
-    with:
-      node-version: '24'
   api-tests:
-    needs: build
     permissions:
       contents: read
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/api-testing.yml@v1

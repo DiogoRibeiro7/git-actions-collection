@@ -21,6 +21,10 @@ LOCKFILES = {"npm": "package-lock.json", "yarn": "yarn.lock", "pnpm": "pnpm-lock
 
 posix = pytest.mark.skipif(os.name != "posix", reason="Requires Bash (Linux/WSL)")
 needs_node = pytest.mark.skipif(shutil.which("node") is None, reason="Requires Node.js")
+needs_npm = pytest.mark.skipif(
+    shutil.which("node") is None or shutil.which("npm") is None, reason="Requires npm"
+)
+DEPENDENCY = {"name": "fixture", "version": "1.0.0", "dependencies": {"is-number": "7.0.0"}}
 
 
 def _workflow() -> dict[str, Any]:
@@ -217,3 +221,64 @@ def test_lint_and_tests_run_the_package_scripts(
 
     assert result.code == 0, result.stderr
     assert result.stdout.splitlines() == [f"{manager} run {script}"]
+
+
+@posix
+@needs_npm
+@pytest.mark.parametrize(
+    ("lockfile", "message"),
+    [
+        (None, "can only install with an existing package-lock.json"),
+        (
+            {
+                "name": "fixture",
+                "version": "1.0.0",
+                "lockfileVersion": 3,
+                "packages": {"": {"name": "fixture", "version": "1.0.0"}},
+            },
+            "Missing: is-number@7.0.0 from lock file",
+        ),
+    ],
+)
+def test_npm_install_fails_without_a_lockfile_that_matches_package_json(
+    tmp_path: Path, lockfile: dict[str, Any] | None, message: str
+) -> None:
+    """`npm ci` refuses before it downloads anything, so the job fails instead of resolving
+    new versions."""
+    (tmp_path / "package.json").write_text(json.dumps(DEPENDENCY))
+    if lockfile is not None:
+        (tmp_path / "package-lock.json").write_text(json.dumps(lockfile))
+
+    result = run_workflow_step(
+        WORKFLOW,
+        "build",
+        "Install dependencies",
+        context={MANAGER: "npm"},
+        env={"npm_config_offline": "true"},
+        workdir=tmp_path,
+    )
+
+    assert result.code != 0
+    assert message in result.stderr
+    assert not (tmp_path / "node_modules").exists()
+
+
+@posix
+@needs_npm
+@pytest.mark.parametrize(("step", "script"), [("Run lint", "lint"), ("Run tests", "test")])
+def test_a_failing_lint_or_test_script_fails_the_job(
+    tmp_path: Path, step: str, script: str
+) -> None:
+    (tmp_path / "package.json").write_text(
+        json.dumps(
+            {
+                "name": "fixture",
+                "scripts": {script: "node -e \"console.error('failing'); process.exit(3)\""},
+            }
+        )
+    )
+
+    result = run_workflow_step(WORKFLOW, "build", step, context={MANAGER: "npm"}, workdir=tmp_path)
+
+    assert result.code == 3
+    assert "failing" in result.stderr

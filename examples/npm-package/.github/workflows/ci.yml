@@ -7,9 +7,6 @@ on:
 
 jobs:
   lint-test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: DiogoRibeiro7/git-actions-collection/.github/actions/setup-yarn@v1
-      - run: yarn lint
-      - run: yarn test
+    permissions:
+      contents: read
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/node-ci.yml@v1
