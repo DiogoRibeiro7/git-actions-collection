@@ -90,6 +90,27 @@ The [catalogue](https://diogoribeiro7.github.io/git-actions-collection/catalogue
 also lists the reference and experimental workflows for Node.js, Go, Java, .NET,
 Ruby, Deno, containers, Terraform, cloud deployment and publishing.
 
+## Command-line tools
+
+The repository also ships Python helpers for adopting the collection. Install
+them with pip:
+
+```bash
+python -m pip install "git+https://github.com/DiogoRibeiro7/git-actions-collection@v1"
+```
+
+| Command | What it does |
+| --- | --- |
+| `migrate-workflows` | Turns a GitHub starter workflow into a call to one of these reusable workflows; see [the guide](docs/migrating-from-starter-workflows.md). |
+| `workflow-generator` | Writes a Python or Node.js workflow with pinned actions; see [the guide](docs/workflow-generator.md). |
+| `pypi-wizard` | Walks through setting up PyPI trusted publishing; see [the guide](docs/pypi-trusted-publishing.md). |
+| `check-imports` | Compares a project's imports with the dependencies in its `pyproject.toml`. |
+| `smart-deps` | Updates dependencies across ecosystems and reports conflicts; see [the guide](docs/smart-dependency-update.md). |
+| `pyproject-updater` | Raises the dependency constraints in `pyproject.toml` to the latest PyPI releases. |
+
+From a checkout, run the same tools as modules, for example
+`python -m scripts.migrate_starter_workflows`.
+
 ## Support tiers
 
 - **Supported:** compatible within `v1`, with behavioural tests and a recorded
