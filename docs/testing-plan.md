@@ -92,7 +92,7 @@ internal; only metadata-declared outputs such as smart-dependency-update's
 | Security Scan | `.github/workflows/security-scan.yml` | workflow | bash | - | - |
 | Terraform Apply (AWS OIDC) | `.github/workflows/terraform-aws.yml` | workflow | bash | - | - |
 | Terraform Plan (PR comment) | `.github/workflows/terraform-plan-comment.yml` | workflow | terraform | - | - |
-| Test Composite Actions | `.github/workflows/test-composite-actions.yml` | workflow | bash, python, poetry, unzip, node, corepack, yarn, markdownlint, curl, java, gradle | - | - |
+| Test Composite Actions | `.github/workflows/test-composite-actions.yml` | workflow | bash, python, poetry, unzip, node, corepack, yarn, markdownlint, curl, java, gradle, gitleaks | - | - |
 | Test Python Test Matrix Workflow | `.github/workflows/test-python-test-matrix.yml` | workflow | bash | - | - |
 | Unit Tests | `.github/workflows/tests.yml` | workflow | node, python | - | - |
 | Vercel Next.js Deploy | `.github/workflows/vercel-nextjs.yml` | workflow | bash | - | - |
