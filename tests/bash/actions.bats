@@ -89,6 +89,28 @@ exit 0
   [[ "$output" == *"$warning"* ]]
 }
 
+@test "apm-integration compares decimal latency values" {
+  make_logger curl
+  make_fake jq 'if [ "$2" = ".latency // empty" ]; then echo 120.5; elif [ "$2" = ".threshold // empty" ]; then echo 100; fi'
+
+  run env INPUT_PROVIDER="datadog" INPUT_API_KEY="token" INPUT_METRICS_FILE="metrics.json" \
+    bash "$REPO_ROOT/scripts/apm-integration/notify.sh"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"::warning::latency 120.5 exceeded threshold 100"* ]]
+}
+
+@test "apm-integration warns about non-numeric latency values" {
+  make_logger curl
+  make_fake jq 'if [ "$2" = ".latency // empty" ]; then echo slow; elif [ "$2" = ".threshold // empty" ]; then echo 100; fi'
+
+  run env INPUT_PROVIDER="datadog" INPUT_API_KEY="token" INPUT_METRICS_FILE="metrics.json" \
+    bash "$REPO_ROOT/scripts/apm-integration/notify.sh"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"needs numeric latency and threshold values"* ]]
+}
+
 @test "r-lint package inputs include extras" {
   INPUT_ADDITIONAL_PACKAGES="testthat" bash "$REPO_ROOT/scripts/r-lint/package-inputs.sh"
   run grep -q "packages=lintr,testthat" "$GITHUB_OUTPUT"

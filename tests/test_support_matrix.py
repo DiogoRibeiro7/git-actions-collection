@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 import re
 
-import pytest
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -47,12 +46,6 @@ def test_supported_composite_actions_have_contract_tests() -> None:
         assert path.exists(), f"supported action {name} lacks contract test {path}"
 
 
-# Supported actions whose only coverage is still the Bats contract test with fake
-# tools. Remove each one when an internal workflow starts running it; the set must
-# only shrink.
-AWAITING_RUNNER_SELF_TEST = {
-    "apm-integration",
-}
 LOCAL_ACTION = re.compile(r"uses:\s*\./(?:[\w.-]+/)?\.github/actions/([\w-]+)")
 LOCAL_WORKFLOW = re.compile(r"uses:\s*\./\.github/workflows/([\w.-]+\.ya?ml)")
 
@@ -76,46 +69,10 @@ def test_supported_composite_actions_run_on_a_real_runner() -> None:
     supported = set(matrix["composite_actions"]["supported"])
     run = _actions_run_by_internal_workflows(matrix)
 
-    assert not supported - run - AWAITING_RUNNER_SELF_TEST, (
-        "supported actions without a real-runner self-test: "
-        f"{sorted(supported - run - AWAITING_RUNNER_SELF_TEST)}"
+    assert not supported - run, (
+        "supported actions without a real-runner self-test; add a job to "
+        f"test-composite-actions.yml: {sorted(supported - run)}"
     )
-    assert not AWAITING_RUNNER_SELF_TEST & run, (
-        "these actions now have a self-test; remove them from AWAITING_RUNNER_SELF_TEST: "
-        f"{sorted(AWAITING_RUNNER_SELF_TEST & run)}"
-    )
-    assert AWAITING_RUNNER_SELF_TEST <= supported
-
-
-def _actions_named_in_sentence(text: str, marker: str, actions: set[str]) -> set[str] | None:
-    """Return the actions named in the sentence containing *marker*, or None."""
-    for sentence in re.split(r"(?<=\.)\s+", " ".join(text.split())):
-        if marker in sentence:
-            return set(re.findall(r"`([\w-]+)`", sentence)) & actions
-    return None
-
-
-@pytest.mark.parametrize(
-    ("document", "marker"),
-    [
-        ("SUPPORT.md", "still waiting for that self-test"),
-        ("ROADMAP.md", "a real-runner job"),
-    ],
-)
-def test_docs_name_the_actions_still_awaiting_a_self_test(document: str, marker: str) -> None:
-    """Both documents repeat AWAITING_RUNNER_SELF_TEST by hand, so keep them equal."""
-    supported = set(_load_matrix()["composite_actions"]["supported"])
-    named = _actions_named_in_sentence(
-        (ROOT / document).read_text(encoding="utf-8"), marker, supported
-    )
-
-    if AWAITING_RUNNER_SELF_TEST:
-        assert named == AWAITING_RUNNER_SELF_TEST, (
-            f"{document} must name exactly the actions still awaiting a self-test: "
-            f"{sorted(AWAITING_RUNNER_SELF_TEST)}"
-        )
-    else:
-        assert named is None, f"every action has a self-test; remove the sentence from {document}"
 
 
 def test_supported_composite_actions_pin_external_dependencies() -> None:

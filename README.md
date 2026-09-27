@@ -84,7 +84,7 @@ outputs, secrets and required permissions only change compatibly within `v1`.
 | [`gradle-build`](.github/actions/gradle-build) | Runs a Gradle build with caching. |
 | [`secret-scan`](.github/actions/secret-scan) | Scans the repository for leaked secrets with gitleaks. |
 | [`pr-template-enforcer`](.github/actions/pr-template-enforcer) | Fails pull requests whose description misses required sections. |
-| [`apm-integration`](.github/actions/apm-integration) | Sends deployment events and metrics to Datadog, New Relic or Azure Application Insights. |
+| [`apm-integration`](.github/actions/apm-integration) | Sends deployment events to Datadog, New Relic or Azure Application Insights. |
 
 The [catalogue](https://diogoribeiro7.github.io/git-actions-collection/catalogue/)
 also lists the reference and experimental workflows for Node.js, Go, Java, .NET,

@@ -20,10 +20,10 @@ coverage when practical.
 
 All 16 composite actions are currently supported because each has a direct
 Bats contract test under `tests/bash/actions/`. Those tests replace every tool
-with a fake, so supported actions also run on a real runner:
+with a fake, so every supported action also runs on a real runner:
 `test-composite-actions.yml` and the other internal workflows execute them
-against consumer fixtures. `apm-integration` is still waiting for that self-test,
-and a test lets that list shrink but never grow.
+against consumer fixtures, and a test fails if a supported action has no such
+job.
 
 The supported reusable workflows are:
 

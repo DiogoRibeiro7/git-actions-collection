@@ -39,8 +39,7 @@ The next stage is therefore not simply to add more YAML. It is to promote useful
 Before expanding the catalogue aggressively, improve the guarantees around every public workflow.
 
 - [ ] Add contract tests for every workflow intended to become supported.
-- [ ] Add smoke-test consumer repositories or fixtures for each supported ecosystem.
-  - In progress: `test-composite-actions.yml` runs the supported Python, Node.js, Gradle, secret-scanning, and pull-request template actions against `tests/fixtures/composite-actions/`. `apm-integration` still needs a real-runner job.
+- [x] Add smoke-test consumer repositories or fixtures for each supported ecosystem.
 - [x] Validate workflow syntax and semantics with dedicated GitHub Actions linters.
 - [x] Add checks for overly broad `permissions` blocks.
 - [x] Detect mutable or unpinned third-party action references.

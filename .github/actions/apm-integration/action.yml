@@ -1,5 +1,5 @@
 name: 'APM Integration'
-description: 'Send deployment and custom metrics to APM providers like Datadog, New Relic, and Azure Application Insights'
+description: 'Send a deployment event to Datadog, New Relic, or Azure Application Insights, and warn when latency exceeds a threshold'
 author: 'Diogo Ribeiro'
 inputs:
   provider:
@@ -9,7 +9,7 @@ inputs:
     description: 'API or ingestion key for the provider'
     required: true
   app-id:
-    description: 'Application or service identifier (required for New Relic)'
+    description: 'Application or service identifier (required for New Relic unless api-url is set)'
     required: false
   environment:
     description: 'Deployment environment name'
@@ -20,7 +20,10 @@ inputs:
     required: false
     default: ${{ github.sha }}
   metrics-file:
-    description: 'Optional JSON file with custom metrics and thresholds'
+    description: 'Optional JSON file with numeric latency and threshold values; the action warns when latency exceeds threshold'
+    required: false
+  api-url:
+    description: "Full URL to send the event to instead of the provider's default, for another region or a proxy; for New Relic it replaces the need for app-id"
     required: false
 runs:
   using: 'composite'
@@ -35,3 +38,4 @@ runs:
         INPUT_ENVIRONMENT: ${{ inputs.environment }}
         INPUT_DEPLOYMENT_ID: ${{ inputs.deployment-id }}
         INPUT_METRICS_FILE: ${{ inputs.metrics-file }}
+        INPUT_API_URL: ${{ inputs.api-url }}
