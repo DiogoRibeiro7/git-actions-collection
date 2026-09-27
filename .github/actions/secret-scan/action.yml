@@ -2,15 +2,18 @@ name: Secret Scan
 description: Scan repository for leaked secrets using gitleaks
 inputs:
   args:
-    description: Arguments passed to gitleaks
+    description: "Arguments passed to `gitleaks detect`, separated by spaces or newlines; `--redact` is always added first"
     required: false
     default: '--no-git -v'
 runs:
   using: composite
   steps:
+    - name: Install gitleaks
+      shell: bash
+      run: bash "${{ github.action_path }}/../../../scripts/secret-scan/install.sh"
+
     - name: Run gitleaks
-      uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e
+      shell: bash
+      run: bash "${{ github.action_path }}/../../../scripts/secret-scan/scan.sh"
       env:
-        GITLEAKS_VERSION: 8.28.0
-      with:
-        args: ${{ inputs.args }}
+        INPUT_ARGS: ${{ inputs.args }}

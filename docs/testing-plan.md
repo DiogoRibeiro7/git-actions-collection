@@ -33,7 +33,7 @@ internal; only metadata-declared outputs such as smart-dependency-update's
 | Python Type Check | `.github/actions/python-type-check/action.yml` | composite | bash (`scripts/python-type-check/run.sh`) | `python-version`, `working-directory`, `requirements-file`, `extra-dependencies`, `mypy-args`, `pip-version` | - |
 | R Lint | `.github/actions/r-lint/action.yml` | composite | bash/R (`scripts/r-lint/package-inputs.sh`, `scripts/r-lint/run-lint.sh`, `scripts/r-lint/lint.R`) | `r-version`, `cran-mirror`, `use-public-rspm`, `targets`, `config-file`, `additional-packages`, `working-directory` | `packages` |
 | R Testthat | `.github/actions/r-testthat/action.yml` | composite | bash/R (`scripts/r-testthat/package-inputs.sh`, `scripts/r-testthat/run-tests.sh`, `scripts/r-testthat/test.R`) | `r-version`, `cran-mirror`, `use-public-rspm`, `test-directory`, `install-dependencies`, `additional-packages`, `working-directory`, `use-devtools` | `packages` |
-| Secret Scan | `.github/actions/secret-scan/action.yml` | composite | (external action only) | `args` | - |
+| Secret Scan | `.github/actions/secret-scan/action.yml` | composite | bash (`scripts/secret-scan/install.sh`, `scripts/secret-scan/scan.sh`), curl, gitleaks | `args` | - |
 | Setup Poetry (with cache) | `.github/actions/setup-poetry/action.yml` | composite | bash (`scripts/setup-poetry/install.sh`, `scripts/setup-poetry/configure-cache.sh`, `scripts/setup-poetry/install-deps.sh`) | `python-version`, `install-deps`, `pip-version` | - |
 | Setup R Environment | `.github/actions/setup-r/action.yml` | composite | bash/R (`scripts/setup-r/install-packages.sh`, `scripts/setup-r/install-packages.R`) | `r-version`, `cran-mirror`, `use-public-rspm`, `packages`, `working-directory` | - |
 | Setup Yarn (Corepack) with cache | `.github/actions/setup-yarn/action.yml` | composite | bash (`scripts/setup-yarn/corepack.sh`, `scripts/setup-yarn/install.sh`) | `node-version`, `working-directory` | - |
@@ -92,7 +92,7 @@ internal; only metadata-declared outputs such as smart-dependency-update's
 | Security Scan | `.github/workflows/security-scan.yml` | workflow | bash | - | - |
 | Terraform Apply (AWS OIDC) | `.github/workflows/terraform-aws.yml` | workflow | bash | - | - |
 | Terraform Plan (PR comment) | `.github/workflows/terraform-plan-comment.yml` | workflow | terraform | - | - |
-| Test Composite Actions | `.github/workflows/test-composite-actions.yml` | workflow | bash, python, poetry, unzip, node, corepack, yarn, markdownlint, curl, java, gradle | - | - |
+| Test Composite Actions | `.github/workflows/test-composite-actions.yml` | workflow | bash, python, poetry, unzip, node, corepack, yarn, markdownlint, curl, java, gradle, gitleaks | - | - |
 | Test Python Test Matrix Workflow | `.github/workflows/test-python-test-matrix.yml` | workflow | bash | - | - |
 | Unit Tests | `.github/workflows/tests.yml` | workflow | node, python | - | - |
 | Vercel Next.js Deploy | `.github/workflows/vercel-nextjs.yml` | workflow | bash | - | - |

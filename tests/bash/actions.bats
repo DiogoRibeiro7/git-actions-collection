@@ -229,8 +229,10 @@ EOF
   [ "$status" -eq 0 ]
 }
 
-@test "secret-scan uses gitleaks action" {
-  run grep -q "gitleaks/gitleaks-action" "$REPO_ROOT/.github/actions/secret-scan/action.yml"
+@test "secret-scan forwards its arguments to gitleaks detect" {
+  make_logger gitleaks
+  INPUT_ARGS="--no-git --source src" bash "$REPO_ROOT/scripts/secret-scan/scan.sh"
+  run grep -qx "gitleaks detect --redact --no-git --source src" "$COMMAND_LOG"
   [ "$status" -eq 0 ]
 }
 
