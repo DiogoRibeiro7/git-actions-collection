@@ -7,6 +7,11 @@
           "deprecated": false,
           "required": true
         },
+        "api-url": {
+          "default": null,
+          "deprecated": false,
+          "required": false
+        },
         "app-id": {
           "default": null,
           "deprecated": false,

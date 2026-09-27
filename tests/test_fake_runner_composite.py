@@ -189,6 +189,24 @@ def test_apm_integration_datadog(tmp_path: Path):
     assert "https://api.datadoghq.com/api/v1/events" in result.stdout
 
 
+def test_apm_integration_api_url_replaces_the_default_endpoint(tmp_path: Path):
+    fakebin = make_fakebin(tmp_path, {"curl": 'echo "curl $@"', "jq": 'echo "{}"'})
+    result = run_action(
+        ACTIONS_DIR / "apm-integration",
+        inputs={
+            "provider": "datadog",
+            "api-key": "token",
+            "deployment-id": "abc",
+            "api-url": "https://api.datadoghq.eu/api/v1/events",
+        },
+        env=_env_with_path(fakebin),
+        workdir=tmp_path,
+    )
+    assert result.code == 0
+    assert result.stdout.strip().endswith("https://api.datadoghq.eu/api/v1/events")
+    assert "datadoghq.com" not in result.stdout
+
+
 def test_apm_integration_invalid_provider(tmp_path: Path):
     result = run_action(
         ACTIONS_DIR / "apm-integration",

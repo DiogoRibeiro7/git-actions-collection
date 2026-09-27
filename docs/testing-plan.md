@@ -22,7 +22,7 @@ internal; only metadata-declared outputs such as smart-dependency-update's
 
 | Name | Path | Type | Scripts invoked | Inputs | Outputs |
 | --- | --- | --- | --- | --- | --- |
-| APM Integration | `.github/actions/apm-integration/action.yml` | composite | bash (`scripts/apm-integration/notify.sh`) | `provider`, `api-key`, `app-id`, `environment`, `deployment-id`, `metrics-file` | - |
+| APM Integration | `.github/actions/apm-integration/action.yml` | composite | bash (`scripts/apm-integration/notify.sh`) | `provider`, `api-key`, `app-id`, `environment`, `deployment-id`, `metrics-file`, `api-url` | - |
 | AWS Lambda Build (Python) | `.github/actions/aws-lambda-build/action.yml` | composite | bash (`scripts/aws-lambda-build/build.sh`) | `src`, `output-zip`, `python-version`, `pip-version` | - |
 | Benchmark Smoke | `.github/actions/benchmark-smoke/action.yml` | composite | bash (`scripts/benchmark-smoke/install.sh`, `scripts/benchmark-smoke/run.sh`) | `python-version`, `working-directory`, `pytest-args`, `pip-version` | - |
 | Check Imports vs pyproject | `.github/actions/check-imports/action.yml` | composite | bash (`scripts/actions/check-imports/check.sh`, `scripts/actions/check-imports/update.sh`) | `paths`, `fail-on`, `format`, `update-pyproject`, `create-pr`, `pr-branch`, `python-version`, `pip-version`, `smart-update` | `missing` (via `$GITHUB_OUTPUT`) |
@@ -135,11 +135,11 @@ internal; only metadata-declared outputs such as smart-dependency-update's
 **Error cases:** empty `src` or `output-zip`, missing `requirements.txt` should be tolerated.
 
 ### 4) APM Integration (`scripts/apm-integration/notify.sh`)
-**Accepted inputs:** `provider`, `api-key`, `app-id`, `environment`, `deployment-id`, `metrics-file`  
+**Accepted inputs:** `provider`, `api-key`, `app-id`, `environment`, `deployment-id`, `metrics-file`, `api-url`  
 **Side effects:**  
-- Calls `curl` with provider‑specific payload; optional `jq` parsing for metrics.  
+- Calls `curl` with a provider-specific payload built by `jq`, at `api-url` when set; optional `jq` parsing for metrics.  
 **Expected outputs:** warning when latency exceeds threshold.  
-**Error cases:** invalid provider, missing `api-key`, missing `app-id` for New Relic.
+**Error cases:** invalid provider, missing `api-key`, missing `app-id` for New Relic without `api-url`, a request the provider rejects.
 
 ### 5) Gradle Build (`scripts/gradle-build/run.sh`)
 **Accepted inputs:** `tasks`, `gradle-args`, `working-directory`  
