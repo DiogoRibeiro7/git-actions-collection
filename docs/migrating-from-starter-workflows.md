@@ -7,55 +7,108 @@ here and provides an automated helper for converting existing files.
 
 ## Automated Conversion
 
-Use `scripts/migrate_starter_workflows.py` to transform a starter workflow into
-one that reuses this collection:
+From a checkout of this repository, run the migration tool on a starter workflow:
 
 ```bash
-python scripts/migrate_starter_workflows.py .github/workflows/python-package.yml --output .github/workflows/ci.yml
+python -m scripts.migrate_starter_workflows path/to/python-package.yml --dry-run
+python -m scripts.migrate_starter_workflows path/to/python-package.yml --output .github/workflows/ci.yml
 ```
 
-The script detects the language, preserves triggers, and writes a workflow that
-calls the appropriate reusable workflow. It refuses to overwrite existing files
-and prints the result to stdout if `--output` is omitted.
+`--dry-run` explains what the tool found and prints the workflow it would write,
+without writing anything. Without `--output`, the workflow goes to stdout. The
+tool refuses to overwrite an existing file.
+
+`--json` prints a machine-readable report instead: the detected `ecosystem`, the
+`job` it came from, the reusable `workflow` and its `uses:` reference, the
+`permissions` and `inputs` of the new job, the `notes` explained below, the
+`output` file written (or `null`), and the `migrated` workflow text. Combine it
+with `--output` to write the file and report on it in one step.
+
+The tool:
+
+- finds the first job that sets up a known ecosystem and replaces it with a call
+  to the matching reusable workflow, declaring the permissions that workflow
+  needs;
+- resolves `${{ matrix.<name> }}` references, so a version matrix such as
+  `python-version: ["3.9", "3.10", "3.11"]` becomes
+  `python-versions: '["3.9", "3.10", "3.11"]'`, and keeps the starter's runner
+  (`runs-on`) as `os-matrix`;
+- keeps a single `pytest` command as `test-command`;
+- copies the triggers, replacing the `$default-branch` placeholder of GitHub's
+  raw starter templates with `main`, or with `--default-branch <name>`;
+- lists every step it did not carry over, such as a separate lint step, so you
+  can check that the reusable workflow covers it or add another one;
+- flags unquoted versions that YAML turned into numbers, such as `3.10` read as
+  `3.1`.
+
+It exits with status 1, and explains why, when it finds no workflow to call.
+
+| Starter sets up | Migrated to |
+| --- | --- |
+| `actions/setup-python` | `python-test-matrix.yml` |
+| `actions/setup-node` with Yarn | `node-ci.yml` |
+| `actions/setup-node` with npm or pnpm | nothing yet: `node-ci.yml` runs Yarn only |
 
 ## Side-by-Side Comparison
 
 ### Python
 
-**Starter (`python-package.yml`):**
+**Starter (`python-package.yml`, shortened from GitHub's template):**
 
 ```yaml
 name: Python package
-on: [push]
+on:
+  push:
+    branches: [ "$default-branch" ]
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11"]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v3
         with:
-          python-version: '3.x'
-      - run: pip install -r requirements.txt
-      - run: pytest
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: python -m pip install flake8 pytest
+      - name: Lint with flake8
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+      - name: Test with pytest
+        run: pytest
 ```
 
 **Reusable (`python-test-matrix.yml`):**
 
 ```yaml
 name: Python package
-on: [push]
+on:
+  push:
+    branches: [ main ]
 jobs:
   ci:
     permissions:
       contents: read
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/python-test-matrix.yml@v1
     with:
-      python-versions: '["3.x"]'
+      python-versions: '["3.9", "3.10", "3.11"]'
+      os-matrix: '["ubuntu-latest"]'
+      test-command: pytest
 ```
+
+`python-test-matrix.yml` installs the project itself (`pip install .`, or
+`requirements.txt` without a `pyproject.toml`) together with pytest. The dry run
+notes that the flake8 step was not carried over; add `python-lint.yml` for it.
 
 ### Node.js
 
-**Starter (`node.js.yml`):**
+`node-ci.yml` runs `yarn install --immutable`, `yarn lint`, and `yarn test`, so
+only Yarn projects can migrate to it. GitHub's `node.js.yml` starter uses npm; for
+npm and pnpm starters the tool explains that no reusable workflow fits yet and
+writes nothing.
+
+**Starter (a Yarn project):**
 
 ```yaml
 name: Node.js CI
@@ -65,13 +118,17 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x, 22.x]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-      - run: npm ci
-      - run: npm test
+          node-version: ${{ matrix.node-version }}
+          cache: yarn
+      - run: yarn install --immutable
+      - run: yarn test
 ```
 
 **Reusable (`node-ci.yml`):**
@@ -87,8 +144,12 @@ jobs:
       contents: read
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/node-ci.yml@v1
     with:
-      node-version: '20'
+      node-version: 22.x
+      os-matrix: '["ubuntu-latest"]'
 ```
+
+`node-ci.yml` tests one Node.js version, so the tool keeps the newest one and
+says so. It also runs `yarn lint`, so `package.json` needs a `lint` script.
 
 ## Gradual Migration Strategy
 

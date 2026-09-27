@@ -1,10 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, Dict, Tuple
 from textwrap import dedent
-
-import yaml
 
 CHECKOUT_REF = "3d3c42e5aac5ba805825da76410c181273ba90b1"
 SETUP_PYTHON_REF = "ece7cb06caefa5fff74198d8649806c4678c61a1"
@@ -66,52 +62,3 @@ def node_workflow(branch: str) -> str:
               - run: yarn test
         """
     ).lstrip()
-
-
-def detect_language(workflow: Dict[str, Any]) -> Tuple[str, str]:
-    jobs = workflow.get("jobs", {})
-    for job in jobs.values():
-        for step in job.get("steps", []):
-            uses = step.get("uses", "")
-            if "actions/setup-python" in uses:
-                version = step.get("with", {}).get("python-version", "")
-                return "python", version
-            if "actions/setup-node" in uses:
-                version = step.get("with", {}).get("node-version", "")
-                return "node", version
-    raise SystemExit("Unable to detect language from starter workflow")
-
-
-def generate_migrated(workflow: Dict[str, Any], language: str, version: str) -> str:
-    job_name = "ci"
-    uses_path = {
-        "python": "python-test-matrix.yml",
-        "node": "node-ci.yml",
-    }[language]
-    # Both workflows only read the repository; declaring it keeps the grant explicit.
-    job: Dict[str, Any] = {
-        "permissions": {"contents": "read"},
-        "uses": f"{REPO}/.github/workflows/{uses_path}@{CONSUMER_REF}",
-    }
-    if language == "python" and version:
-        job["with"] = {"python-versions": f'["{version}"]'}
-    if language == "node" and version:
-        job["with"] = {"node-version": str(version)}
-    triggers = workflow.get("on") or workflow.get(True) or {}
-    workflow_out = {
-        "name": workflow.get("name", f"{language.title()} CI"),
-        "on": triggers,
-        "jobs": {job_name: job},
-    }
-    return yaml.safe_dump(workflow_out, sort_keys=False)
-
-
-def convert(content: str) -> str:
-    try:
-        data = yaml.safe_load(content)
-    except yaml.YAMLError as exc:
-        raise SystemExit(f"Invalid YAML: {exc}") from exc
-    if not isinstance(data, dict):
-        raise SystemExit("Starter workflow must be a YAML mapping")
-    language, version = detect_language(data)
-    return generate_migrated(data, language, version)
