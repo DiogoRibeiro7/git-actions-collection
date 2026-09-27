@@ -92,6 +92,51 @@ descriptions in `action.yml`, not the README table, then regenerate:
 python scripts/action_docs.py --write
 ```
 
+## Change a support tier
+
+`.github/support-matrix.yml` decides each workflow's and action's tier, and the
+docs site's catalogue and reference pages are generated from it. Four other
+copies are kept by hand, and a test fails when any of them falls behind:
+
+- the supported tables in `README.md` (`tests/test_workflow_docs.py`);
+- the supported-workflow list and the composite-action count in `SUPPORT.md`
+  (`tests/test_support_matrix.py`);
+- `.github/supported-interfaces.json`, rewritten with
+  `python scripts/interface_snapshot.py --write`;
+- the `evidence` paths listed for each supported workflow, which must exist.
+
+Promote a component only when it meets the criteria in
+[SUPPORT.md](SUPPORT.md#promotion-criteria). A supported composite action must
+also run on a real runner; see [CI integration coverage](#ci-integration-coverage).
+
+## Prepare a release
+
+The release pull request bumps the version in `pyproject.toml` and turns the
+`Unreleased` section of `CHANGELOG.md` into `## <version> - <YYYY-MM-DD>`. A test
+requires the newest dated changelog section to match `pyproject.toml`, and the
+release preflight checks both again before it tags. [RELEASES.md](RELEASES.md)
+describes the rest of the procedure.
+
+## Write examples and documentation snippets
+
+Consumers copy the projects under `examples/`, fenced YAML in Markdown, the
+`.vscode` snippets, and the workflows that `migrate_starter_workflows.py` and the
+PyPI trusted-publishing wizard generate. `tests/test_consumer_references.py`
+checks every reference to this collection in them:
+
+- the workflow or action must exist, and a workflow must be callable through
+  `workflow_call`;
+- the ref must be `@v1` or a full commit SHA, never a branch;
+- `with:` and `secrets:` may use only names the target declares and does not
+  deprecate, and must include every required one;
+- a job that calls a reusable workflow declares job-level `permissions` that grant
+  at least what the called workflow's jobs request. Each workflow's reference page
+  on the docs site lists them. GitHub checks these grants before any job starts,
+  so a missing one fails the whole run.
+
+Example workflows are also linted with actionlint and ShellCheck; see
+[CI integration coverage](#ci-integration-coverage).
+
 ## Choose the right test
 
 | Layer | What it proves | Example |
@@ -100,7 +145,7 @@ python scripts/action_docs.py --write
 | Composite harness | Input mapping, conditions, step outputs, environment files | `tests/test_fake_runner_composite.py` |
 | Contract | Public YAML wiring, defaults, permission requirements | `tests/test_action_contracts.py`, `tests/test_reusable_workflow_permissions.py` |
 | Static lint | Workflow syntax, expressions, dependencies, inline shell issues | `yarn lint:workflows` |
-| GitHub integration | Actual action dependencies and workflow orchestration | `CI Tests` composite smoke job, `test-python-test-matrix.yml` |
+| GitHub integration | Actual action dependencies and workflow orchestration | `test-composite-actions.yml`, `CI Tests` composite smoke job, `test-python-test-matrix.yml` |
 
 Keep substantial logic in scripts/functions. Test success, invalid input,
 dependency failure, and relevant side effects. Use temporary consumer directories,
@@ -168,6 +213,22 @@ Its composite smoke job checks out the collection in a subdirectory and executes
 actions. It verifies dry-run/apply behavior, the public JSON output, and failure
 propagation. It requires no publishing or deployment secrets.
 
+`.github/workflows/test-composite-actions.yml` runs the other supported composite
+actions the same way, one job per action. Each job checks out only
+`.github/actions`, `scripts`, and `tests/fixtures/composite-actions` under
+`collection/`, copies a consumer fixture from that folder to the workspace root,
+runs `./collection/.github/actions/<name>`, and asserts on real results. A
+checkout this narrow keeps files elsewhere in this repository from hiding what a
+consumer repository lacks. `tests/conftest.py` keeps pytest from collecting
+`tests/fixtures/`, because those projects are run by the actions' own tools.
+
+Every supported composite action must run on a real runner, either in that
+workflow or in another internal workflow, directly or through a workflow it
+calls. `test_supported_composite_actions_run_on_a_real_runner` enforces this.
+Its `AWAITING_RUNNER_SELF_TEST` set lists the actions still covered only by Bats
+contract tests; remove an action from it in the pull request that adds its job,
+and never add one.
+
 The existing `test-python-test-matrix.yml` workflow calls the reusable workflow
 directly with small test fixtures. New reusable workflows should have similarly
 focused caller tests. These integration tests run on GitHub for pull requests to
@@ -179,8 +240,9 @@ permissions, OIDC, environments, or concurrency; see its
 
 Actionlint checks all root workflows, including reference templates. Its only
 configuration exception permits the deliberately disabled optional scanners in
-`infra-lint.yml`. Example-project workflows also have their existing smoke/lint
-workflow. Keep exceptions narrow and documented.
+`infra-lint.yml`. The same job lints every example-project workflow with the same
+pinned tools, through `workflow-lint.yml`'s `extra-workflow-files` input. Keep
+exceptions narrow and documented.
 
 ## Build the documentation site
 

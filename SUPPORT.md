@@ -19,7 +19,12 @@ behaviour should remain backward compatible. Changes should include regression
 coverage when practical.
 
 All 16 composite actions are currently supported because each has a direct
-Bats contract test under `tests/bash/actions/`.
+Bats contract test under `tests/bash/actions/`. Those tests replace every tool
+with a fake, so supported actions also run on a real runner:
+`test-composite-actions.yml` and the other internal workflows execute them
+against consumer fixtures. `apm-integration`, `gradle-build`, `markdown-lint`,
+`pr-template-enforcer`, `secret-scan`, and `setup-yarn` are still waiting for
+that self-test, and a test lets that list shrink but never grow.
 
 The supported reusable workflows are:
 
