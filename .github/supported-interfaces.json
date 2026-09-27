@@ -181,7 +181,18 @@
       "outputs": []
     },
     "pr-template-enforcer": {
-      "inputs": {},
+      "inputs": {
+        "body": {
+          "default": "${{ github.event.pull_request.body }}",
+          "deprecated": false,
+          "required": false
+        },
+        "required-sections": {
+          "default": "## Summary\n## Testing\n",
+          "deprecated": false,
+          "required": false
+        }
+      },
       "outputs": []
     },
     "python-lint": {

@@ -40,7 +40,7 @@ Before expanding the catalogue aggressively, improve the guarantees around every
 
 - [ ] Add contract tests for every workflow intended to become supported.
 - [ ] Add smoke-test consumer repositories or fixtures for each supported ecosystem.
-  - In progress: `test-composite-actions.yml` runs the supported Python, Node.js, Gradle, and secret-scanning actions against `tests/fixtures/composite-actions/`. `pr-template-enforcer` and `apm-integration` still need a real-runner job.
+  - In progress: `test-composite-actions.yml` runs the supported Python, Node.js, Gradle, secret-scanning, and pull-request template actions against `tests/fixtures/composite-actions/`. `apm-integration` still needs a real-runner job.
 - [x] Validate workflow syntax and semantics with dedicated GitHub Actions linters.
 - [x] Add checks for overly broad `permissions` blocks.
 - [x] Detect mutable or unpinned third-party action references.

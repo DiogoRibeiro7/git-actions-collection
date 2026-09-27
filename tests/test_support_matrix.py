@@ -52,7 +52,6 @@ def test_supported_composite_actions_have_contract_tests() -> None:
 # only shrink.
 AWAITING_RUNNER_SELF_TEST = {
     "apm-integration",
-    "pr-template-enforcer",
 }
 LOCAL_ACTION = re.compile(r"uses:\s*\./(?:[\w.-]+/)?\.github/actions/([\w-]+)")
 LOCAL_WORKFLOW = re.compile(r"uses:\s*\./\.github/workflows/([\w.-]+\.ya?ml)")
@@ -99,8 +98,8 @@ def _actions_named_in_sentence(text: str, marker: str, actions: set[str]) -> set
 @pytest.mark.parametrize(
     ("document", "marker"),
     [
-        ("SUPPORT.md", "are still waiting for that self-test"),
-        ("ROADMAP.md", "still need a real-runner job"),
+        ("SUPPORT.md", "still waiting for that self-test"),
+        ("ROADMAP.md", "a real-runner job"),
     ],
 )
 def test_docs_name_the_actions_still_awaiting_a_self_test(document: str, marker: str) -> None:

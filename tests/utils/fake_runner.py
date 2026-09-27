@@ -201,6 +201,13 @@ def run_action(
             "sha": supplied_env.get("GITHUB_SHA", "test-sha"),
             "event.pull_request.body": supplied_env.get("PR_BODY", ""),
         }
+        # GitHub evaluates expressions in input defaults, such as
+        # `${{ github.event.pull_request.body }}`, before the action runs.
+        for name, value in action_inputs.items():
+            if name not in supplied_inputs:
+                action_inputs[name] = _resolve_expressions(
+                    value, inputs={}, step_outputs={}, github=github_context
+                )
 
         run_env = os.environ.copy()
         run_env.update(
