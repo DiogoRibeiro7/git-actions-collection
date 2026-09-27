@@ -472,3 +472,104 @@ jobs:
           set -euo pipefail
           test "$MISSING" = failure
           test "$BLANK" = failure
+
+  apm-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the actions beside the consumer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          path: collection
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.github/actions/
+            /scripts/
+            /tests/fixtures/composite-actions/
+
+      # api-url points each provider at this stub instead of the real service.
+      - name: Start a stub APM endpoint
+        run: |
+          set -euo pipefail
+          python3 collection/tests/fixtures/composite-actions/apm-stub/server.py > stub.log 2>&1 &
+          for _ in $(seq 1 50); do
+            if curl -s -o /dev/null http://127.0.0.1:8080/; then exit 0; fi
+            sleep 0.2
+          done
+          echo "The stub endpoint did not start" >&2
+          cat stub.log >&2
+          exit 1
+
+      - name: Send a Datadog event with quotes in the environment
+        uses: ./collection/.github/actions/apm-integration
+        with:
+          provider: datadog
+          api-key: dd-test-key
+          environment: staging "eu"
+          deployment-id: build-7
+          api-url: http://127.0.0.1:8080/api/v1/events
+
+      - name: Send a New Relic deployment marker
+        uses: ./collection/.github/actions/apm-integration
+        with:
+          provider: newrelic
+          api-key: nr-test-key
+          deployment-id: build-7
+          api-url: http://127.0.0.1:8080/v2/applications/42/deployments.json
+
+      - name: Write a latency file over its threshold
+        run: |
+          echo '{"latency": 120.5, "threshold": 100}' > metrics.json
+
+      - name: Send the Application Insights event
+        uses: ./collection/.github/actions/apm-integration
+        with:
+          provider: appinsights
+          api-key: 00000000-0000-0000-0000-000000000000
+          environment: staging
+          deployment-id: build-7
+          api-url: http://127.0.0.1:8080/v2/track
+          metrics-file: metrics.json
+
+      - name: Send to an endpoint that refuses the request
+        id: refused
+        continue-on-error: true
+        uses: ./collection/.github/actions/apm-integration
+        with:
+          provider: datadog
+          api-key: dd-test-key
+          api-url: http://127.0.0.1:8080/reject
+
+      - name: Verify what each provider received
+        env:
+          REFUSED: ${{ steps.refused.outcome }}
+        run: |
+          set -euo pipefail
+          test "$REFUSED" = failure
+          python3 - <<'PY'
+          import json
+
+          records = {}
+          for line in open("requests.jsonl", encoding="utf-8"):
+              record = json.loads(line)
+              records.setdefault(record["path"], record)
+
+          datadog = records["/api/v1/events"]
+          assert datadog["headers"]["dd-api-key"] == "dd-test-key"
+          event = json.loads(datadog["body"])
+          assert event["title"] == "Deployment build-7", event
+          assert event["tags"] == ['env:staging "eu"'], event
+
+          newrelic = records["/v2/applications/42/deployments.json"]
+          assert newrelic["headers"]["api-key"] == "nr-test-key"
+          assert json.loads(newrelic["body"])["deployment"]["revision"] == "build-7"
+
+          appinsights = json.loads(records["/v2/track"]["body"])
+          assert appinsights["iKey"] == "00000000-0000-0000-0000-000000000000"
+          assert appinsights["data"]["baseData"]["properties"] == {
+              "deploymentId": "build-7",
+              "environment": "staging",
+          }, appinsights
+
+          assert "/reject" in records
+          PY
