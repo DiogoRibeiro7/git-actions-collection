@@ -115,3 +115,19 @@ updates:
     labels:
       - "dependencies"
       - "deno"
+
+  # The Java project the gradle-build self-test builds. It declares no dependencies,
+  # so this block opens no pull requests; the Dependabot policy check requires an
+  # update block for every ecosystem whose manifests it finds.
+  - package-ecosystem: "gradle"
+    directory: "/tests/fixtures/composite-actions/gradle-project"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - "version-update:semver-major"
+    labels:
+      - "dependencies"
+      - "java"
