@@ -59,9 +59,17 @@ def consumer_documents() -> list[tuple[str, str]]:
     ]
     documents.append(("pypi_trusted_publishing_wizard.py template", WORKFLOW_TEMPLATE))
     starters = ROOT / "tests" / "fixtures" / "workflows"
+    github = starters / "github-starters"
     for language, starter in (
-        ("python", starters / "github-starters" / "python-package.yml"),
+        ("python", github / "python-package.yml"),
         ("node", starters / "starter_node_yarn.yml"),
+        ("go", github / "go.yml"),
+        ("maven", github / "maven.yml"),
+        ("gradle", github / "gradle.yml"),
+        ("ruby", github / "ruby.yml"),
+        ("dotnet", github / "dotnet.yml"),
+        ("rust", github / "rust.yml"),
+        ("deno", github / "deno.yml"),
     ):
         documents.append(
             (
