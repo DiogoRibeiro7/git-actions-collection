@@ -24,7 +24,6 @@ needs_node = pytest.mark.skipif(shutil.which("node") is None, reason="Requires N
 needs_npm = pytest.mark.skipif(
     shutil.which("node") is None or shutil.which("npm") is None, reason="Requires npm"
 )
-DEPENDENCY = {"name": "fixture", "version": "1.0.0", "dependencies": {"is-number": "7.0.0"}}
 
 
 def _workflow() -> dict[str, Any]:
@@ -236,16 +235,25 @@ def test_lint_and_tests_run_the_package_scripts(
                 "lockfileVersion": 3,
                 "packages": {"": {"name": "fixture", "version": "1.0.0"}},
             },
-            "Missing: is-number@7.0.0 from lock file",
+            "Missing: local@1.0.0 from lock file",
         ),
     ],
 )
 def test_npm_install_fails_without_a_lockfile_that_matches_package_json(
     tmp_path: Path, lockfile: dict[str, Any] | None, message: str
 ) -> None:
-    """`npm ci` refuses before it downloads anything, so the job fails instead of resolving
-    new versions."""
-    (tmp_path / "package.json").write_text(json.dumps(DEPENDENCY))
+    """`npm ci` refuses instead of resolving versions the lockfile does not record.
+
+    The dependency is a local directory, so npm needs no registry, and the npm cache is empty
+    and offline, so the result does not depend on what this machine has downloaded before.
+    """
+    (tmp_path / "local").mkdir()
+    (tmp_path / "local" / "package.json").write_text(
+        json.dumps({"name": "local", "version": "1.0.0"})
+    )
+    (tmp_path / "package.json").write_text(
+        json.dumps({"name": "fixture", "version": "1.0.0", "dependencies": {"local": "file:local"}})
+    )
     if lockfile is not None:
         (tmp_path / "package-lock.json").write_text(json.dumps(lockfile))
 
@@ -254,7 +262,7 @@ def test_npm_install_fails_without_a_lockfile_that_matches_package_json(
         "build",
         "Install dependencies",
         context={MANAGER: "npm"},
-        env={"npm_config_offline": "true"},
+        env={"npm_config_offline": "true", "npm_config_cache": str(tmp_path / "npm-cache")},
         workdir=tmp_path,
     )
 
