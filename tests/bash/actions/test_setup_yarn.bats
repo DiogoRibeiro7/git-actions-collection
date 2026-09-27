@@ -16,7 +16,15 @@ load "$(dirname "$BATS_TEST_FILENAME")/../lib/action_harness.bash"
   touch "$RUN_ACTION_WORKSPACE/yarn.lock"
   run_action "$REPO_ROOT/.github/actions/setup-yarn" working-directory="$RUN_ACTION_WORKSPACE"
   assert_exit_code 0
-  grep -q "yarn install" "$FAKEBIN_LOG"
+  grep -qx "yarn install --immutable" "$FAKEBIN_LOG"
+}
+
+@test "setup-yarn keeps a Yarn 1 lockfile frozen" {
+  RUN_ACTION_WORKSPACE="$(mktemp -d)"
+  touch "$RUN_ACTION_WORKSPACE/yarn.lock"
+  FAKEBIN_YARN_VERSION=1.22.22 run_action "$REPO_ROOT/.github/actions/setup-yarn" working-directory="$RUN_ACTION_WORKSPACE"
+  assert_exit_code 0
+  grep -qx "yarn install --frozen-lockfile" "$FAKEBIN_LOG"
 }
 
 

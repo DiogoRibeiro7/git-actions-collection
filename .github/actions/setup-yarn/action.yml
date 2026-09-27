@@ -6,7 +6,7 @@ inputs:
     required: false
     default: "24"
   working-directory:
-    description: "Project directory"
+    description: "Directory with package.json and yarn.lock"
     required: false
     default: "."
 runs:

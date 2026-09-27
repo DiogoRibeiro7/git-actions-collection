@@ -8,7 +8,7 @@ files with minimal setup.
 
 | Input | Required | Default | Description |
 | --- | --- | --- | --- |
-| `paths` | no | `.` | Paths to lint |
+| `paths` | no | `.` | Files, directories or globs to lint, separated by spaces or newlines; node_modules is always skipped, and a list that matches no Markdown file fails |
 | `config-file` | no | `""` | Path to configuration file |
 | `node-version` | no | `24` | Node version to use |
 
@@ -66,12 +66,22 @@ jobs:
 ```
 <!-- markdownlint-enable MD013 -->
 
+## How paths are read
+
+`paths` lists files, directories and globs, separated by spaces or newlines, and
+each entry reaches markdownlint as its own argument. Globs are expanded by
+markdownlint, not the shell, so `docs/**/*.md` works as written. Anything under a
+`node_modules` directory is always skipped, because installed packages ship
+their own Markdown. markdownlint-cli 0.42.0 prints its usage and exits
+successfully when nothing matches, so the action treats that as an error instead
+of a pass.
+
 ## Troubleshooting
 
 - **`markdownlint: command not found`** – ensure the `actions/setup-node` step
   succeeded, especially on self-hosted runners.
-- **`No files matching`** – verify that `paths` resolves to existing Markdown
-  files.
+- **`No Markdown files matched paths`** – no entry in `paths` resolved to a
+  Markdown file. Check for typos, and remember that `node_modules` is skipped.
 - **`Cannot read configuration file`** – make sure `config-file` is committed and
   the path is correct.
 
@@ -81,7 +91,8 @@ jobs:
   Markdown files change.
 - Cache the npm directory or use a prebuilt container image to avoid
   reinstalling `markdownlint-cli` on every run.
-- Maintain a `.markdownlintignore` file to skip generated or vendor directories.
+- Maintain a `.markdownlintignore` file to skip other generated or vendored
+  directories; `node_modules` is already skipped.
 
 ## Security Considerations
 

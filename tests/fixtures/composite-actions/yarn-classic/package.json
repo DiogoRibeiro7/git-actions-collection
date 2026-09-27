@@ -1,0 +1,8 @@
+{
+  "name": "yarn-classic-smoke",
+  "private": true,
+  "packageManager": "yarn@1.22.22",
+  "dependencies": {
+    "is-number": "7.0.0"
+  }
+}

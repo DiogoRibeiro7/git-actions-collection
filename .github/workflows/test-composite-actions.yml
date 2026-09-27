@@ -144,3 +144,137 @@ jobs:
             grep -qx 'handler.py' contents.txt
             grep -qx 'packaging/__init__.py' contents.txt
           done
+
+  setup-yarn:
+    name: setup-yarn (Node ${{ matrix.node }}, ${{ matrix.project }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Node.js 25 and newer no longer bundle Corepack, which the action installs.
+        node: ['24', '26']
+        project: [yarn-berry, yarn-classic]
+    steps:
+      - name: Check out the actions beside the consumer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          path: collection
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.github/actions/
+            /scripts/
+            /tests/fixtures/composite-actions/
+
+      - name: Prepare a Yarn project in a subdirectory
+        env:
+          PROJECT: ${{ matrix.project }}
+        run: cp -R "collection/tests/fixtures/composite-actions/$PROJECT" app
+
+      - name: Install the locked dependencies
+        uses: ./collection/.github/actions/setup-yarn
+        with:
+          node-version: ${{ matrix.node }}
+          working-directory: app
+
+      - name: Verify Node.js, Yarn and the installed dependency
+        working-directory: app
+        env:
+          NODE_MAJOR: ${{ matrix.node }}
+          PROJECT: ${{ matrix.project }}
+        run: |
+          set -euo pipefail
+          test "$(node -p 'process.versions.node.split(".")[0]')" = "$NODE_MAJOR"
+          expected_yarn=4
+          if [ "$PROJECT" = yarn-classic ]; then expected_yarn=1; fi
+          test "$(yarn --version | cut -d. -f1)" = "$expected_yarn"
+          node -e "require('is-number')"
+
+      - name: Add a dependency the lockfile does not have
+        working-directory: app
+        run: |
+          node -e "
+            const fs = require('fs');
+            const manifest = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            manifest.dependencies['is-odd'] = '3.0.1';
+            fs.writeFileSync('package.json', JSON.stringify(manifest, null, 2) + '\n');
+          "
+
+      - name: Install again with the stale lockfile
+        id: stale
+        continue-on-error: true
+        uses: ./collection/.github/actions/setup-yarn
+        with:
+          node-version: ${{ matrix.node }}
+          working-directory: app
+
+      - name: Verify the stale lockfile failed the install
+        env:
+          OUTCOME: ${{ steps.stale.outcome }}
+        run: test "$OUTCOME" = failure
+
+  markdown-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the actions beside the consumer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          path: collection
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.github/actions/
+            /scripts/
+            /tests/fixtures/composite-actions/
+
+      # site/ keeps the fixture apart from the actions' own READMEs under collection/.
+      - name: Prepare Markdown pages, one of them broken
+        run: cp -R collection/tests/fixtures/composite-actions/markdown site
+
+      - name: Lint several clean paths
+        uses: ./collection/.github/actions/markdown-lint
+        with:
+          paths: site/docs site/README.md
+
+      - name: Lint a clean and a broken path, one per line
+        id: broken
+        continue-on-error: true
+        uses: ./collection/.github/actions/markdown-lint
+        with:
+          paths: |
+            site/docs
+            site/broken
+
+      - name: Lint the broken path with a config file that allows it
+        uses: ./collection/.github/actions/markdown-lint
+        with:
+          paths: site/broken
+          config-file: site/relaxed.json
+
+      - name: Lint a path that matches nothing
+        id: unmatched
+        continue-on-error: true
+        uses: ./collection/.github/actions/markdown-lint
+        with:
+          paths: site/doc
+
+      - name: Leave clean pages next to an installed dependency
+        run: |
+          set -euo pipefail
+          rm -rf site/broken
+          mkdir -p site/node_modules/some-package
+          printf '#No space after the hash\n' > site/node_modules/some-package/README.md
+
+      - name: Lint the directory without its dependencies
+        uses: ./collection/.github/actions/markdown-lint
+        with:
+          paths: site
+
+      - name: Verify the broken and unmatched paths failed
+        env:
+          BROKEN: ${{ steps.broken.outcome }}
+          UNMATCHED: ${{ steps.unmatched.outcome }}
+        run: |
+          set -euo pipefail
+          test "$BROKEN" = failure
+          test "$UNMATCHED" = failure
