@@ -224,12 +224,11 @@ consumer repository lacks. `tests/conftest.py` keeps pytest from collecting
 
 Every supported composite action must run on a real runner, either in that
 workflow or in another internal workflow, directly or through a workflow it
-calls. `test_supported_composite_actions_run_on_a_real_runner` enforces this.
-Its `AWAITING_RUNNER_SELF_TEST` set lists the actions still covered only by Bats
-contract tests; remove an action from it in the pull request that adds its job,
-and never add one. SUPPORT.md and the ROADMAP progress note repeat that list, and
-`test_docs_name_the_actions_still_awaiting_a_self_test` keeps both equal to it,
-so update them in the same pull request.
+calls. `test_supported_composite_actions_run_on_a_real_runner` enforces this, so
+promoting an action to supported means adding its job in the same pull request.
+An action that talks to an external service gets a stub instead; the
+`apm-integration` job, for example, points `api-url` at a local server from
+`tests/fixtures/composite-actions/apm-stub/` and checks what it receives.
 
 The existing `test-python-test-matrix.yml` workflow calls the reusable workflow
 directly with small test fixtures. New reusable workflows should have similarly
