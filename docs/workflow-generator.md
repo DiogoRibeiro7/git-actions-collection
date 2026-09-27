@@ -6,16 +6,21 @@ without copying boilerplate.
 
 ## Usage
 
+From a checkout of this repository:
+
 ```bash
-python scripts/workflow_generator.py python
+python -m scripts.workflow_generator python
 ```
 
 This writes `.github/workflows/python-ci.yml` for the `main` branch. Override the
 branch or output path if needed:
 
 ```bash
-python scripts/workflow_generator.py node --branch feature/demo --output .github/workflows/ci.yml
+python -m scripts.workflow_generator node --branch feature/demo --output .github/workflows/ci.yml
 ```
+
+Run it as a module, as above: `python scripts/workflow_generator.py` cannot import
+the `scripts` package it belongs to.
 
 ## Features
 
