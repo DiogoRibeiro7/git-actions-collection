@@ -6,6 +6,7 @@ All notable changes to this repository are documented here.
 
 ### Added
 
+- The supported `pr-template-enforcer` action accepts two optional inputs: `required-sections` lists the text the description must contain, one entry per line (default: `## Summary` and `## Testing`, as before), and `body` checks other text than the triggering pull request's description (its default). Entries now match as plain text, not as a regular expression, and the action reports every missing entry instead of only the first. `test-composite-actions.yml` runs it with complete, incomplete and blank descriptions and with custom sections.
 - `workflow-lint.yml` accepts an optional `extra-workflow-files` input: Git pathspecs for workflow files outside `.github/workflows`, such as examples or templates. They are linted with the same pinned actionlint and ShellCheck, and a list that matches no tracked file fails the check. The collection's CI uses it to lint all 49 example workflows. Before, only 11 examples were linted, with the latest actionlint release downloaded unpinned and `context "matrix" is not allowed here` errors ignored.
 
 ### Changed
