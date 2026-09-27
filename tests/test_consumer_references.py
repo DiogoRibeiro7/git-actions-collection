@@ -23,7 +23,7 @@ from typing import Any
 import pytest
 import yaml
 
-from scripts._lib.workflows import generate_migrated
+from scripts._lib.migration import convert
 from scripts.interface_snapshot import LEVELS, action_interface, workflow_interface
 from scripts.pypi_trusted_publishing_wizard import WORKFLOW_TEMPLATE
 
@@ -58,11 +58,15 @@ def consumer_documents() -> list[tuple[str, str]]:
         and not relative.startswith("tests/")
     ]
     documents.append(("pypi_trusted_publishing_wizard.py template", WORKFLOW_TEMPLATE))
-    for language, version in (("python", "3.12"), ("node", "24")):
+    starters = ROOT / "tests" / "fixtures" / "workflows"
+    for language, starter in (
+        ("python", starters / "github-starters" / "python-package.yml"),
+        ("node", starters / "starter_node_yarn.yml"),
+    ):
         documents.append(
             (
                 f"migrate_starter_workflows.py {language} output",
-                generate_migrated({"on": {"push": {}}}, language, version),
+                convert(starter.read_text(encoding="utf-8")),
             )
         )
     return documents

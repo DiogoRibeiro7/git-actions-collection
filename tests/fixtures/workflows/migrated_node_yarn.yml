@@ -1,0 +1,14 @@
+name: Node.js CI
+'on':
+  push:
+    branches:
+    - main
+  pull_request: null
+jobs:
+  ci:
+    permissions:
+      contents: read
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/node-ci.yml@v1
+    with:
+      node-version: 22.x
+      os-matrix: '["ubuntu-latest"]'
