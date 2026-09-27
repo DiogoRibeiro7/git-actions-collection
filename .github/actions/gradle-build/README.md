@@ -8,8 +8,8 @@ Run [Gradle](https://gradle.org/) builds with caching and configurable tasks.
 | Input | Required | Default | Description |
 | --- | --- | --- | --- |
 | `java-version` | no | `17` | Java version to use |
-| `tasks` | no | `build` | Gradle tasks to run |
-| `gradle-args` | no | `--build-cache` | Additional Gradle arguments |
+| `tasks` | no | `build` | Gradle tasks to run, separated by spaces or newlines |
+| `gradle-args` | no | `--build-cache` | Additional Gradle arguments, separated by spaces or newlines |
 | `working-directory` | no | `.` | Directory of the Gradle project |
 
 ## Outputs
@@ -27,6 +27,28 @@ This action has no outputs.
     gradle-args: '--build-cache --info'
     working-directory: backend/
 ```
+
+## How it runs Gradle
+
+The action installs `java-version` (Temurin) and sets up
+`gradle/actions/setup-gradle`, then runs the project's wrapper:
+`./gradlew <tasks> <gradle-args>` in `working-directory`. The project must
+commit its Gradle wrapper (`gradlew` and `gradle/wrapper/`). The wrapper decides
+the Gradle version, so choose a `java-version` that version can run on; Gradle 9
+needs Java 17 or newer.
+
+`tasks` and `gradle-args` may list their entries on one line or one per line:
+
+```yaml
+- uses: DiogoRibeiro7/git-actions-collection/.github/actions/gradle-build@v1
+  with:
+    tasks: |
+      clean
+      build
+```
+
+Each entry is passed to Gradle as its own argument, so an argument cannot contain
+spaces. A `tasks` value with no task in it fails the step.
 
 ## Security Considerations
 

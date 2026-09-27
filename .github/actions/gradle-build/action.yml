@@ -6,11 +6,11 @@ inputs:
     required: false
     default: "17"
   tasks:
-    description: "Gradle tasks to run"
+    description: "Gradle tasks to run, separated by spaces or newlines"
     required: false
     default: "build"
   gradle-args:
-    description: "Additional Gradle arguments"
+    description: "Additional Gradle arguments, separated by spaces or newlines"
     required: false
     default: "--build-cache"
   working-directory:
