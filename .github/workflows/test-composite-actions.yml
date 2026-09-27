@@ -407,3 +407,68 @@ jobs:
             echo "The report contains the token" >&2
             exit 1
           fi
+
+  pr-template-enforcer:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the actions beside the consumer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          path: collection
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.github/actions/
+            /scripts/
+            /tests/fixtures/composite-actions/
+
+      # Each step passes `body`, so the result does not depend on the description
+      # of whichever pull request triggered this run.
+      - name: Accept a description with the default sections
+        uses: ./collection/.github/actions/pr-template-enforcer
+        with:
+          body: |
+            ## Summary
+            Adds a feature.
+
+            ## Testing
+            Ran the test suite.
+
+      - name: Reject a description without a Testing section
+        id: missing
+        continue-on-error: true
+        uses: ./collection/.github/actions/pr-template-enforcer
+        with:
+          body: |
+            ## Summary
+            Adds a feature.
+
+      # Whitespace rather than '' so the input is set and the default is not used.
+      - name: Reject a blank description
+        id: blank
+        continue-on-error: true
+        uses: ./collection/.github/actions/pr-template-enforcer
+        with:
+          body: '   '
+
+      - name: Accept a description with the caller's own sections
+        uses: ./collection/.github/actions/pr-template-enforcer
+        with:
+          body: |
+            ## What
+            Adds a feature.
+
+            ## Why
+            Users asked for it.
+          required-sections: |
+            ## What
+            ## Why
+
+      - name: Verify the incomplete and blank descriptions failed
+        env:
+          MISSING: ${{ steps.missing.outcome }}
+          BLANK: ${{ steps.blank.outcome }}
+        run: |
+          set -euo pipefail
+          test "$MISSING" = failure
+          test "$BLANK" = failure
