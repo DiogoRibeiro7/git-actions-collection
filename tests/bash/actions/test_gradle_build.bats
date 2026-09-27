@@ -22,3 +22,23 @@ EOF
   assert_exit_code 0
   grep -q "gradlew build --info" "$FAKEBIN_LOG"
 }
+
+@test "gradle-build runs every task listed one per line" {
+  local_ws="$(mktemp -d)"
+  cat > "$local_ws/gradlew" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+echo "gradlew $*" >> "${FAKEBIN_LOG:?}"
+EOF
+  chmod +x "$local_ws/gradlew"
+
+  RUN_ACTION_WORKSPACE="$local_ws" run_action "$REPO_ROOT/.github/actions/gradle-build" tasks=$'clean\nassemble\n' gradle-args=$'--build-cache\n--info' working-directory="$local_ws"
+  assert_exit_code 0
+  grep -qx "gradlew clean assemble --build-cache --info" "$FAKEBIN_LOG"
+}
+
+@test "gradle-build rejects tasks that are only whitespace" {
+  local_ws="$(mktemp -d)"
+  RUN_ACTION_WORKSPACE="$local_ws" run_action "$REPO_ROOT/.github/actions/gradle-build" tasks=$' \n ' working-directory="$local_ws"
+  assert_exit_code 1
+}
