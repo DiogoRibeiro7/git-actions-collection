@@ -348,3 +348,62 @@ jobs:
         env:
           OUTCOME: ${{ steps.unknown.outcome }}
         run: test "$OUTCOME" = failure
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the actions beside the consumer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          path: collection
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.github/actions/
+            /scripts/
+            /tests/fixtures/composite-actions/
+
+      # The token is random and generated here, so the repository never holds a
+      # secret-shaped string. It is masked so it cannot reach the job log either.
+      - name: Prepare a clean folder and one with a leaked token
+        run: |
+          set -euo pipefail
+          mkdir -p clean leaky
+          echo "No credentials in this file." > clean/notes.txt
+          token="ghp_$(python3 -c "import secrets, string; print(''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(36)))")"
+          echo "::add-mask::$token"
+          printf 'GITHUB_TOKEN=%s\n' "$token" > leaky/config.env
+
+      - name: Scan the clean folder
+        uses: ./collection/.github/actions/secret-scan
+        with:
+          args: --no-git -v --source clean
+
+      - name: Scan the folder with the leaked token
+        id: leaky
+        continue-on-error: true
+        uses: ./collection/.github/actions/secret-scan
+        with:
+          args: |
+            --no-git
+            --source leaky
+            --report-format json
+            --report-path report.json
+
+      - name: Verify the leak failed the scan and stayed redacted
+        env:
+          OUTCOME: ${{ steps.leaky.outcome }}
+        run: |
+          set -euo pipefail
+          test "$OUTCOME" = failure
+          python3 - <<'PY'
+          import json
+          findings = json.load(open("report.json"))
+          assert [f["RuleID"] for f in findings] == ["github-pat"], findings
+          assert all(f["Secret"] == "REDACTED" for f in findings), "secret not redacted"
+          PY
+          token="$(cut -d= -f2 leaky/config.env)"
+          if grep -qF "$token" report.json; then
+            echo "The report contains the token" >&2
+            exit 1
+          fi
