@@ -1,0 +1,12 @@
+{
+  "name": "node-ci-yarn-fixture",
+  "private": true,
+  "packageManager": "yarn@4.18.1",
+  "scripts": {
+    "lint": "node --check index.js",
+    "test": "node test.js"
+  },
+  "dependencies": {
+    "is-number": "7.0.0"
+  }
+}

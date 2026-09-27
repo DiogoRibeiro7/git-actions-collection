@@ -168,9 +168,8 @@ def _plan_node(job_name: str, job: Workflow, setup: Workflow) -> MigrationPlan:
     if manager != "yarn":
         plan = MigrationPlan("node", job_name)
         plan.notes.append(
-            "node-ci.yml supports Yarn only: it runs `yarn install --immutable`, `yarn lint` "
-            f"and `yarn test`. This starter uses {manager}, so no reusable workflow of this "
-            "collection fits it yet and nothing was generated."
+            "This tool migrates Yarn only so far, although node-ci.yml also installs with npm "
+            f"and pnpm. This starter uses {manager}, so nothing was generated."
         )
         return plan
 

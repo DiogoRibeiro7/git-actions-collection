@@ -1,5 +1,6 @@
-# Installs dependencies with Yarn via Corepack (yarn install --immutable) and runs yarn lint and
-# yarn test across an OS matrix (Ubuntu, Windows, macOS by default).
+# Installs dependencies with npm, Yarn or pnpm from the lockfile and runs the package's lint and
+# test scripts across an OS matrix (Ubuntu, Windows, macOS by default). The package manager is
+# read from package.json's packageManager field or the lockfile unless package-manager names it.
 name: Node CI
 
 on:
@@ -15,6 +16,18 @@ on:
         required: false
         type: string
         default: '["ubuntu-latest","windows-latest","macos-latest"]'
+      package-manager:
+        description: >-
+          npm, yarn, pnpm, or auto to use package.json's packageManager field, then
+          pnpm-lock.yaml or yarn.lock, then npm
+        required: false
+        type: string
+        default: auto
+      working-directory:
+        description: Directory that holds package.json and the lockfile
+        required: false
+        type: string
+        default: .
 
 jobs:
   build:
@@ -28,40 +41,103 @@ jobs:
     defaults:
       run:
         shell: bash
+        working-directory: ${{ inputs.working-directory }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      # setup-node's `cache: yarn` asks the runner's global Yarn 1 for its cache folder,
-      # which fails in projects that pin Yarn 2+ through packageManager. Cache after Corepack.
+      # setup-node's `cache` input asks the runner's global Yarn or pnpm for its cache folder,
+      # which fails in projects that pin another version through packageManager. Cache after Corepack.
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
           node-version: ${{ inputs.node-version }}
-      - name: Enable Corepack
+      - name: Choose the package manager
+        id: manager
+        env:
+          PACKAGE_MANAGER: ${{ inputs.package-manager }}
         run: |
-          # Node.js 25 and newer no longer bundle Corepack.
-          if [ "$(node -p 'process.versions.node.split(".")[0]')" -ge 25 ]; then
+          set -euo pipefail
+          manager="$PACKAGE_MANAGER"
+          if [ "$manager" = auto ]; then
+            manager="$(node -e 'const fs = require("fs"); const declared = fs.existsSync("package.json") && JSON.parse(fs.readFileSync("package.json", "utf8")).packageManager; process.stdout.write(typeof declared === "string" ? declared.split("@")[0] : "")')"
+            if [ -z "$manager" ]; then
+              if [ -f pnpm-lock.yaml ]; then
+                manager=pnpm
+              elif [ -f yarn.lock ]; then
+                manager=yarn
+              else
+                manager=npm
+              fi
+            fi
+          fi
+          case "$manager" in
+            npm) lockfile=package-lock.json ;;
+            yarn) lockfile=yarn.lock ;;
+            pnpm) lockfile=pnpm-lock.yaml ;;
+            *)
+              echo "::error title=Unsupported package manager::node-ci supports npm, yarn and pnpm, not '$manager'."
+              exit 1
+              ;;
+          esac
+          echo "Using $manager"
+          echo "manager=$manager" >> "$GITHUB_OUTPUT"
+          echo "lockfile=$lockfile" >> "$GITHUB_OUTPUT"
+      - name: Enable Corepack
+        if: steps.manager.outputs.manager != 'npm'
+        env:
+          MANAGER: ${{ steps.manager.outputs.manager }}
+        run: |
+          # Node.js 25 and newer no longer bundle Corepack, and the Corepack that Node.js 22
+          # bundles cannot run current pnpm releases.
+          if [ "$(node -p 'process.versions.node.split(".")[0]')" -ge 25 ] || [ "$MANAGER" = pnpm ]; then
             npm install --global corepack@0.36.0
           fi
           corepack enable
-      - name: Locate the Yarn cache
-        id: yarn-cache
+      - name: Locate the package cache
+        id: cache
+        env:
+          MANAGER: ${{ steps.manager.outputs.manager }}
         run: |
           set -euo pipefail
-          if [ "$(yarn --version | cut -d. -f1)" = "1" ]; then
-            dir="$(yarn cache dir)"
-          else
-            dir="$(yarn config get cacheFolder)"
-          fi
+          case "$MANAGER" in
+            npm) dir="$(npm config get cache)" ;;
+            pnpm) dir="$(pnpm store path)" ;;
+            yarn)
+              if [ "$(yarn --version | cut -d. -f1)" = "1" ]; then
+                dir="$(yarn cache dir)"
+              else
+                dir="$(yarn config get cacheFolder)"
+              fi
+              ;;
+          esac
           echo "dir=$dir" >> "$GITHUB_OUTPUT"
-      - name: Cache Yarn packages
+      - name: Cache packages
         uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25
         with:
-          path: ${{ steps.yarn-cache.outputs.dir }}
-          key: yarn-${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
+          path: ${{ steps.cache.outputs.dir }}
+          key: ${{ steps.manager.outputs.manager }}-${{ runner.os }}-${{ hashFiles(format('**/{0}', steps.manager.outputs.lockfile)) }}
           restore-keys: |
-            yarn-${{ runner.os }}-
+            ${{ steps.manager.outputs.manager }}-${{ runner.os }}-
       - name: Install dependencies
-        run: yarn install --immutable
+        env:
+          MANAGER: ${{ steps.manager.outputs.manager }}
+        run: |
+          set -euo pipefail
+          case "$MANAGER" in
+            npm) npm ci ;;
+            pnpm) pnpm install --frozen-lockfile ;;
+            yarn)
+              # Yarn 1 ignores --immutable, so it would rewrite an outdated lockfile.
+              if [ "$(yarn --version | cut -d. -f1)" = "1" ]; then
+                yarn install --frozen-lockfile
+              else
+                yarn install --immutable
+              fi
+              ;;
+          esac
       - name: Run lint
-        run: yarn lint
+        env:
+          MANAGER: ${{ steps.manager.outputs.manager }}
+        run: '"$MANAGER" run lint'
       - name: Run tests
-        run: yarn test
+        env:
+          MANAGER: ${{ steps.manager.outputs.manager }}
+        run: '"$MANAGER" run test'

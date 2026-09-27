@@ -1,0 +1,61 @@
+name: Test Node CI Workflow
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/node-ci.yml'
+      - '.github/workflows/test-node-ci.yml'
+      - 'tests/fixtures/node-ci/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+# Each fixture is a package with a lockfile, a lint script and a test script. The package
+# manager is detected unless a job names it.
+jobs:
+  npm:
+    uses: ./.github/workflows/node-ci.yml
+    with:
+      working-directory: tests/fixtures/node-ci/npm
+
+  yarn:
+    uses: ./.github/workflows/node-ci.yml
+    with:
+      os-matrix: '["ubuntu-latest","windows-latest"]'
+      working-directory: tests/fixtures/node-ci/yarn
+
+  yarn-classic:
+    uses: ./.github/workflows/node-ci.yml
+    with:
+      os-matrix: '["ubuntu-latest"]'
+      package-manager: yarn
+      working-directory: tests/fixtures/node-ci/yarn-classic
+
+  pnpm:
+    uses: ./.github/workflows/node-ci.yml
+    with:
+      os-matrix: '["ubuntu-latest","macos-latest"]'
+      working-directory: tests/fixtures/node-ci/pnpm
+
+  # Node.js 22 bundles a Corepack too old for pnpm 12.
+  pnpm-node-22:
+    uses: ./.github/workflows/node-ci.yml
+    with:
+      node-version: '22'
+      os-matrix: '["ubuntu-latest"]'
+      working-directory: tests/fixtures/node-ci/pnpm
+
+  # Node.js 26 bundles no Corepack.
+  yarn-node-26:
+    uses: ./.github/workflows/node-ci.yml
+    with:
+      node-version: '26'
+      os-matrix: '["ubuntu-latest"]'
+      working-directory: tests/fixtures/node-ci/yarn

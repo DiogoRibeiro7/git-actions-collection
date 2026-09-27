@@ -234,9 +234,11 @@ An action that talks to an external service gets a stub instead; the
 `apm-integration` job, for example, points `api-url` at a local server from
 `tests/fixtures/composite-actions/apm-stub/` and checks what it receives.
 
-The existing `test-python-test-matrix.yml` workflow calls the reusable workflow
-directly with small test fixtures. New reusable workflows should have similarly
-focused caller tests. These integration tests run on GitHub for pull requests to
+The existing `test-python-test-matrix.yml` and `test-node-ci.yml` workflows call
+their reusable workflows directly with small test fixtures; `test-node-ci.yml`
+runs `node-ci.yml` against the npm, Yarn and pnpm projects in
+`tests/fixtures/node-ci/`. New reusable workflows should have similarly focused
+caller tests. These integration tests run on GitHub for pull requests to
 `main` or manual dispatch; local unit success does not establish runtime compatibility.
 
 `act` is optional for local integration debugging. It does not fully reproduce

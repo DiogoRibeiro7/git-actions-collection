@@ -69,7 +69,7 @@ internal; only metadata-declared outputs such as smart-dependency-update's
 | JS/TS Unit Tests | `.github/workflows/js-unit-tests.yml` | workflow | node | - | - |
 | Kubernetes Manifests Lint | `.github/workflows/k8s-manifests-lint.yml` | workflow | curl | - | - |
 | Lockfile Consistency | `.github/workflows/lockfile-consistency.yml` | workflow | bash | - | - |
-| Node CI | `.github/workflows/node-ci.yml` | workflow | node | - | - |
+| Node CI | `.github/workflows/node-ci.yml` | reusable | node, corepack, npm, yarn, pnpm | `node-version`, `os-matrix`, `package-manager`, `working-directory` | - |
 | Publish to npm | `.github/workflows/npm-publish.yml` | workflow | node | - | - |
 | Permissions Hardened Template | `.github/workflows/permissions-template.yml` | workflow | bash | - | - |
 | PR Policy | `.github/workflows/pr-policy.yml` | workflow | - | - | - |
@@ -93,6 +93,7 @@ internal; only metadata-declared outputs such as smart-dependency-update's
 | Terraform Apply (AWS OIDC) | `.github/workflows/terraform-aws.yml` | workflow | bash | - | - |
 | Terraform Plan (PR comment) | `.github/workflows/terraform-plan-comment.yml` | workflow | terraform | - | - |
 | Test Composite Actions | `.github/workflows/test-composite-actions.yml` | workflow | bash, python, poetry, unzip, node, corepack, yarn, markdownlint, curl, java, gradle, gitleaks | - | - |
+| Test Node CI Workflow | `.github/workflows/test-node-ci.yml` | workflow | - | - | - |
 | Test Python Test Matrix Workflow | `.github/workflows/test-python-test-matrix.yml` | workflow | bash | - | - |
 | Unit Tests | `.github/workflows/tests.yml` | workflow | node, python | - | - |
 | Vercel Next.js Deploy | `.github/workflows/vercel-nextjs.yml` | workflow | bash | - | - |

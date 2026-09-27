@@ -1,53 +1,219 @@
-"""setup-node's `cache: yarn` runs the global Yarn 1's `yarn cache dir`, which exits 1 in
-projects that pin Yarn 2+ through packageManager, so node-ci failed before installing."""
+"""node-ci installs with npm, Yarn or pnpm: the package-manager input names it, or package.json's
+packageManager field, or the lockfile. It asks that manager for its own cache folder, because
+setup-node's `cache` input runs the runner's global Yarn or pnpm, and Yarn 1's `yarn cache dir`
+exits 1 in projects that pin Yarn 2+ through packageManager."""
 
+import json
 import os
 from pathlib import Path
+import shutil
 from typing import Any
 
 import pytest
 import yaml
 
-from tests.utils.fake_runner import run_workflow_step
+from tests.utils.fake_runner import ActionResult, run_workflow_step
 from tests.utils.fakebin import make_fakebin
 
 WORKFLOW = Path(__file__).resolve().parents[2] / ".github/workflows/node-ci.yml"
+MANAGER = "steps.manager.outputs.manager"
+LOCKFILES = {"npm": "package-lock.json", "yarn": "yarn.lock", "pnpm": "pnpm-lock.yaml"}
+
+posix = pytest.mark.skipif(os.name != "posix", reason="Requires Bash (Linux/WSL)")
+needs_node = pytest.mark.skipif(shutil.which("node") is None, reason="Requires Node.js")
+
+
+def _workflow() -> dict[str, Any]:
+    return yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
 
 
 def _steps() -> list[dict[str, Any]]:
-    return yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))["jobs"]["build"]["steps"]
+    return _workflow()["jobs"]["build"]["steps"]
 
 
-def test_yarn_is_cached_after_corepack_not_by_setup_node() -> None:
+def _step(name: str) -> dict[str, Any]:
+    return next(step for step in _steps() if step.get("name") == name)
+
+
+def _choose(workdir: Path, package_manager: str) -> ActionResult:
+    return run_workflow_step(
+        WORKFLOW,
+        "build",
+        "Choose the package manager",
+        context={"inputs.package-manager": package_manager},
+        workdir=workdir,
+    )
+
+
+def _fake_manager(tmp_path: Path, manager: str, version: str) -> dict[str, str]:
+    fakebin = make_fakebin(
+        tmp_path,
+        {manager: f'if [ "$1" = "--version" ]; then echo {version}; else echo "{manager} $*"; fi'},
+    )
+    return {"PATH": f"{fakebin}:{os.environ['PATH']}"}
+
+
+def test_inputs_default_to_detecting_the_package_manager_at_the_root() -> None:
+    workflow = _workflow()
+    inputs = (workflow.get("on") or workflow[True])["workflow_call"]["inputs"]
+
+    assert inputs["node-version"]["default"] == "24"
+    assert inputs["package-manager"]["default"] == "auto"
+    assert inputs["working-directory"]["default"] == "."
+    assert workflow["jobs"]["build"]["defaults"]["run"] == {
+        "shell": "bash",
+        "working-directory": "${{ inputs.working-directory }}",
+    }
+
+
+def test_packages_are_cached_after_corepack_not_by_setup_node() -> None:
     steps = _steps()
     names = [step.get("name") for step in steps]
     setup_node = next(s for s in steps if s.get("uses", "").startswith("actions/setup-node@"))
+    key = _step("Cache packages")["with"]["key"]
 
     assert "cache" not in setup_node["with"]
-    assert names.index("Enable Corepack") < names.index("Locate the Yarn cache") < names.index(
-        "Cache Yarn packages"
-    ) < names.index("Install dependencies")
-
-
-@pytest.mark.skipif(os.name != "posix", reason="Requires Bash (Linux/WSL)")
-@pytest.mark.parametrize(
-    ("version", "expected"),
-    [("1.22.22", "yarn cache dir"), ("4.1.1", "yarn config get cacheFolder")],
-)
-def test_the_projects_own_yarn_names_the_cache(tmp_path: Path, version: str, expected: str) -> None:
-    fakebin = make_fakebin(
-        tmp_path,
-        {"yarn": f'if [ "$1" = "--version" ]; then echo {version}; else echo "yarn $*"; fi'},
+    assert (
+        names.index("Choose the package manager")
+        < names.index("Enable Corepack")
+        < names.index("Locate the package cache")
+        < names.index("Cache packages")
+        < names.index("Install dependencies")
     )
+    assert _step("Enable Corepack")["if"] == f"{MANAGER} != 'npm'"
+    assert key.startswith("${{ steps.manager.outputs.manager }}-${{ runner.os }}-")
+    assert "steps.manager.outputs.lockfile" in key
 
+
+@posix
+@needs_node
+@pytest.mark.parametrize(
+    ("manifest", "files", "expected"),
+    [
+        (None, [], "npm"),
+        ({}, [], "npm"),
+        ({}, ["package-lock.json"], "npm"),
+        ({}, ["yarn.lock"], "yarn"),
+        ({}, ["pnpm-lock.yaml"], "pnpm"),
+        ({}, ["yarn.lock", "pnpm-lock.yaml"], "pnpm"),
+        ({"packageManager": "yarn@4.18.1"}, ["package-lock.json"], "yarn"),
+        ({"packageManager": "pnpm@12.6.0+sha512.0123abcd"}, [], "pnpm"),
+        ({"packageManager": "npm@11.6.2"}, ["yarn.lock"], "npm"),
+    ],
+)
+def test_auto_reads_package_json_then_the_lockfile(
+    tmp_path: Path, manifest: dict[str, str] | None, files: list[str], expected: str
+) -> None:
+    if manifest is not None:
+        (tmp_path / "package.json").write_text(json.dumps({"name": "fixture", **manifest}))
+    for name in files:
+        (tmp_path / name).touch()
+
+    result = _choose(tmp_path, "auto")
+
+    assert result.code == 0, result.stderr
+    assert result.outputs == {"manager": expected, "lockfile": LOCKFILES[expected]}
+
+
+@posix
+@pytest.mark.parametrize("manager", ["npm", "yarn", "pnpm"])
+def test_the_input_overrides_detection(tmp_path: Path, manager: str) -> None:
+    (tmp_path / "package.json").write_text(json.dumps({"packageManager": "bun@1.3.0"}))
+    (tmp_path / "pnpm-lock.yaml").touch()
+
+    result = _choose(tmp_path, manager)
+
+    assert result.code == 0, result.stderr
+    assert result.outputs == {"manager": manager, "lockfile": LOCKFILES[manager]}
+
+
+@posix
+@pytest.mark.parametrize("manager", ["bun", "Yarn", ""])
+def test_an_unsupported_package_manager_fails(tmp_path: Path, manager: str) -> None:
+    result = _choose(tmp_path, manager)
+
+    assert result.code == 1
+    assert f"supports npm, yarn and pnpm, not '{manager}'" in result.stdout
+    assert result.outputs == {}
+
+
+@posix
+@needs_node
+def test_an_unsupported_declared_package_manager_fails(tmp_path: Path) -> None:
+    (tmp_path / "package.json").write_text(json.dumps({"packageManager": "bun@1.3.0"}))
+
+    result = _choose(tmp_path, "auto")
+
+    assert result.code == 1
+    assert "not 'bun'" in result.stdout
+
+
+@posix
+@pytest.mark.parametrize(
+    ("manager", "version", "expected"),
+    [
+        ("npm", "11.6.2", "npm config get cache"),
+        ("pnpm", "12.6.0", "pnpm store path"),
+        ("yarn", "1.22.22", "yarn cache dir"),
+        ("yarn", "4.18.1", "yarn config get cacheFolder"),
+    ],
+)
+def test_the_projects_own_manager_names_the_cache(
+    tmp_path: Path, manager: str, version: str, expected: str
+) -> None:
     result = run_workflow_step(
         WORKFLOW,
         "build",
-        "Locate the Yarn cache",
-        context={},
-        env={"PATH": f"{fakebin}:{os.environ['PATH']}"},
+        "Locate the package cache",
+        context={MANAGER: manager},
+        env=_fake_manager(tmp_path, manager, version),
         workdir=tmp_path,
     )
 
     assert result.code == 0, result.stderr
     assert result.outputs["dir"] == expected
+
+
+@posix
+@pytest.mark.parametrize(
+    ("manager", "version", "expected"),
+    [
+        ("npm", "11.6.2", "npm ci"),
+        ("pnpm", "12.6.0", "pnpm install --frozen-lockfile"),
+        ("yarn", "1.22.22", "yarn install --frozen-lockfile"),
+        ("yarn", "4.18.1", "yarn install --immutable"),
+    ],
+)
+def test_dependencies_install_from_the_lockfile_without_changing_it(
+    tmp_path: Path, manager: str, version: str, expected: str
+) -> None:
+    result = run_workflow_step(
+        WORKFLOW,
+        "build",
+        "Install dependencies",
+        context={MANAGER: manager},
+        env=_fake_manager(tmp_path, manager, version),
+        workdir=tmp_path,
+    )
+
+    assert result.code == 0, result.stderr
+    assert result.stdout.splitlines() == [expected]
+
+
+@posix
+@pytest.mark.parametrize("manager", ["npm", "yarn", "pnpm"])
+@pytest.mark.parametrize(("step", "script"), [("Run lint", "lint"), ("Run tests", "test")])
+def test_lint_and_tests_run_the_package_scripts(
+    tmp_path: Path, manager: str, step: str, script: str
+) -> None:
+    result = run_workflow_step(
+        WORKFLOW,
+        "build",
+        step,
+        context={MANAGER: manager},
+        env=_fake_manager(tmp_path, manager, "1.0.0"),
+        workdir=tmp_path,
+    )
+
+    assert result.code == 0, result.stderr
+    assert result.stdout.splitlines() == [f"{manager} run {script}"]
