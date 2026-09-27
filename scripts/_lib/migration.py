@@ -25,6 +25,7 @@ DEFAULT_BRANCH_PLACEHOLDER = "$default-branch"
 SETUP_STEPS = ("actions/checkout",)
 PYTHON_TEST_COMMANDS = ("pytest", "python -m pytest")
 PYTHON_LINTERS = ("flake8", "ruff", "pylint", "mypy", "black")
+NODE_PACKAGE_MANAGERS = ("npm", "yarn", "pnpm")
 
 Workflow = dict[Any, Any]
 
@@ -102,14 +103,16 @@ def _os_matrix(job: Workflow, plan: MigrationPlan) -> None:
         plan.inputs["os-matrix"] = json.dumps(systems)
 
 
-def _not_carried_over(job: Workflow, plan: MigrationPlan, handled: set[str], setup: str) -> None:
+def _not_carried_over(
+    job: Workflow, plan: MigrationPlan, handled: set[str], *setup: str
+) -> None:
     left = []
     for step in _steps(job):
         if "run" in step:
             if str(step["run"]).strip() in handled:
                 continue
             left.append(step.get("name") or str(step["run"]).strip().splitlines()[0])
-        elif _action(step) not in (*SETUP_STEPS, setup):
+        elif _action(step) not in (*SETUP_STEPS, *setup):
             left.append(step.get("name") or _action(step))
     if left:
         plan.notes.append(
@@ -150,26 +153,37 @@ def _plan_python(job_name: str, job: Workflow, setup: Workflow) -> MigrationPlan
     return plan
 
 
-def _package_manager(job: Workflow, setup: Workflow) -> str:
+def _package_manager(job: Workflow, setup: Workflow) -> str | None:
     cache = str((setup.get("with") or {}).get("cache", "")).strip().lower()
-    if cache in {"npm", "yarn", "pnpm"}:
+    if cache in NODE_PACKAGE_MANAGERS:
         return cache
     if any(_action(step) == "pnpm/action-setup" for step in _steps(job)):
         return "pnpm"
     for command in _commands(job):
         tool = command.split()[0] if command.split() else ""
-        if tool in {"npm", "yarn", "pnpm"}:
+        if tool in (*NODE_PACKAGE_MANAGERS, "bun"):
             return tool
-    return "npm"
+    return None
+
+
+def _node_ci_runs(manager: str, command: str) -> bool:
+    """Whether node-ci.yml's install, lint or test step runs *command*."""
+    words = command.split()
+    if words[:1] != [manager]:
+        return False
+    rest = words[1:]
+    if not rest or rest[0] in ("ci", "install", "i"):
+        return all(word.startswith("--") for word in rest[1:])
+    return rest in (["lint"], ["test"], ["run", "lint"], ["run", "test"])
 
 
 def _plan_node(job_name: str, job: Workflow, setup: Workflow) -> MigrationPlan:
     manager = _package_manager(job, setup)
-    if manager != "yarn":
+    if manager is not None and manager not in NODE_PACKAGE_MANAGERS:
         plan = MigrationPlan("node", job_name)
         plan.notes.append(
-            "This tool migrates Yarn only so far, although node-ci.yml also installs with npm "
-            f"and pnpm. This starter uses {manager}, so nothing was generated."
+            f"node-ci.yml installs with npm, Yarn or pnpm. This starter uses {manager}, so no "
+            "reusable workflow of this collection fits it yet and nothing was generated."
         )
         return plan
 
@@ -189,15 +203,26 @@ def _plan_node(job_name: str, job: Workflow, setup: Workflow) -> MigrationPlan:
     else:
         plan.notes.append("No Node.js version found; node-ci.yml uses its default.")
     _os_matrix(job, plan)
-    plan.notes.append("node-ci.yml also runs `yarn lint`, so package.json needs a lint script.")
-    # node-ci.yml installs, lints and tests; any other Yarn script, such as a build, is not run.
-    handled = {
-        command
-        for command in _commands(job)
-        if command.split()[:1] == ["yarn"]
-        and command.split()[1:2] in ([], ["install"], ["lint"], ["test"])
-    }
-    _not_carried_over(job, plan, handled, "actions/setup-node")
+    if manager is None:
+        plan.notes.append(
+            "No package manager found; node-ci.yml reads it from package.json's "
+            "packageManager field or the lockfile."
+        )
+        scripts = "the `lint` and `test` scripts"
+    else:
+        plan.inputs["package-manager"] = manager
+        scripts = f"`{manager} run lint` and `{manager} run test`"
+    plan.notes.append(
+        f"node-ci.yml installs from the lockfile and runs {scripts}, so package.json needs both."
+    )
+    if manager == "pnpm":
+        plan.notes.append(
+            "node-ci.yml runs pnpm through Corepack; pin its version with package.json's "
+            "packageManager field."
+        )
+    # Any other script, such as a build, is not run by node-ci.yml.
+    handled = {command for command in _commands(job) if manager and _node_ci_runs(manager, command)}
+    _not_carried_over(job, plan, handled, "actions/setup-node", "pnpm/action-setup")
     return plan
 
 

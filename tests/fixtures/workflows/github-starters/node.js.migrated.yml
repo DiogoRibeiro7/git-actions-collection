@@ -3,7 +3,9 @@ name: Node.js CI
   push:
     branches:
     - main
-  pull_request: null
+  pull_request:
+    branches:
+    - main
 jobs:
   ci:
     permissions:
@@ -12,4 +14,4 @@ jobs:
     with:
       node-version: 22.x
       os-matrix: '["ubuntu-latest"]'
-      package-manager: yarn
+      package-manager: npm

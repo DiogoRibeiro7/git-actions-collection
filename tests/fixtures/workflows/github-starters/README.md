@@ -6,5 +6,6 @@ at commit `e3c451d60f119b71caebf13c98ac45da6e15b4b7`, under the MIT License of t
 repository (Copyright GitHub). They keep the `$default-branch` placeholder that
 GitHub replaces when a starter is added through its UI.
 
-The migration tests run the tool on them as users would, and
-`python-package.migrated.yml` is the expected result for the Python starter.
+The migration tests run the tool on them as users would.
+`python-package.migrated.yml` and `node.js.migrated.yml` are the expected
+results.

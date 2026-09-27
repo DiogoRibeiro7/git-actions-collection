@@ -46,8 +46,8 @@ It exits with status 1, and explains why, when it finds no workflow to call.
 | Starter sets up | Migrated to |
 | --- | --- |
 | `actions/setup-python` | `python-test-matrix.yml` |
-| `actions/setup-node` with Yarn | `node-ci.yml` |
-| `actions/setup-node` with npm or pnpm | nothing yet: the tool migrates Yarn only so far |
+| `actions/setup-node` with npm, Yarn or pnpm | `node-ci.yml` |
+| `actions/setup-node` with Bun | nothing yet: `node-ci.yml` installs with npm, Yarn or pnpm |
 
 ## Side-by-Side Comparison
 
@@ -103,17 +103,20 @@ notes that the flake8 step was not carried over; add `python-lint.yml` for it.
 
 ### Node.js
 
-`node-ci.yml` installs with npm, Yarn or pnpm and runs the `lint` and `test`
-scripts, but the tool migrates only Yarn starters so far. GitHub's `node.js.yml`
-starter uses npm; for npm and pnpm starters the tool says so and writes nothing.
+The tool finds the package manager from setup-node's `cache` setting, a
+`pnpm/action-setup` step, or the commands the starter runs, and passes it as
+`package-manager`. Without any of them, `node-ci.yml` reads it from the
+`packageManager` field of `package.json` or from the lockfile.
 
-**Starter (a Yarn project):**
+**Starter (GitHub's `node.js.yml`):**
 
 ```yaml
 name: Node.js CI
 on:
   push:
-    branches: [ main ]
+    branches: [ $default-branch ]
+  pull_request:
+    branches: [ $default-branch ]
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -122,12 +125,14 @@ jobs:
         node-version: [18.x, 20.x, 22.x]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: yarn
-      - run: yarn install --immutable
-      - run: yarn test
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build --if-present
+      - run: npm test
 ```
 
 **Reusable (`node-ci.yml`):**
@@ -137,6 +142,8 @@ name: Node.js CI
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
 jobs:
   ci:
     permissions:
@@ -145,10 +152,14 @@ jobs:
     with:
       node-version: 22.x
       os-matrix: '["ubuntu-latest"]'
+      package-manager: npm
 ```
 
 `node-ci.yml` tests one Node.js version, so the tool keeps the newest one and
-says so. It also runs the `lint` script, so `package.json` needs one.
+says so. It installs from the lockfile and runs the `lint` and `test` scripts,
+so `package.json` needs both. The dry run notes that `npm run build --if-present`
+was not carried over. For pnpm, pin its version with the `packageManager` field,
+because `node-ci.yml` runs pnpm through Corepack.
 
 ## Gradual Migration Strategy
 
