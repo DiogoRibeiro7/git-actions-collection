@@ -278,3 +278,73 @@ jobs:
           set -euo pipefail
           test "$BROKEN" = failure
           test "$UNMATCHED" = failure
+
+  gradle-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the actions beside the consumer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          path: collection
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.github/actions/
+            /scripts/
+            /tests/fixtures/composite-actions/
+
+      - name: Prepare a Java project
+        run: cp -R collection/tests/fixtures/composite-actions/gradle-project app
+
+      # Consumer projects commit their Gradle wrapper. Generate one from a verified
+      # Gradle distribution instead of keeping a wrapper JAR in this repository.
+      - name: Generate the Gradle wrapper
+        working-directory: app
+        env:
+          VERSION: 9.8.0
+          SHA256: bafd5ce9cfaea0fbccfdc8439a1ac42fbd4cd9c89dc9a988228d8a2639a58e6c
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/gradle.zip"
+          curl -fsSL -o "$archive" "https://services.gradle.org/distributions/gradle-$VERSION-bin.zip"
+          echo "$SHA256  $archive" | sha256sum --check --quiet
+          unzip -q "$archive" -d "$RUNNER_TEMP"
+          "$RUNNER_TEMP/gradle-$VERSION/bin/gradle" wrapper --gradle-version "$VERSION" --no-daemon
+
+      - name: Build with the default tasks
+        uses: ./collection/.github/actions/gradle-build
+        with:
+          working-directory: app
+
+      - name: Verify the jar holds the compiled class
+        run: unzip -Z1 app/build/libs/app.jar | grep -qx 'example/Greeter.class'
+
+      - name: Leave a file that only clean removes
+        run: touch app/build/stale-marker
+
+      - name: Run tasks listed one per line
+        uses: ./collection/.github/actions/gradle-build
+        with:
+          working-directory: app
+          tasks: |
+            clean
+            assemble
+
+      - name: Verify both tasks ran
+        run: |
+          set -euo pipefail
+          test ! -e app/build/stale-marker
+          test -f app/build/libs/app.jar
+
+      - name: Run a task the project does not have
+        id: unknown
+        continue-on-error: true
+        uses: ./collection/.github/actions/gradle-build
+        with:
+          working-directory: app
+          tasks: doesNotExist
+
+      - name: Verify the unknown task failed the step
+        env:
+          OUTCOME: ${{ steps.unknown.outcome }}
+        run: test "$OUTCOME" = failure

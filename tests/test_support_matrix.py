@@ -52,7 +52,6 @@ def test_supported_composite_actions_have_contract_tests() -> None:
 # only shrink.
 AWAITING_RUNNER_SELF_TEST = {
     "apm-integration",
-    "gradle-build",
     "pr-template-enforcer",
     "secret-scan",
 }
