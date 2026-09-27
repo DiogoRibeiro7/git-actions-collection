@@ -1,9 +1,21 @@
 name: PR Template Enforcer
 description: Fail if a pull request description is empty or missing required sections
+inputs:
+  body:
+    description: Pull request description to check; defaults to the body of the pull request that triggered the workflow
+    required: false
+    default: ${{ github.event.pull_request.body }}
+  required-sections:
+    description: Text the description must contain, one entry per line (usually Markdown headings)
+    required: false
+    default: |
+      ## Summary
+      ## Testing
 runs:
   using: composite
   steps:
     - shell: bash
       run: bash "${{ github.action_path }}/../../../scripts/pr-template-enforcer/enforce.sh"
       env:
-        PR_BODY: ${{ github.event.pull_request.body }}
+        PR_BODY: ${{ inputs.body }}
+        INPUT_REQUIRED_SECTIONS: ${{ inputs.required-sections }}

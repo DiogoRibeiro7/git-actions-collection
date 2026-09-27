@@ -361,6 +361,27 @@ def test_pr_template_enforcer_empty(tmp_path: Path):
     assert result.code != 0
 
 
+def test_pr_template_enforcer_checks_a_given_body_and_sections(tmp_path: Path):
+    """`body` replaces the event's description, which a workflow_dispatch run lacks."""
+    inputs = {
+        "body": "## What\nA change\n## Why\nA reason",
+        "required-sections": "## What\n## Why\n",
+    }
+    passing = run_action(
+        ACTIONS_DIR / "pr-template-enforcer", inputs=inputs, env={"PR_BODY": ""}, workdir=tmp_path
+    )
+    failing = run_action(
+        ACTIONS_DIR / "pr-template-enforcer",
+        inputs={**inputs, "required-sections": "## What\n## Risks\n## Rollback\n"},
+        workdir=tmp_path,
+    )
+
+    assert passing.code == 0, passing.stderr
+    assert failing.code == 1
+    assert "Missing '## Risks'" in failing.stdout
+    assert "Missing '## Rollback'" in failing.stdout
+
+
 def test_gradle_build_happy(tmp_path: Path):
     project = tmp_path / "project"
     project.mkdir()
