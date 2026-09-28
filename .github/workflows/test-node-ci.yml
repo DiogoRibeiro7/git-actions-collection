@@ -8,6 +8,7 @@ on:
       - '.github/workflows/node-ci.yml'
       - '.github/workflows/test-node-ci.yml'
       - 'tests/fixtures/node-ci/**'
+      - 'examples/npm-package/**'
   workflow_dispatch:
 
 concurrency:
@@ -59,3 +60,9 @@ jobs:
       node-version: '26'
       os-matrix: '["ubuntu-latest"]'
       working-directory: tests/fixtures/node-ci/yarn
+
+  # The npm-package example calls node-ci.yml with its defaults; this runs it the same way.
+  npm-package-example:
+    uses: ./.github/workflows/node-ci.yml
+    with:
+      working-directory: examples/npm-package

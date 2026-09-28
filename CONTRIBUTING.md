@@ -237,8 +237,8 @@ An action that talks to an external service gets a stub instead; the
 The existing `test-python-test-matrix.yml` and `test-node-ci.yml` workflows call
 their reusable workflows directly with small test fixtures; `test-node-ci.yml`
 runs `node-ci.yml` against the npm, Yarn and pnpm projects in
-`tests/fixtures/node-ci/`. New reusable workflows should have similarly focused
-caller tests. These integration tests run on GitHub for pull requests to
+`tests/fixtures/node-ci/` and against the `npm-package` example. New reusable
+workflows should have similarly focused caller tests. These integration tests run on GitHub for pull requests to
 `main` or manual dispatch; local unit success does not establish runtime compatibility.
 
 `act` is optional for local integration debugging. It does not fully reproduce

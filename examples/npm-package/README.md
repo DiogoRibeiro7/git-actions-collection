@@ -4,17 +4,20 @@ This sample project shows how to lint, test, and publish a Node package using th
 
 ## CI
 
-`.github/workflows/ci.yml` installs dependencies with Corepack's Yarn and runs lint and test:
+`.github/workflows/ci.yml` calls the reusable Node CI workflow. It reads Yarn 4 from the
+`packageManager` field of `package.json`, installs from `yarn.lock` with
+`yarn install --immutable`, and runs the `lint` and `test` scripts on Ubuntu, Windows and
+macOS:
 
 ```yaml
 jobs:
   lint-test:
-    steps:
-      - uses: actions/checkout@v4
-      - uses: DiogoRibeiro7/git-actions-collection/.github/actions/setup-yarn@v1
-      - run: yarn lint
-      - run: yarn test
+    permissions:
+      contents: read
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/node-ci.yml@v1
 ```
+
+The collection's `test-node-ci.yml` runs the same workflow on this example.
 
 ## Release
 
