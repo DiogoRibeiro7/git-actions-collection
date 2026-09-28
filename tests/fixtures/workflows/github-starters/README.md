@@ -8,5 +8,5 @@ repository (Copyright GitHub). They keep the `$default-branch` placeholder that
 GitHub replaces when a starter is added through its UI.
 
 The migration tests run the tool on them as users would. Each `<name>.migrated.yml`
-is the expected result; `node.js.yml` (npm) and `r.yml` have no reusable workflow
-to migrate to, so the tool explains that instead.
+is the expected result; `r.yml` has no reusable workflow to migrate to, so the tool
+explains that instead.

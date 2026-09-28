@@ -17,8 +17,8 @@ from scripts.migrate_starter_workflows import main
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "workflows"
 STARTERS = FIXTURES / "github-starters"
-MIGRATED = ["python-package", "go", "maven", "gradle", "ruby", "dotnet", "rust", "deno"]
-NOT_MIGRATED = {"node.js": "uses npm", "r": "R CMD check"}
+MIGRATED = ["python-package", "node.js", "go", "maven", "gradle", "ruby", "dotnet", "rust", "deno"]
+NOT_MIGRATED = {"r": "R CMD check"}
 
 
 def _read(path: Path) -> str:
@@ -75,27 +75,71 @@ def test_default_branch_placeholder_is_replaced():
     assert any("$default-branch" in note for note in plan.notes)
 
 
-def test_github_node_starter_uses_npm_so_nothing_is_generated():
-    """The tool migrates Yarn starters only so far."""
+def test_github_node_starter_notes_the_scripts_node_ci_needs_and_the_build():
     plan = _plan(_read(STARTERS / "node.js.yml"))
+
+    assert plan.inputs["package-manager"] == "npm"
+    assert any("`npm run lint` and `npm run test`" in note for note in plan.notes)
+    assert any("`npm run build --if-present`" in note for note in plan.notes)
+
+
+def _node_starter(*steps: str) -> str:
+    return (
+        "on: push\njobs:\n  b:\n    runs-on: ubuntu-latest\n    steps:\n"
+        + "".join(f"      - {step}\n" for step in steps)
+    )
+
+
+def test_the_package_manager_comes_from_the_cache_the_pnpm_action_or_the_commands():
+    yarn = _plan(
+        _node_starter("uses: actions/setup-node@v4\n        with:\n          cache: yarn")
+    )
+    pnpm = _plan(
+        _node_starter("uses: pnpm/action-setup@v4", "uses: actions/setup-node@v4", "run: pnpm test")
+    )
+    npm = _plan(_read(FIXTURES / "starter_node.yml"))
+
+    assert yarn.inputs["package-manager"] == "yarn"
+    assert pnpm.inputs["package-manager"] == "pnpm"
+    assert npm.inputs["package-manager"] == "npm"
+    assert any("Corepack" in note for note in pnpm.notes)
+    assert not any("Not carried over" in note for note in pnpm.notes + npm.notes)
+
+
+def test_without_a_package_manager_node_ci_detects_it():
+    plan = _plan(_node_starter("uses: actions/setup-node@v4", "run: node test.js"))
+
+    assert plan.uses and "node-ci.yml@v1" in plan.uses
+    assert "package-manager" not in plan.inputs
+    assert any("packageManager field or the lockfile" in note for note in plan.notes)
+    assert any("`node test.js`" in note for note in plan.notes)
+
+
+def test_only_what_node_ci_runs_is_carried_over():
+    plan = _plan(
+        _node_starter(
+            "uses: actions/setup-node@v4",
+            "run: npm install --no-audit",
+            "run: npm run lint",
+            "run: npm test",
+            "run: npm test -- --coverage",
+            "run: npm run build",
+        )
+    )
+
+    (note,) = [note for note in plan.notes if note.startswith("Not carried over")]
+    assert note.endswith(": `npm test -- --coverage`, `npm run build`.")
+
+
+def test_a_bun_starter_is_not_migrated():
+    content = _node_starter("uses: actions/setup-node@v4", "run: bun install", "run: bun test")
+    plan = _plan(content)
 
     assert plan.ecosystem == "node"
     assert plan.workflow is None and plan.uses is None
-    assert "uses npm" in explain(plan)
-    with pytest.raises(SystemExit, match="Yarn only"):
-        convert(_read(STARTERS / "node.js.yml"))
-
-
-def test_npm_is_detected_from_commands_and_pnpm_from_its_setup_action():
-    npm = _plan(_read(FIXTURES / "starter_node.yml"))
-    pnpm = _plan(
-        "on: push\njobs:\n  b:\n    runs-on: ubuntu-latest\n    steps:\n"
-        "      - uses: pnpm/action-setup@v4\n      - uses: actions/setup-node@v4\n"
-        "      - run: pnpm test\n"
-    )
-
-    assert npm.workflow is None and "uses npm" in npm.notes[0]
-    assert pnpm.workflow is None and "uses pnpm" in pnpm.notes[0]
+    assert "uses bun" in explain(plan)
+    with pytest.raises(SystemExit, match="npm, Yarn or pnpm"):
+        convert(content)
 
 
 def test_node_matrix_keeps_the_newest_version():
@@ -216,24 +260,37 @@ def test_cli_json_report(tmp_path: Path, capsys: pytest.CaptureFixture[str]):
     assert report["migrated"] == out.read_text(encoding="utf-8")
 
 
-def test_cli_reports_a_starter_it_cannot_migrate(capsys: pytest.CaptureFixture[str]):
+def _bun_starter(tmp_path: Path) -> Path:
+    starter = tmp_path / "bun.yml"
+    starter.write_text(
+        _node_starter("uses: actions/setup-node@v4", "run: bun install", "run: bun test"),
+        encoding="utf-8",
+    )
+    return starter
+
+
+def test_cli_reports_a_starter_it_cannot_migrate(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+):
     with pytest.raises(SystemExit) as exited:
-        main([str(STARTERS / "node.js.yml"), "--json"])
+        main([str(_bun_starter(tmp_path)), "--json"])
 
     report = json.loads(capsys.readouterr().out)
     assert exited.value.code == 1
     assert report["workflow"] is None and report["migrated"] is None
-    assert any("Yarn only" in note for note in report["notes"])
+    assert any("uses bun" in note for note in report["notes"])
 
 
-def test_cli_explains_a_starter_it_cannot_migrate_on_stderr(capsys: pytest.CaptureFixture[str]):
+def test_cli_explains_a_starter_it_cannot_migrate_on_stderr(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+):
     with pytest.raises(SystemExit) as exited:
-        main([str(STARTERS / "node.js.yml")])
+        main([str(_bun_starter(tmp_path))])
 
     captured = capsys.readouterr()
     assert exited.value.code == 1
     assert captured.out == ""
-    assert "Yarn only" in captured.err
+    assert "uses bun" in captured.err
 
 
 @pytest.mark.parametrize("starter", MIGRATED)

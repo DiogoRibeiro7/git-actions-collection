@@ -62,7 +62,8 @@ def consumer_documents() -> list[tuple[str, str]]:
     github = starters / "github-starters"
     for language, starter in (
         ("python", github / "python-package.yml"),
-        ("node", starters / "starter_node_yarn.yml"),
+        ("node npm", github / "node.js.yml"),
+        ("node yarn", starters / "starter_node_yarn.yml"),
         ("go", github / "go.yml"),
         ("maven", github / "maven.yml"),
         ("gradle", github / "gradle.yml"),
@@ -238,6 +239,7 @@ def test_the_audit_sees_the_examples_and_generated_workflows() -> None:
     assert "README.md" in labels
     assert "pypi_trusted_publishing_wizard.py template" in labels
     assert "migrate_starter_workflows.py python output" in labels
+    assert "migrate_starter_workflows.py node npm output" in labels
     assert sum(len(REFERENCE.findall(text)) for _, text in DOCUMENTS) > 50
 
 
