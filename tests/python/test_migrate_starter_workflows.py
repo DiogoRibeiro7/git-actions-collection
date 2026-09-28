@@ -11,10 +11,14 @@ from scripts._lib.migration import (
     plan_migration,
     render_migration,
 )
+from scripts.interface_snapshot import workflow_interface
 from scripts.migrate_starter_workflows import main
 
+ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "workflows"
 STARTERS = FIXTURES / "github-starters"
+MIGRATED = ["python-package", "node.js", "go", "maven", "gradle", "ruby", "dotnet", "rust", "deno"]
+NOT_MIGRATED = {"r": "R CMD check"}
 
 
 def _read(path: Path) -> str:
@@ -71,12 +75,10 @@ def test_default_branch_placeholder_is_replaced():
     assert any("$default-branch" in note for note in plan.notes)
 
 
-def test_github_node_starter_migrates_to_node_ci_with_npm():
+def test_github_node_starter_notes_the_scripts_node_ci_needs_and_the_build():
     plan = _plan(_read(STARTERS / "node.js.yml"))
 
-    assert yaml.safe_load(render_migration(plan)) == yaml.safe_load(
-        _read(STARTERS / "node.js.migrated.yml")
-    )
+    assert plan.inputs["package-manager"] == "npm"
     assert any("`npm run lint` and `npm run test`" in note for note in plan.notes)
     assert any("`npm run build --if-present`" in note for note in plan.notes)
 
@@ -289,3 +291,124 @@ def test_cli_explains_a_starter_it_cannot_migrate_on_stderr(
     assert exited.value.code == 1
     assert captured.out == ""
     assert "uses bun" in captured.err
+
+
+@pytest.mark.parametrize("starter", MIGRATED)
+def test_github_starters_migrate_to_the_expected_workflow(starter: str):
+    migrated = convert(_read(STARTERS / f"{starter}.yml"))
+
+    assert yaml.safe_load(migrated) == yaml.safe_load(_read(STARTERS / f"{starter}.migrated.yml"))
+
+
+@pytest.mark.parametrize(("starter", "reason"), NOT_MIGRATED.items())
+def test_github_starters_without_a_reusable_workflow(starter: str, reason: str):
+    plan = _plan(_read(STARTERS / f"{starter}.yml"))
+
+    assert plan.workflow is None
+    assert reason in explain(plan)
+
+
+@pytest.mark.parametrize("starter", MIGRATED)
+def test_plans_use_only_what_the_target_workflow_declares(starter: str):
+    """The tool hard-codes each target's inputs and permissions; keep them in step."""
+    plan = _plan(_read(STARTERS / f"{starter}.yml"))
+    interface = workflow_interface(ROOT, plan.workflow)
+
+    assert set(plan.inputs) <= set(interface["inputs"])
+    assert plan.permissions == interface["permissions"]
+
+
+def _java(steps: str, java_version: str = "17") -> str:
+    return (
+        "on: push\njobs:\n  b:\n    runs-on: ubuntu-latest\n    steps:\n"
+        "      - uses: actions/setup-java@v4\n"
+        f"        with:\n          java-version: '{java_version}'\n"
+        "          distribution: temurin\n"
+        + steps
+    )
+
+
+@pytest.mark.parametrize(
+    ("steps", "tool"),
+    [
+        ("      - run: mvn -B verify\n", "maven"),
+        ("      - run: ./mvnw -B verify\n", "maven"),
+        ("      - uses: gradle/actions/setup-gradle@v4\n      - run: ./gradlew check\n", "gradle"),
+        ("      - run: gradle build\n", "gradle"),
+    ],
+)
+def test_java_build_tool_is_detected(steps: str, tool: str):
+    assert _plan(_java(steps)).inputs["build-tool"] == tool
+
+
+def test_unknown_java_build_tool_keeps_the_default_and_says_so():
+    plan = _plan(_java("      - run: make\n"))
+
+    assert "build-tool" not in plan.inputs
+    assert any("Could not tell Maven from Gradle" in note for note in plan.notes)
+
+
+def test_java_version_other_than_17_is_noted():
+    plan = _plan(_java("      - run: mvn -B test\n", java_version="21"))
+
+    assert any("Temurin JDK 17; the starter asked for 21" in note for note in plan.notes)
+
+
+def test_dotnet_frameworks_follow_the_sdk_versions():
+    plan = _plan(
+        "on: push\njobs:\n  b:\n    runs-on: ubuntu-latest\n    steps:\n"
+        "      - uses: actions/setup-dotnet@v4\n"
+        "        with:\n          dotnet-version: |\n            8.0.x\n            9.0.x\n"
+    )
+
+    assert plan.inputs["dotnet-version"] == "9.0.x"
+    assert plan.inputs["frameworks"] == '["net8.0", "net9.0"]'
+
+
+@pytest.mark.parametrize(
+    ("setup", "toolchain"),
+    [
+        ("      - uses: dtolnay/rust-toolchain@stable\n", "stable"),
+        ("      - uses: dtolnay/rust-toolchain@1.85.0\n", "1.85.0"),
+        (
+            "      - uses: dtolnay/rust-toolchain@" + "a" * 40 + "\n"
+            "        with:\n          toolchain: nightly\n",
+            "nightly",
+        ),
+        (
+            "      - uses: actions-rs/toolchain@v1\n        with:\n          toolchain: beta\n",
+            "beta",
+        ),
+    ],
+)
+def test_rust_toolchain_is_carried_over(setup: str, toolchain: str):
+    plan = _plan(
+        "on: push\njobs:\n  b:\n    runs-on: ubuntu-latest\n    steps:\n"
+        + setup
+        + "      - run: cargo test\n"
+    )
+
+    assert plan.inputs == {"rust-toolchain": toolchain}
+
+
+def test_rust_is_detected_from_cargo_commands_alone():
+    plan = _plan(_read(STARTERS / "rust.yml"))
+
+    assert plan.ecosystem == "rust" and plan.workflow == "rust-ci.yml"
+    assert "rust-toolchain" not in plan.inputs
+
+
+def test_deno_test_flags_are_noted():
+    plan = _plan(_read(STARTERS / "deno.yml"))
+
+    assert any("`deno test -A`" in note for note in plan.notes)
+
+
+def test_bun_is_detected_but_not_migrated():
+    plan = _plan(
+        "on: push\njobs:\n  b:\n    runs-on: ubuntu-latest\n    steps:\n"
+        "      - uses: oven-sh/setup-bun@v2\n      - run: bun test\n"
+    )
+
+    assert plan.ecosystem == "node" and plan.workflow is None
+    assert "Bun" in explain(plan)

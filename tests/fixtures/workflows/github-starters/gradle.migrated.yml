@@ -1,0 +1,15 @@
+name: Java CI with Gradle
+'on':
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+    - main
+jobs:
+  ci:
+    permissions:
+      contents: read
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/java-ci.yml@v1
+    with:
+      build-tool: gradle

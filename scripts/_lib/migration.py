@@ -103,9 +103,25 @@ def _os_matrix(job: Workflow, plan: MigrationPlan) -> None:
         plan.inputs["os-matrix"] = json.dumps(systems)
 
 
-def _not_carried_over(
-    job: Workflow, plan: MigrationPlan, handled: set[str], *setup: str
-) -> None:
+def _single_version(
+    plan: MigrationPlan, job: Workflow, setup: Workflow, setting: str, name: str
+) -> str | None:
+    """Pick one version for a reusable workflow that tests a single version."""
+    versions = _values((setup.get("with") or {}).get(setting), job, plan.notes, setting)
+    if not versions:
+        plan.notes.append(f"No {setting} found; {plan.workflow} uses its default.")
+        return None
+    newest = _newest(versions)
+    if len(versions) > 1:
+        plan.notes.append(
+            f"{plan.workflow} tests one {name} version; {newest} is the newest of "
+            + ", ".join(versions)
+            + "."
+        )
+    return newest
+
+
+def _not_carried_over(job: Workflow, plan: MigrationPlan, handled: set[str], *setup: str) -> None:
     left = []
     for step in _steps(job):
         if "run" in step:
@@ -188,20 +204,9 @@ def _plan_node(job_name: str, job: Workflow, setup: Workflow) -> MigrationPlan:
         return plan
 
     plan = MigrationPlan("node", job_name, "node-ci.yml", {"contents": "read"})
-    versions = _values(
-        (setup.get("with") or {}).get("node-version"), job, plan.notes, "node-version"
-    )
-    if versions:
-        newest = _newest(versions)
-        plan.inputs["node-version"] = newest
-        if len(versions) > 1:
-            plan.notes.append(
-                f"node-ci.yml tests one Node.js version; {newest} is the newest of "
-                + ", ".join(versions)
-                + "."
-            )
-    else:
-        plan.notes.append("No Node.js version found; node-ci.yml uses its default.")
+    version = _single_version(plan, job, setup, "node-version", "Node.js")
+    if version:
+        plan.inputs["node-version"] = version
     _os_matrix(job, plan)
     if manager is None:
         plan.notes.append(
@@ -226,9 +231,204 @@ def _plan_node(job_name: str, job: Workflow, setup: Workflow) -> MigrationPlan:
     return plan
 
 
+def _plan_bun(job_name: str, job: Workflow, setup: Workflow) -> MigrationPlan:
+    plan = MigrationPlan("node", job_name)
+    plan.notes.append(
+        "node-ci.yml installs with npm, Yarn or pnpm, and this starter uses Bun, so no reusable "
+        "workflow of this collection fits it yet and nothing was generated."
+    )
+    return plan
+
+
+def _commands_starting(job: Workflow, *tools: str) -> set[str]:
+    return {
+        command for command in _commands(job) if command.split()[:1] and command.split()[0] in tools
+    }
+
+
+def _plan_go(job_name: str, job: Workflow, setup: Workflow) -> MigrationPlan:
+    plan = MigrationPlan("go", job_name, "go-ci.yml", {"contents": "read"})
+    version = _single_version(plan, job, setup, "go-version", "Go")
+    if version:
+        plan.inputs["go-version"] = version
+    plan.notes.append(
+        "go-ci.yml runs `go test ./...` and golangci-lint on ubuntu-latest; "
+        "`go test` compiles every package that has tests."
+    )
+    handled = {command for command in _commands(job) if command.startswith("go test")}
+    _not_carried_over(job, plan, handled, "actions/setup-go")
+    return plan
+
+
+def _java_build_tool(job: Workflow, setup: Workflow) -> str | None:
+    cache = str((setup.get("with") or {}).get("cache", "")).strip().lower()
+    if cache in {"maven", "gradle"}:
+        return cache
+    actions = {_action(step) for step in _steps(job)}
+    if "gradle/actions/setup-gradle" in actions:
+        return "gradle"
+    for command in _commands(job):
+        tool = command.split()[0] if command.split() else ""
+        if tool in {"mvn", "./mvnw"}:
+            return "maven"
+        if tool in {"gradle", "./gradlew"}:
+            return "gradle"
+    return None
+
+
+def _plan_java(job_name: str, job: Workflow, setup: Workflow) -> MigrationPlan:
+    plan = MigrationPlan("java", job_name, "java-ci.yml", {"contents": "read"})
+    tool = _java_build_tool(job, setup)
+    if tool:
+        plan.inputs["build-tool"] = tool
+    else:
+        plan.notes.append(
+            "Could not tell Maven from Gradle; java-ci.yml defaults to Maven. Set `build-tool` "
+            "to `gradle` for a Gradle project."
+        )
+    versions = _values(
+        (setup.get("with") or {}).get("java-version"), job, plan.notes, "java-version"
+    )
+    if versions and versions != ["17"]:
+        plan.notes.append(
+            "java-ci.yml always builds with Temurin JDK 17; the starter asked for "
+            + ", ".join(versions)
+            + "."
+        )
+    command = "`./gradlew test`" if tool == "gradle" else "`mvn -B test`"
+    plan.notes.append(f"java-ci.yml runs {command}, not the starter's package or build goal.")
+    handled = _commands_starting(job, "mvn", "./mvnw", "gradle", "./gradlew")
+    _not_carried_over(job, plan, handled, "actions/setup-java", "gradle/actions/setup-gradle")
+    return plan
+
+
+def _plan_ruby(job_name: str, job: Workflow, setup: Workflow) -> MigrationPlan:
+    plan = MigrationPlan("ruby", job_name, "ruby-ci.yml", {"contents": "read"})
+    versions = _values(
+        (setup.get("with") or {}).get("ruby-version"), job, plan.notes, "ruby-version"
+    )
+    if versions:
+        plan.inputs["ruby-versions"] = json.dumps(versions)
+    else:
+        plan.notes.append("No ruby-version found; ruby-ci.yml tests its default versions.")
+    handled: set[str] = set()
+    tests = [
+        command
+        for command in _commands(job)
+        if command.startswith(("bundle exec", "rake", "rspec")) and "\n" not in command
+    ]
+    if len(tests) == 1:
+        plan.inputs["test-command"] = tests[0]
+        handled.add(tests[0])
+    elif tests:
+        plan.notes.append("Several test commands found; ruby-ci.yml runs its default command.")
+    handled |= {command for command in _commands(job) if command.startswith("bundle install")}
+    plan.notes.append("ruby-ci.yml requires a Gemfile and runs on ubuntu-latest.")
+    _not_carried_over(job, plan, handled, "ruby/setup-ruby")
+    return plan
+
+
+def _plan_dotnet(job_name: str, job: Workflow, setup: Workflow) -> MigrationPlan:
+    plan = MigrationPlan("dotnet", job_name, "dotnet-ci.yml", {"contents": "read"})
+    values = _values(
+        (setup.get("with") or {}).get("dotnet-version"), job, plan.notes, "dotnet-version"
+    )
+    # setup-dotnet installs several SDKs when they are listed one per line.
+    versions = [version for value in values for version in value.split()]
+    if versions:
+        plan.inputs["dotnet-version"] = _newest(versions)
+        # dotnet-ci.yml runs `dotnet test -f <framework>` for each framework, net8.0 by default.
+        frameworks = []
+        for version in versions:
+            match = re.match(r"(\d+)\.(\d+)", version)
+            if match and f"net{match.group(1)}.{match.group(2)}" not in frameworks:
+                frameworks.append(f"net{match.group(1)}.{match.group(2)}")
+        if frameworks:
+            plan.inputs["frameworks"] = json.dumps(frameworks)
+            plan.notes.append(
+                "frameworks is derived from the SDK versions; set it to the project's target "
+                "frameworks if they differ."
+            )
+    else:
+        plan.notes.append("No dotnet-version found; dotnet-ci.yml uses its default.")
+    handled = _commands_starting(job, "dotnet")
+    _not_carried_over(job, plan, handled, "actions/setup-dotnet")
+    return plan
+
+
+def _plan_deno(job_name: str, job: Workflow, setup: Workflow) -> MigrationPlan:
+    plan = MigrationPlan("deno", job_name, "deno-ci.yml", {"contents": "read"})
+    version = _single_version(plan, job, setup, "deno-version", "Deno")
+    if version:
+        plan.inputs["deno-version"] = version
+    _os_matrix(job, plan)
+    handled = _commands_starting(job, "deno")
+    flagged = [
+        command
+        for command in handled
+        if command.split()[:2] == ["deno", "test"] and len(command.split()) > 2
+    ]
+    if flagged:
+        plan.notes.append(
+            "deno-ci.yml runs plain `deno lint` and `deno test`; the starter's "
+            + ", ".join(f"`{command}`" for command in sorted(flagged))
+            + " passes flags, such as permissions, that it does not."
+        )
+    _not_carried_over(job, plan, handled, "denoland/setup-deno")
+    return plan
+
+
+def _rust_toolchain(setup: Workflow) -> str | None:
+    toolchain = (setup.get("with") or {}).get("toolchain")
+    if toolchain:
+        return str(toolchain)
+    ref = str(setup.get("uses", "")).partition("@")[2]
+    if (
+        _action(setup) == "dtolnay/rust-toolchain"
+        and ref
+        and not re.fullmatch(r"[0-9a-f]{40}", ref)
+    ):
+        return ref  # dtolnay/rust-toolchain names the toolchain in its ref, such as @stable.
+    return None
+
+
+def _plan_rust(job_name: str, job: Workflow, setup: Workflow) -> MigrationPlan:
+    plan = MigrationPlan("rust", job_name, "rust-ci.yml", {"contents": "read"})
+    toolchain = _rust_toolchain(setup) if setup else None
+    if toolchain:
+        plan.inputs["rust-toolchain"] = toolchain
+    plan.notes.append(
+        "rust-ci.yml also checks formatting with `cargo fmt --check` and runs Clippy; set "
+        "`run-format` or `run-clippy` to false to skip them."
+    )
+    handled = _commands_starting(job, "cargo")
+    _not_carried_over(
+        job, plan, handled, "dtolnay/rust-toolchain", "actions-rs/toolchain", "Swatinem/rust-cache"
+    )
+    return plan
+
+
+def _plan_r(job_name: str, job: Workflow, setup: Workflow) -> MigrationPlan:
+    plan = MigrationPlan("r", job_name)
+    plan.notes.append(
+        "No public reusable workflow of this collection runs R CMD check yet (the R composite "
+        "actions setup-r, r-lint and r-testthat can be used as steps), so nothing was generated."
+    )
+    return plan
+
+
 PLANNERS: dict[str, tuple[str, Callable[[str, Workflow, Workflow], MigrationPlan]]] = {
     "actions/setup-python": ("python", _plan_python),
     "actions/setup-node": ("node", _plan_node),
+    "oven-sh/setup-bun": ("node", _plan_bun),
+    "actions/setup-go": ("go", _plan_go),
+    "actions/setup-java": ("java", _plan_java),
+    "ruby/setup-ruby": ("ruby", _plan_ruby),
+    "actions/setup-dotnet": ("dotnet", _plan_dotnet),
+    "denoland/setup-deno": ("deno", _plan_deno),
+    "dtolnay/rust-toolchain": ("rust", _plan_rust),
+    "actions-rs/toolchain": ("rust", _plan_rust),
+    "r-lib/actions/setup-r": ("r", _plan_r),
 }
 
 
@@ -257,13 +457,19 @@ def _triggers(workflow: Workflow, default_branch: str, notes: list[str]) -> Any:
 
 def plan_migration(workflow: Workflow, default_branch: str = "main") -> MigrationPlan:
     """Plan how the first job that sets up a known ecosystem migrates."""
-    found = [
-        (name, job, step, PLANNERS[_action(step)])
-        for name, job in (workflow.get("jobs") or {}).items()
-        if isinstance(job, dict)
-        for step in _steps(job)
-        if _action(step) in PLANNERS
-    ]
+    found = []
+    for job_name, job in (workflow.get("jobs") or {}).items():
+        if not isinstance(job, dict):
+            continue
+        setups = [
+            (job_name, job, step, PLANNERS[_action(step)])
+            for step in _steps(job)
+            if _action(step) in PLANNERS
+        ]
+        # GitHub's Rust starter sets nothing up: runners already have cargo.
+        if not setups and _commands_starting(job, "cargo"):
+            setups = [(job_name, job, {}, ("rust", _plan_rust))]
+        found.extend(setups)
     if not found:
         raise SystemExit("Unable to detect language from starter workflow")
 

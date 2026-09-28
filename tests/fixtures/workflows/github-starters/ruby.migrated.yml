@@ -1,0 +1,16 @@
+name: Ruby
+'on':
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+    - main
+jobs:
+  ci:
+    permissions:
+      contents: read
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/ruby-ci.yml@v1
+    with:
+      ruby-versions: '["2.6", "2.7", "3.0"]'
+      test-command: bundle exec rake

@@ -43,11 +43,24 @@ The tool:
 
 It exits with status 1, and explains why, when it finds no workflow to call.
 
-| Starter sets up | Migrated to |
-| --- | --- |
-| `actions/setup-python` | `python-test-matrix.yml` |
-| `actions/setup-node` with npm, Yarn or pnpm | `node-ci.yml` |
-| `actions/setup-node` with Bun | nothing yet: `node-ci.yml` installs with npm, Yarn or pnpm |
+| Starter sets up | Migrated to | Carried over |
+| --- | --- | --- |
+| `actions/setup-python` | `python-test-matrix.yml` | Python versions, runner, a single `pytest` command |
+| `actions/setup-node` with npm, Yarn or pnpm | `node-ci.yml` | the newest Node.js version, runner, the package manager as `package-manager` |
+| `actions/setup-node` running Bun, or `oven-sh/setup-bun` | nothing yet: `node-ci.yml` installs with npm, Yarn or pnpm | — |
+| `actions/setup-go` | `go-ci.yml` | the newest Go version |
+| `actions/setup-java` | `java-ci.yml` | Maven or Gradle as `build-tool`, from `cache:`, `setup-gradle`, or the `mvn`/`gradle` commands |
+| `ruby/setup-ruby` | `ruby-ci.yml` | Ruby versions, a single `bundle exec`/`rake`/`rspec` command |
+| `actions/setup-dotnet` | `dotnet-ci.yml` | the newest SDK, and `frameworks` derived from the SDK versions |
+| `dtolnay/rust-toolchain`, `actions-rs/toolchain`, or `cargo` commands alone | `rust-ci.yml` | the toolchain |
+| `denoland/setup-deno` | `deno-ci.yml` | the newest Deno version, runner |
+| `r-lib/actions/setup-r` | nothing yet: no public workflow runs `R CMD check` | — |
+
+The notes also say where the reusable workflow differs from the starter. For
+example, `java-ci.yml` always uses JDK 17 and runs tests rather than `package`,
+`rust-ci.yml` adds `cargo fmt --check` and Clippy, `go-ci.yml` adds
+golangci-lint, and `deno-ci.yml` runs `deno test` without permission flags such
+as `-A`.
 
 ## Side-by-Side Comparison
 
