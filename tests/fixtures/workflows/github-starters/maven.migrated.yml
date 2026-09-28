@@ -1,0 +1,15 @@
+name: Java CI with Maven
+'on':
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+    - main
+jobs:
+  ci:
+    permissions:
+      contents: read
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/java-ci.yml@v1
+    with:
+      build-tool: maven
