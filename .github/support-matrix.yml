@@ -143,6 +143,7 @@ workflows:
     - r-testthat.yml
     - repository-release.yml
     - test-composite-actions.yml
+    - test-node-ci.yml
     - test-python-lint.yml
     - test-python-test-matrix.yml
     - test-rust-benchmark.yml

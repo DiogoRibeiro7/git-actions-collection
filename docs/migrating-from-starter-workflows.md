@@ -47,7 +47,8 @@ It exits with status 1, and explains why, when it finds no workflow to call.
 | --- | --- | --- |
 | `actions/setup-python` | `python-test-matrix.yml` | Python versions, runner, a single `pytest` command |
 | `actions/setup-node` with Yarn | `node-ci.yml` | the newest Node.js version, runner |
-| `actions/setup-node` with npm or pnpm, or `oven-sh/setup-bun` | nothing yet: `node-ci.yml` runs Yarn only | — |
+| `actions/setup-node` with npm or pnpm | nothing yet: the tool migrates Yarn only so far | — |
+| `oven-sh/setup-bun` | nothing yet: `node-ci.yml` installs with npm, Yarn or pnpm | — |
 | `actions/setup-go` | `go-ci.yml` | the newest Go version |
 | `actions/setup-java` | `java-ci.yml` | Maven or Gradle as `build-tool`, from `cache:`, `setup-gradle`, or the `mvn`/`gradle` commands |
 | `ruby/setup-ruby` | `ruby-ci.yml` | Ruby versions, a single `bundle exec`/`rake`/`rspec` command |
@@ -116,10 +117,9 @@ notes that the flake8 step was not carried over; add `python-lint.yml` for it.
 
 ### Node.js
 
-`node-ci.yml` runs `yarn install --immutable`, `yarn lint`, and `yarn test`, so
-only Yarn projects can migrate to it. GitHub's `node.js.yml` starter uses npm; for
-npm and pnpm starters the tool explains that no reusable workflow fits yet and
-writes nothing.
+`node-ci.yml` installs with npm, Yarn or pnpm and runs the `lint` and `test`
+scripts, but the tool migrates only Yarn starters so far. GitHub's `node.js.yml`
+starter uses npm; for npm and pnpm starters the tool says so and writes nothing.
 
 **Starter (a Yarn project):**
 
@@ -162,7 +162,7 @@ jobs:
 ```
 
 `node-ci.yml` tests one Node.js version, so the tool keeps the newest one and
-says so. It also runs `yarn lint`, so `package.json` needs a `lint` script.
+says so. It also runs the `lint` script, so `package.json` needs one.
 
 ## Gradual Migration Strategy
 

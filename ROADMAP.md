@@ -132,10 +132,10 @@ Rust started as a reference `rust-ci.yml` that only ran formatting, `cargo check
 
 ### Node.js and TypeScript
 
-- [ ] Support npm, Yarn, and pnpm consistently.
+- [x] Support npm, Yarn, and pnpm consistently.
 - [ ] Add Node-version matrices.
 - [ ] Standardise lint, type-check, unit-test, and build stages.
-- [ ] Add package-manager-aware caching.
+- [x] Add package-manager-aware caching.
 - [ ] Harden npm publishing and provenance checks.
 - [ ] Add reusable TypeScript library and application examples.
 

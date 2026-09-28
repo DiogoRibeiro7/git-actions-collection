@@ -76,7 +76,7 @@ def test_default_branch_placeholder_is_replaced():
 
 
 def test_github_node_starter_uses_npm_so_nothing_is_generated():
-    """node-ci.yml runs Yarn only; an npm project would fail its first step."""
+    """The tool migrates Yarn starters only so far."""
     plan = _plan(_read(STARTERS / "node.js.yml"))
 
     assert plan.ecosystem == "node"

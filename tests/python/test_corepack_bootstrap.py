@@ -31,10 +31,14 @@ def test_every_corepack_enable_installs_one_pinned_corepack() -> None:
 
 
 @pytest.mark.skipif(os.name != "posix", reason="Requires Bash (Linux/WSL)")
-@pytest.mark.parametrize(("node_major", "installs"), [("24", False), ("26", True)])
-def test_node_ci_installs_corepack_only_when_node_lacks_it(
-    tmp_path: Path, node_major: str, installs: bool
+@pytest.mark.parametrize(
+    ("node_major", "manager", "installs"),
+    [("24", "yarn", False), ("26", "yarn", True), ("22", "pnpm", True), ("24", "pnpm", True)],
+)
+def test_node_ci_installs_corepack_when_node_lacks_one_that_runs_the_manager(
+    tmp_path: Path, node_major: str, manager: str, installs: bool
 ) -> None:
+    """The Corepack that Node.js 22 bundles cannot run pnpm 12."""
     fakebin = make_fakebin(
         tmp_path,
         {
@@ -48,7 +52,7 @@ def test_node_ci_installs_corepack_only_when_node_lacks_it(
         ".github/workflows/node-ci.yml",
         "build",
         "Enable Corepack",
-        context={},
+        context={"steps.manager.outputs.manager": manager},
         env={"PATH": f"{fakebin}:{os.environ['PATH']}"},
         workdir=tmp_path,
     )
