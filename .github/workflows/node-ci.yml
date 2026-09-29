@@ -1,6 +1,7 @@
 # Installs dependencies with npm, Yarn or pnpm from the lockfile and runs the package's lint and
 # test scripts across an OS matrix (Ubuntu, Windows, macOS by default). The package manager is
 # read from package.json's packageManager field or the lockfile unless package-manager names it.
+# Each matrix entry summarizes its Node.js version, commands and their results on the run page.
 name: Node CI
 
 on:
