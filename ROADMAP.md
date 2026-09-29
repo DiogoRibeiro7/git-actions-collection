@@ -26,8 +26,8 @@ The repository already contains a broad workflow catalogue, but the stable compa
 
 At the current v1 baseline:
 
-- `python-test-matrix.yml`, `security-scan.yml`, and the core Rust CI, quality, security, coverage, documentation, benchmark, and release-preflight workflows are supported reusable workflows;
-- Ruby, Go, Java, Node, .NET, Deno, infrastructure, publishing (including the Rust crates.io and GitHub Release workflows), and repository-governance workflows exist mainly as reference or experimental components;
+- `python-test-matrix.yml`, `security-scan.yml`, `node-ci.yml`, and the core Rust CI, quality, security, coverage, documentation, benchmark, and release-preflight workflows are supported reusable workflows;
+- Ruby, Go, Java, the other Node.js workflows, .NET, Deno, infrastructure, publishing (including the Rust crates.io and GitHub Release workflows), and repository-governance workflows exist mainly as reference or experimental components;
 - reusable composite actions already cover Python, R, dependency inspection, repository policy, security scanning, AWS packaging, and common setup tasks.
 
 The next stage is therefore not simply to add more YAML. It is to promote useful workflows into well-tested, reusable products and fill the missing ecosystem-specific gaps.
@@ -138,6 +138,7 @@ Rust started as a reference `rust-ci.yml` that only ran formatting, `cargo check
 - [x] Add package-manager-aware caching.
 - [ ] Harden npm publishing and provenance checks.
 - [ ] Add reusable TypeScript library and application examples.
+- [x] Add contract coverage and promote `node-ci.yml` from reference to supported.
 
 ### .NET and Deno
 

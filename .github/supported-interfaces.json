@@ -469,6 +469,39 @@
     }
   },
   "workflows": {
+    "node-ci.yml": {
+      "inputs": {
+        "node-version": {
+          "default": "24",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        },
+        "os-matrix": {
+          "default": "[\"ubuntu-latest\",\"windows-latest\",\"macos-latest\"]",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        },
+        "package-manager": {
+          "default": "auto",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        },
+        "working-directory": {
+          "default": ".",
+          "deprecated": false,
+          "required": false,
+          "type": "string"
+        }
+      },
+      "outputs": [],
+      "permissions": {
+        "contents": "read"
+      },
+      "secrets": {}
+    },
     "python-test-matrix.yml": {
       "inputs": {
         "os-matrix": {

@@ -83,6 +83,12 @@ workflows:
         - tests/python/test_rust_security_workflow.py
         - .github/workflows/test-rust-security.yml
         - examples/rust-crate
+    node-ci.yml:
+      evidence:
+        - tests/python/test_node_ci_workflow.py
+        - tests/python/test_corepack_bootstrap.py
+        - .github/workflows/test-node-ci.yml
+        - examples/npm-package
   reference:
     - api-testing.yml
     - artifact-management.yml
@@ -102,7 +108,6 @@ workflows:
     - java-ci.yml
     - k8s-manifests-lint.yml
     - lockfile-consistency.yml
-    - node-ci.yml
     - permissions-template.yml
     - pr-policy.yml
     - python-lint.yml
