@@ -17,7 +17,9 @@ jobs:
     uses: DiogoRibeiro7/git-actions-collection/.github/workflows/node-ci.yml@v1
 ```
 
-The collection's `test-node-ci.yml` runs the same workflow on this example.
+Each run adds a table per operating system to the run page, with the Node.js version, the
+package manager, each command and its result. The collection's `test-node-ci.yml` runs the
+same workflow on this example.
 
 ## Release
 

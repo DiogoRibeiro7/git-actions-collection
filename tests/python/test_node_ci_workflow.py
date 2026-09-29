@@ -88,6 +88,17 @@ def test_packages_are_cached_after_corepack_not_by_setup_node() -> None:
     assert "steps.manager.outputs.lockfile" in key
 
 
+def test_the_summary_runs_last_even_after_a_failure_and_from_the_checkout() -> None:
+    steps = _steps()
+    summary = _step("Summary")
+
+    assert steps[-1].get("name") == "Summary"
+    assert summary["if"] == "always()"
+    assert summary["working-directory"] == "${{ github.workspace }}"
+    assert summary["env"]["STEPS"] == "${{ toJSON(steps) }}"
+    assert {step.get("id") for step in steps} >= {"node", "manager", "install", "lint", "tests"}
+
+
 @posix
 @needs_node
 @pytest.mark.parametrize(
@@ -201,6 +212,7 @@ def test_dependencies_install_from_the_lockfile_without_changing_it(
 
     assert result.code == 0, result.stderr
     assert result.stdout.splitlines() == [expected]
+    assert result.outputs == {"command": expected}
 
 
 @posix
@@ -290,3 +302,96 @@ def test_a_failing_lint_or_test_script_fails_the_job(
 
     assert result.code == 3
     assert "failing" in result.stderr
+
+
+def _summary(tmp_path: Path, steps: dict[str, Any] | str, **inputs: str) -> ActionResult:
+    """Run the Summary step; *steps* is the steps context, or raw text in its place."""
+    context = {
+        "toJSON(steps)": steps if isinstance(steps, str) else json.dumps(steps),
+        "inputs.node-version": "24",
+        "inputs.package-manager": "auto",
+        "inputs.working-directory": ".",
+        "matrix.os": "ubuntu-latest",
+        "github.workspace": str(tmp_path),
+    }
+    context.update({f"inputs.{name.replace('_', '-')}": value for name, value in inputs.items()})
+    return run_workflow_step(WORKFLOW, "build", "Summary", context=context, workdir=tmp_path)
+
+
+def _ran(outcome: str, **outputs: str) -> dict[str, Any]:
+    return {"outcome": outcome, "conclusion": outcome, "outputs": outputs}
+
+
+@posix
+@needs_node
+def test_the_summary_lists_each_command_and_its_result(tmp_path: Path) -> None:
+    result = _summary(
+        tmp_path,
+        {
+            "node": _ran("success"),
+            "manager": _ran("success", manager="npm", lockfile="package-lock.json"),
+            "install": _ran("success", command="npm ci"),
+            "lint": _ran("success"),
+            "tests": _ran("success"),
+        },
+    )
+
+    assert result.code == 0, result.stderr
+    lines = result.summary.splitlines()
+    assert lines[0] == "## Node CI on ubuntu-latest"
+    assert lines[2].startswith("Node.js v") and lines[2].endswith(" · package manager npm")
+    assert lines[4:] == [
+        "| Step | Command | Result |",
+        "| --- | --- | --- |",
+        "| Install | `npm ci` | ✅ Passed |",
+        "| Lint | `npm run lint` | ✅ Passed |",
+        "| Tests | `npm run test` | ✅ Passed |",
+    ]
+
+
+@posix
+@needs_node
+def test_the_summary_shows_which_step_failed_and_where(tmp_path: Path) -> None:
+    result = _summary(
+        tmp_path,
+        {
+            "node": _ran("success"),
+            "manager": _ran("success", manager="yarn", lockfile="yarn.lock"),
+            "install": _ran("success", command="yarn install --immutable"),
+            "lint": _ran("failure"),
+            "tests": _ran("skipped"),
+        },
+        working_directory="packages/web|app",
+    )
+
+    assert result.code == 0, result.stderr
+    assert r"package manager yarn · directory `packages/web\|app`" in result.summary
+    assert "| Lint | `yarn run lint` | ❌ Failed |" in result.summary
+    assert "| Tests | `yarn run test` | Skipped |" in result.summary
+
+
+@posix
+@needs_node
+def test_the_summary_explains_a_job_that_stopped_before_installing(tmp_path: Path) -> None:
+    result = _summary(
+        tmp_path,
+        {"node": _ran("failure"), "manager": _ran("failure")},
+        node_version="99",
+        package_manager="bun",
+    )
+
+    assert result.code == 0, result.stderr
+    assert "Node.js 99 (not set up) · package manager not chosen" in result.summary
+    assert "| Package manager | `package-manager: bun` | ❌ Failed |" in result.summary
+    assert "| Install | — | Not run |" in result.summary
+    assert "| Tests | — | Not run |" in result.summary
+
+
+@posix
+@needs_node
+def test_a_broken_summary_warns_instead_of_failing_the_job(tmp_path: Path) -> None:
+    result = _summary(tmp_path, "not json")
+
+    assert result.code == 0
+    assert "::warning title=Node CI summary::Could not write the summary" in result.stdout
+    assert result.summary == ""
