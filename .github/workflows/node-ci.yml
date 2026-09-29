@@ -1,6 +1,7 @@
 # Installs dependencies with npm, Yarn or pnpm from the lockfile and runs the package's lint and
 # test scripts across an OS matrix (Ubuntu, Windows, macOS by default). The package manager is
 # read from package.json's packageManager field or the lockfile unless package-manager names it.
+# Each matrix entry summarizes its Node.js version, commands and their results on the run page.
 name: Node CI
 
 on:
@@ -47,6 +48,7 @@ jobs:
       # setup-node's `cache` input asks the runner's global Yarn or pnpm for its cache folder,
       # which fails in projects that pin another version through packageManager. Cache after Corepack.
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        id: node
         with:
           node-version: ${{ inputs.node-version }}
       - name: Choose the package manager
@@ -117,27 +119,92 @@ jobs:
           restore-keys: |
             ${{ steps.manager.outputs.manager }}-${{ runner.os }}-
       - name: Install dependencies
+        id: install
         env:
           MANAGER: ${{ steps.manager.outputs.manager }}
         run: |
           set -euo pipefail
           case "$MANAGER" in
-            npm) npm ci ;;
-            pnpm) pnpm install --frozen-lockfile ;;
+            npm) command=(npm ci) ;;
+            pnpm) command=(pnpm install --frozen-lockfile) ;;
             yarn)
               # Yarn 1 ignores --immutable, so it would rewrite an outdated lockfile.
               if [ "$(yarn --version | cut -d. -f1)" = "1" ]; then
-                yarn install --frozen-lockfile
+                command=(yarn install --frozen-lockfile)
               else
-                yarn install --immutable
+                command=(yarn install --immutable)
               fi
               ;;
           esac
+          echo "command=${command[*]}" >> "$GITHUB_OUTPUT"
+          "${command[@]}"
       - name: Run lint
+        id: lint
         env:
           MANAGER: ${{ steps.manager.outputs.manager }}
         run: '"$MANAGER" run lint'
       - name: Run tests
+        id: tests
         env:
           MANAGER: ${{ steps.manager.outputs.manager }}
         run: '"$MANAGER" run test'
+
+      # Adds this matrix entry's Node.js version, package manager, commands and their results to
+      # the run page. It runs from the checkout, so a missing working-directory still gets a summary.
+      - name: Summary
+        if: always()
+        working-directory: ${{ github.workspace }}
+        env:
+          STEPS: ${{ toJSON(steps) }}
+          NODE_VERSION: ${{ inputs.node-version }}
+          PACKAGE_MANAGER: ${{ inputs.package-manager }}
+          WORKING_DIRECTORY: ${{ inputs.working-directory }}
+          RUNNER_LABEL: ${{ matrix.os }}
+        run: |
+          # The summary is best effort: it must not fail a job that passed.
+          node - <<'JS' || echo "::warning title=Node CI summary::Could not write the summary"
+          const fs = require("fs");
+
+          const OUTCOMES = {
+            success: "✅ Passed",
+            failure: "❌ Failed",
+            cancelled: "Cancelled",
+            skipped: "Skipped",
+          };
+          const env = process.env;
+          const steps = JSON.parse(env.STEPS || "{}");
+          const outputs = (id) => (steps[id] && steps[id].outputs) || {};
+          const result = (id) => OUTCOMES[steps[id] && steps[id].outcome] || "Not run";
+          const cell = (value) => String(value).split("|").join("\\|");
+          const code = (value) => (value ? "`" + cell(value) + "`" : "—");
+
+          const manager = outputs("manager").manager;
+          const node = steps.node && steps.node.outcome === "success"
+            ? process.version
+            : `${env.NODE_VERSION} (not set up)`;
+          const facts = [`Node.js ${node}`, `package manager ${manager || "not chosen"}`];
+          if (env.WORKING_DIRECTORY && env.WORKING_DIRECTORY !== ".") {
+            facts.push(`directory ${code(env.WORKING_DIRECTORY)}`);
+          }
+
+          const rows = [];
+          if (!manager) {
+            rows.push(["Package manager", code(`package-manager: ${env.PACKAGE_MANAGER}`), result("manager")]);
+          }
+          rows.push(["Install", code(outputs("install").command), result("install")]);
+          rows.push(["Lint", code(manager && `${manager} run lint`), result("lint")]);
+          rows.push(["Tests", code(manager && `${manager} run test`), result("tests")]);
+
+          const summary = [
+            `## Node CI on ${env.RUNNER_LABEL}`,
+            "",
+            facts.join(" · "),
+            "",
+            "| Step | Command | Result |",
+            "| --- | --- | --- |",
+            ...rows.map((row) => `| ${row.join(" | ")} |`),
+            "",
+          ].join("\n");
+          fs.appendFileSync(env.GITHUB_STEP_SUMMARY, summary, "utf8");
+          console.log(summary);
+          JS
