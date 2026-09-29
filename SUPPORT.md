@@ -31,6 +31,7 @@ The supported reusable workflows are:
 - `security-scan.yml`
 - `rust-ci.yml`, `rust-quality.yml`, `rust-security.yml`, `rust-coverage.yml`,
   `rust-docs.yml`, `rust-benchmark.yml`, and `rust-release-preflight.yml`
+- `node-ci.yml`
 
 These workflows have direct repository-level contract tests in addition to
 example or self-test coverage. `rust-quality.yml` deliberately overlaps the

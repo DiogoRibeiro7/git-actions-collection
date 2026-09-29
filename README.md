@@ -66,6 +66,7 @@ outputs, secrets and required permissions only change compatibly within `v1`.
 | [`rust-docs.yml`](.github/workflows/rust-docs.yml) | Builds rustdoc with warnings treated as errors. |
 | [`rust-benchmark.yml`](.github/workflows/rust-benchmark.yml) | Runs a short Criterion benchmark smoke test. |
 | [`rust-release-preflight.yml`](.github/workflows/rust-release-preflight.yml) | Checks crate metadata and runs a verified `cargo package` before release. |
+| [`node-ci.yml`](.github/workflows/node-ci.yml) | Installs with npm, Yarn or pnpm from the lockfile and runs the lint and test scripts across operating systems. |
 
 | Composite action | What it does |
 | --- | --- |
