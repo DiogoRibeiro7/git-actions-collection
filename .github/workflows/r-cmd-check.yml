@@ -60,9 +60,13 @@ jobs:
           use-public-rspm: true
           http-user-agent: ${{ runner.os }}-${{ runner.arch }}
 
-      - name: Install check tooling
-        run: |
-          Rscript -e 'install.packages(c("jsonlite", "remotes", "rcmdcheck"), repos = "https://cloud.r-project.org")'
+      - name: Install package dependencies and check tooling
+        uses: r-lib/actions/setup-r-dependencies@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05
+        with:
+          working-directory: ${{ inputs.working-directory }}
+          extra-packages: |
+            any::jsonlite
+            any::rcmdcheck
 
       - name: Validate package and inputs
         env:
@@ -86,10 +90,6 @@ jobs:
               echo "::error::check-args must be a JSON array of strings"
               exit 2
             }
-
-      - name: Install package dependencies
-        run: |
-          Rscript -e 'remotes::install_deps(dependencies = TRUE, upgrade = "never")'
 
       - name: Run R CMD check
         env:
