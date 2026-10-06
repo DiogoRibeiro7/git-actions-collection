@@ -53,23 +53,16 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
-      # Step-level local actions resolve in the caller checkout. Fetch this
-      # collection at the exact commit of the reusable workflow before using
-      # the bundled setup-r action.
-      - name: Check out collection actions
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          repository: ${{ job.workflow_repository }}
-          ref: ${{ job.workflow_sha }}
-          path: .git-actions-collection
-          persist-credentials: false
-
-      - name: Set up R and check tooling
-        uses: ./.git-actions-collection/.github/actions/setup-r
+      - name: Set up R
+        uses: r-lib/actions/setup-r@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05
         with:
           r-version: ${{ matrix.r }}
-          packages: jsonlite,remotes,rcmdcheck
-          working-directory: ${{ inputs.working-directory }}
+          use-public-rspm: true
+          http-user-agent: ${{ runner.os }}-${{ runner.arch }}
+
+      - name: Install check tooling
+        run: |
+          Rscript -e 'install.packages(c("jsonlite", "remotes", "rcmdcheck"), repos = "https://cloud.r-project.org")'
 
       - name: Validate package and inputs
         env:
