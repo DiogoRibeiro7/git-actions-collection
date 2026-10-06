@@ -1,0 +1,25 @@
+name: Test R CMD Check Workflow
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/r-cmd-check.yml'
+      - '.github/workflows/test-r-cmd-check.yml'
+      - 'examples/r-package/**'
+      - 'tests/python/test_r_cmd_check_workflow.py'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  example:
+    uses: ./.github/workflows/r-cmd-check.yml
+    with:
+      working-directory: examples/r-package
