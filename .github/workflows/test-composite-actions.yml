@@ -24,6 +24,30 @@ permissions:
 # against a fixture copied to the workspace root. Files elsewhere in this
 # repository therefore cannot hide what a consumer repository would lack.
 jobs:
+  setup-r:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the actions beside the consumer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          path: collection
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.github/actions/
+            /scripts/
+
+      - name: Set up R and install a small package
+        uses: ./collection/.github/actions/setup-r
+        with:
+          r-version: release
+          packages: jsonlite
+
+      - name: Verify R and the installed package
+        run: |
+          set -euo pipefail
+          Rscript -e 'stopifnot(requireNamespace("jsonlite", quietly = TRUE))'
+
   setup-poetry:
     runs-on: ubuntu-latest
     steps:
