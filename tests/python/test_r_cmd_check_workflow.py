@@ -51,8 +51,8 @@ def test_r_cmd_check_installs_dependencies_before_checking() -> None:
     steps = _load()["jobs"]["check"]["steps"]
     names = [step.get("name") for step in steps]
 
-    assert names.index("Set up R") < names.index("Install check tooling")
-    assert names.index("Install check tooling") < names.index("Validate package and inputs")
+    assert names.index("Check out collection actions") < names.index("Set up R and check tooling")
+    assert names.index("Set up R and check tooling") < names.index("Validate package and inputs")
     assert names.index("Validate package and inputs") < names.index("Install package dependencies")
     assert names.index("Install package dependencies") < names.index("Run R CMD check")
 
