@@ -69,4 +69,4 @@ def test_notifier_only_runs_for_merged_pull_requests() -> None:
     )
     run = notify["steps"][0]["run"]
     assert "/actions/workflows/${workflow}/dispatches" in run
-    assert '{"ref: $ref, inputs: {"head-sha": $head_sha}}' in run
+    assert '{ref: $ref, inputs: {"head-sha": $head_sha}}' in run
