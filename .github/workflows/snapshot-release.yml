@@ -1,0 +1,283 @@
+# Publishes an immutable snapshot release from release material prepared by the caller.
+# Dry run is the default; live publication creates an annotated tag and a GitHub Release.
+name: Snapshot Release
+
+on:
+  workflow_call:
+    inputs:
+      snapshot-tag:
+        description: Snapshot tag in snapshot-YYYY.MM.DD or snapshot-YYYY.MM.DD.N form
+        required: true
+        type: string
+      commit-sha:
+        description: Exact lowercase 40-character commit SHA the snapshot represents
+        required: true
+        type: string
+      artifact-name:
+        description: Name of the workflow artifact containing the prepared release files
+        required: true
+        type: string
+      notes-file:
+        description: Release-notes file inside the downloaded artifact
+        required: false
+        type: string
+        default: snapshot-summary.md
+      required-files:
+        description: JSON array of files that must exist in the downloaded artifact
+        required: false
+        type: string
+        default: '["snapshot-manifest.json","snapshot-summary.md"]'
+      release-title:
+        description: GitHub Release title; defaults to "Snapshot <tag>"
+        required: false
+        type: string
+        default: ''
+      tag-message:
+        description: Annotated Git tag message; defaults to "Snapshot <tag>"
+        required: false
+        type: string
+        default: ''
+      dry-run:
+        description: Validate the snapshot and release material without creating a tag or release
+        required: false
+        type: boolean
+        default: true
+      release-environment:
+        description: GitHub environment protecting live snapshot publication
+        required: false
+        type: string
+        default: release
+    outputs:
+      tag:
+        description: Validated snapshot tag
+        value: ${{ jobs.validate.outputs.tag }}
+      commit:
+        description: Validated snapshot commit
+        value: ${{ jobs.validate.outputs.commit }}
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate snapshot release
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.inputs.outputs.tag }}
+      commit: ${{ steps.inputs.outputs.commit }}
+
+    steps:
+      - name: Validate release inputs
+        id: inputs
+        shell: bash
+        env:
+          SNAPSHOT_TAG: ${{ inputs.snapshot-tag }}
+          COMMIT_SHA: ${{ inputs.commit-sha }}
+          REQUIRED_FILES: ${{ inputs.required-files }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          import re
+          from datetime import date
+
+          tag = os.environ["SNAPSHOT_TAG"]
+          commit = os.environ["COMMIT_SHA"]
+
+          match = re.fullmatch(
+              r"snapshot-(\d{4})\.(\d{2})\.(\d{2})(?:\.([1-9]\d*))?",
+              tag,
+          )
+          if match is None:
+              raise SystemExit(
+                  "snapshot-tag must match snapshot-YYYY.MM.DD or snapshot-YYYY.MM.DD.N"
+              )
+          date(int(match.group(1)), int(match.group(2)), int(match.group(3)))
+
+          if re.fullmatch(r"[0-9a-f]{40}", commit) is None:
+              raise SystemExit(
+                  "commit-sha must be a full 40-character lowercase Git SHA"
+              )
+
+          try:
+              required = json.loads(os.environ["REQUIRED_FILES"])
+          except json.JSONDecodeError as exc:
+              raise SystemExit(f"required-files is not valid JSON: {exc.msg}") from exc
+          if (
+              not isinstance(required, list)
+              or not required
+              or not all(isinstance(item, str) and item for item in required)
+          ):
+              raise SystemExit("required-files must be a non-empty JSON string array")
+          if any(item.startswith("/") or ".." in item.split("/") for item in required):
+              raise SystemExit("required-files entries must be relative paths inside the artifact")
+          PY
+
+          echo "tag=${SNAPSHOT_TAG}" >> "${GITHUB_OUTPUT}"
+          echo "commit=${COMMIT_SHA}" >> "${GITHUB_OUTPUT}"
+
+      - name: Check out requested commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.commit-sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify checkout identity
+        shell: bash
+        env:
+          EXPECTED_COMMIT: ${{ inputs.commit-sha }}
+        run: |
+          set -euo pipefail
+          actual_commit="$(git rev-parse HEAD)"
+          if [ "${actual_commit}" != "${EXPECTED_COMMIT}" ]; then
+            echo "Expected ${EXPECTED_COMMIT}, checked out ${actual_commit}" >&2
+            exit 1
+          fi
+
+      - name: Refuse an existing tag
+        shell: bash
+        env:
+          SNAPSHOT_TAG: ${{ inputs.snapshot-tag }}
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code --tags origin "refs/tags/${SNAPSHOT_TAG}" >/dev/null 2>&1; then
+            echo "Tag already exists: ${SNAPSHOT_TAG}" >&2
+            exit 1
+          fi
+
+      - name: Download prepared release material
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: release-material
+
+      - name: Verify release material
+        shell: bash
+        env:
+          REQUIRED_FILES: ${{ inputs.required-files }}
+          NOTES_FILE: ${{ inputs.notes-file }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          root = Path("release-material")
+          required = json.loads(os.environ["REQUIRED_FILES"])
+          notes = os.environ["NOTES_FILE"]
+
+          missing = [name for name in required if not (root / name).is_file()]
+          if missing:
+              raise SystemExit("Missing required release files: " + ", ".join(missing))
+          if not notes or notes.startswith("/") or ".." in Path(notes).parts:
+              raise SystemExit("notes-file must be a relative path inside the artifact")
+          if not (root / notes).is_file():
+              raise SystemExit(f"Release notes file not found: {notes}")
+          PY
+
+      - name: Dry-run summary
+        if: inputs.dry-run
+        shell: bash
+        env:
+          SNAPSHOT_TAG: ${{ inputs.snapshot-tag }}
+          COMMIT_SHA: ${{ inputs.commit-sha }}
+          ARTIFACT_NAME: ${{ inputs.artifact-name }}
+        run: |
+          {
+            echo "## Snapshot release dry run"
+            echo
+            echo "- Tag: \`${SNAPSHOT_TAG}\`"
+            echo "- Commit: \`${COMMIT_SHA}\`"
+            echo "- Artifact: \`${ARTIFACT_NAME}\`"
+            echo "- Result: validated; no tag or release created"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  publish:
+    name: Publish immutable snapshot
+    needs: validate
+    if: ${{ !inputs.dry-run }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.release-environment }}
+    permissions:
+      contents: write
+
+    steps:
+      - name: Validate release environment
+        shell: bash
+        env:
+          RELEASE_ENVIRONMENT: ${{ inputs.release-environment }}
+        run: |
+          set -euo pipefail
+          if [ -z "${RELEASE_ENVIRONMENT}" ]; then
+            echo "release-environment must not be empty for live publication" >&2
+            exit 1
+          fi
+
+      - name: Check out requested commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ needs.validate.outputs.commit }}
+          fetch-depth: 0
+
+      - name: Download validated release material
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: release-material
+
+      - name: Recheck tag absence
+        shell: bash
+        env:
+          SNAPSHOT_TAG: ${{ needs.validate.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code --tags origin "refs/tags/${SNAPSHOT_TAG}" >/dev/null 2>&1; then
+            echo "Tag appeared after validation: ${SNAPSHOT_TAG}" >&2
+            exit 1
+          fi
+
+      - name: Create immutable annotated tag
+        shell: bash
+        env:
+          SNAPSHOT_TAG: ${{ needs.validate.outputs.tag }}
+          SNAPSHOT_COMMIT: ${{ needs.validate.outputs.commit }}
+          TAG_MESSAGE: ${{ inputs.tag-message }}
+        run: |
+          set -euo pipefail
+          message="${TAG_MESSAGE:-Snapshot ${SNAPSHOT_TAG}}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "${SNAPSHOT_TAG}" "${SNAPSHOT_COMMIT}" -m "${message}"
+          git push origin "refs/tags/${SNAPSHOT_TAG}"
+
+      - name: Create GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SNAPSHOT_TAG: ${{ needs.validate.outputs.tag }}
+          SNAPSHOT_COMMIT: ${{ needs.validate.outputs.commit }}
+          RELEASE_TITLE: ${{ inputs.release-title }}
+          NOTES_FILE: ${{ inputs.notes-file }}
+        run: |
+          set -euo pipefail
+          title="${RELEASE_TITLE:-Snapshot ${SNAPSHOT_TAG}}"
+
+          if gh release view "${SNAPSHOT_TAG}" >/dev/null 2>&1; then
+            echo "GitHub Release already exists for ${SNAPSHOT_TAG}" >&2
+            exit 1
+          fi
+
+          mapfile -d '' -t assets < <(find release-material -type f -print0 | sort -z)
+          if [ "${#assets[@]}" -eq 0 ]; then
+            echo "No release assets found" >&2
+            exit 1
+          fi
+
+          gh release create "${SNAPSHOT_TAG}" "${assets[@]}" \
+            --verify-tag \
+            --target "${SNAPSHOT_COMMIT}" \
+            --title "${title}" \
+            --notes-file "release-material/${NOTES_FILE}"

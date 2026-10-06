@@ -1,0 +1,59 @@
+name: Test Snapshot Release Workflow
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/snapshot-release.yml'
+      - '.github/workflows/test-snapshot-release.yml'
+      - 'tests/python/test_snapshot_release_workflow.py'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prepare snapshot release fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-material
+          cat > release-material/snapshot-manifest.json <<'JSON'
+          {
+            "manifest_version": 1,
+            "repository": "fixture",
+            "tag": "snapshot-2099.12.31"
+          }
+          JSON
+          cat > release-material/snapshot-summary.md <<'MD'
+          # Snapshot fixture
+
+          Dry-run fixture for the reusable snapshot release workflow.
+          MD
+
+      - name: Upload snapshot release fixture
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: snapshot-release-fixture
+          path: release-material/
+          if-no-files-found: error
+          retention-days: 1
+
+  dry-run:
+    needs: prepare
+    permissions:
+      contents: write
+    uses: ./.github/workflows/snapshot-release.yml
+    with:
+      snapshot-tag: snapshot-2099.12.31
+      commit-sha: ${{ github.sha }}
+      artifact-name: snapshot-release-fixture
+      dry-run: true
