@@ -80,7 +80,7 @@ jobs:
 
       - name: Setup Rust
         if: inputs.kind == 'rust'
-        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de
+        uses: dtolnay/rust-toolchain@e081816240890017053eacbb1bdf337761dc5582
         with:
           toolchain: stable
 
