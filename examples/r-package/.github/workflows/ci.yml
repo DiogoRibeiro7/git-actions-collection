@@ -1,0 +1,11 @@
+name: R package CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    permissions:
+      contents: read
+    uses: DiogoRibeiro7/git-actions-collection/.github/workflows/r-cmd-check.yml@v1
