@@ -1,0 +1,207 @@
+# Blocks a pull request until every configured pull request in another repository is merged.
+# It publishes a commit status that can be required by branch protection or a repository ruleset.
+name: Cross-repository merge gate
+
+on:
+  workflow_call:
+    inputs:
+      dependencies:
+        description: >-
+          JSON array of prerequisite pull requests. Each item must contain
+          "repository" ("owner/name") and "pull_request" (positive integer).
+        required: true
+        type: string
+      head-sha:
+        description: >-
+          Commit SHA that receives the gate status. Defaults to the triggering
+          pull request head SHA, then github.sha.
+        required: false
+        type: string
+        default: ''
+      status-context:
+        description: Commit status context to publish and require before merging.
+        required: false
+        type: string
+        default: cross-repo-merge-gate
+    secrets:
+      dependency-token:
+        description: >-
+          Optional token with read access to private dependency repositories.
+          Public dependencies can be checked without it.
+        required: false
+
+permissions:
+  statuses: write
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Evaluate dependency pull requests
+        id: evaluate
+        shell: bash
+        env:
+          DEPENDENCIES: ${{ inputs.dependencies }}
+          DEPENDENCY_TOKEN: ${{ secrets['dependency-token'] }}
+        run: |
+          set -euo pipefail
+
+          dependencies_file="${RUNNER_TEMP}/cross-repo-dependencies.json"
+          python - "${dependencies_file}" <<'PY'
+          import json
+          import os
+          import re
+          import sys
+          from pathlib import Path
+          from typing import Any
+
+          REPOSITORY = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
+
+
+          def fail(message: str) -> None:
+              """Stop with an Actions annotation that explains invalid input."""
+              print(f"::error::{message}")
+              raise SystemExit(2)
+
+
+          def validate(raw: str) -> list[dict[str, Any]]:
+              """Validate and normalize the dependency JSON."""
+              try:
+                  dependencies = json.loads(raw)
+              except json.JSONDecodeError as exc:
+                  fail(f"dependencies is not valid JSON: {exc.msg}")
+
+              if not isinstance(dependencies, list) or not dependencies:
+                  fail("dependencies must be a non-empty JSON array")
+
+              normalized: list[dict[str, Any]] = []
+              for index, dependency in enumerate(dependencies):
+                  if not isinstance(dependency, dict):
+                      fail(f"dependencies[{index}] must be an object")
+
+                  repository = dependency.get("repository")
+                  pull_request = dependency.get("pull_request")
+                  if not isinstance(repository, str) or not REPOSITORY.fullmatch(repository):
+                      fail(
+                          f"dependencies[{index}].repository must use the owner/name form"
+                      )
+                  if (
+                      isinstance(pull_request, bool)
+                      or not isinstance(pull_request, int)
+                      or pull_request <= 0
+                  ):
+                      fail(
+                          f"dependencies[{index}].pull_request must be a positive integer"
+                      )
+                  normalized.append(
+                      {"repository": repository, "pull_request": pull_request}
+                  )
+              return normalized
+
+
+          output = Path(sys.argv[1])
+          output.write_text(
+              json.dumps(validate(os.environ["DEPENDENCIES"]), separators=(",", ":")),
+              encoding="utf-8",
+          )
+          PY
+
+          blocked=()
+          lookup_errors=()
+
+          while IFS= read -r dependency; do
+            repository="$(jq -r '.repository' <<<"${dependency}")"
+            pull_request="$(jq -r '.pull_request' <<<"${dependency}")"
+            api_url="${GITHUB_API_URL}/repos/${repository}/pulls/${pull_request}"
+
+            headers=(
+              --header 'Accept: application/vnd.github+json'
+              --header 'X-GitHub-Api-Version: 2022-11-28'
+            )
+            if [[ -n "${DEPENDENCY_TOKEN}" ]]; then
+              headers+=(--header "Authorization: Bearer ${DEPENDENCY_TOKEN}")
+            fi
+
+            error_file="${RUNNER_TEMP}/cross-repo-${pull_request}.err"
+            if ! response="$(
+              curl --silent --show-error --fail-with-body --location                 "${headers[@]}" "${api_url}" 2>"${error_file}"
+            )"; then
+              message="$(tr '\n' ' ' <"${error_file}")"
+              lookup_errors+=("${repository}#${pull_request}: ${message}")
+              continue
+            fi
+
+            if [[ -z "$(jq -r '.merged_at // empty' <<<"${response}")" ]]; then
+              blocked+=("${repository}#${pull_request}")
+            fi
+          done < <(jq -c '.[]' "${dependencies_file}")
+
+          if (( ${#lookup_errors[@]} > 0 )); then
+            state='failure'
+            description="Blocked: ${#lookup_errors[@]} dependency lookup(s) failed"
+          elif (( ${#blocked[@]} > 0 )); then
+            state='failure'
+            description="Blocked: ${#blocked[@]} prerequisite PR(s) not merged"
+          else
+            state='success'
+            description='All cross-repository prerequisites are merged'
+          fi
+
+          {
+            echo "state=${state}"
+            echo "description=${description}"
+          } >>"${GITHUB_OUTPUT}"
+
+          {
+            echo '## Cross-repository merge gate'
+            echo
+            echo "**Result:** ${description}"
+            if (( ${#blocked[@]} > 0 )); then
+              echo
+              echo '### Waiting for merge'
+              printf -- '- `%s`\n' "${blocked[@]}"
+            fi
+            if (( ${#lookup_errors[@]} > 0 )); then
+              echo
+              echo '### Lookup errors'
+              printf -- '- `%s`\n' "${lookup_errors[@]}"
+            fi
+          } >>"${GITHUB_STEP_SUMMARY}"
+
+      - name: Publish required commit status
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ inputs['head-sha'] || github.event.pull_request.head.sha || github.sha }}
+          STATUS_CONTEXT: ${{ inputs['status-context'] }}
+          STATE: ${{ steps.evaluate.outputs.state }}
+          DESCRIPTION: ${{ steps.evaluate.outputs.description }}
+        run: |
+          set -euo pipefail
+
+          state="${STATE:-failure}"
+          description="${DESCRIPTION:-Gate evaluation failed before producing a result}"
+
+          if [[ ! "${HEAD_SHA}" =~ ^([0-9A-Fa-f]{40}|[0-9A-Fa-f]{64})$ ]]; then
+            echo "::error::head-sha must be a 40- or 64-character hexadecimal commit SHA"
+            exit 2
+          fi
+          if [[ -z "${STATUS_CONTEXT}" || ${#STATUS_CONTEXT} -gt 100 ]]; then
+            echo "::error::status-context must contain between 1 and 100 characters"
+            exit 2
+          fi
+
+          jq -n             --arg state "${state}"             --arg context "${STATUS_CONTEXT}"             --arg description "${description}"             --arg target_url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"             '{
+              state: $state,
+              context: $context,
+              description: $description,
+              target_url: $target_url
+            }'             | gh api                 --method POST                 "repos/${GITHUB_REPOSITORY}/statuses/${HEAD_SHA}"                 --input -
+
+      - name: Enforce merge gate
+        if: always() && steps.evaluate.outputs.state != 'success'
+        shell: bash
+        run: |
+          echo "::error::${{ steps.evaluate.outputs.description || 'Cross-repository merge gate failed' }}"
+          exit 1
