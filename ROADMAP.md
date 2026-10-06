@@ -98,8 +98,8 @@ Rust started as a reference `rust-ci.yml` that only ran formatting, `cargo check
 
 ### R
 
-- [ ] Turn the existing internal R checks into a reusable public `R CMD check` workflow.
-- [ ] Add configurable R-version and operating-system matrices.
+- [x] Turn the existing internal R checks into a reusable public `R CMD check` workflow.
+- [x] Add configurable R-version and operating-system matrices.
 - [ ] Add public `lintr` and `testthat` orchestration workflows around the existing composite actions.
 - [ ] Add coverage reporting.
 - [ ] Add package-build checks and documentation generation for package projects.

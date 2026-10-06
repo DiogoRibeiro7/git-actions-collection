@@ -112,6 +112,7 @@ workflows:
     - notify-cross-repo-dependents.yml
     - permissions-template.yml
     - pr-policy.yml
+    - r-cmd-check.yml
     - python-lint.yml
     - publish-to-npm.yml
     - publish-to-pypi.yml
@@ -145,7 +146,6 @@ workflows:
     - js-unit-tests.yml
     - python-type-check.yml
     - python-unit-tests.yml
-    - r-cmd-check.yml
     - r-lint.yml
     - r-testthat.yml
     - repository-release.yml
@@ -153,6 +153,7 @@ workflows:
     - test-node-ci.yml
     - test-python-lint.yml
     - test-python-test-matrix.yml
+    - test-r-cmd-check.yml
     - test-rust-benchmark.yml
     - test-rust-ci.yml
     - test-rust-coverage.yml

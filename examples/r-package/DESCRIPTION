@@ -1,0 +1,9 @@
+Package: exampleRpackage
+Type: Package
+Title: Minimal R Package for Reusable Workflow Tests
+Version: 0.1.0
+Authors@R: person("Diogo", "Ribeiro", role = c("aut", "cre"), email = "dfr@esmad.ipp.pt")
+Description: A minimal package used to exercise the reusable R CMD check workflow.
+License: MIT + file LICENSE
+Encoding: UTF-8
+RoxygenNote: 7.3.3
