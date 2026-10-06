@@ -131,6 +131,7 @@ workflows:
     - pypi-publish.yml
     - rust-github-release.yml
     - rust-publish.yml
+    - snapshot-release.yml
     - release.yml
     - terraform-aws.yml
     - terraform-plan-comment.yml
@@ -164,4 +165,5 @@ workflows:
     - test-rust-release-preflight.yml
     - test-rust-security.yml
     - test-security-scan.yml
+    - test-snapshot-release.yml
     - tests.yml
