@@ -159,12 +159,12 @@ jobs:
             if (( ${#blocked[@]} > 0 )); then
               echo
               echo '### Waiting for merge'
-              printf -- '- `%s`\n' "${blocked[@]}"
+              printf -- '- \\x60%s\\x60\\n' "${blocked[@]}"
             fi
             if (( ${#lookup_errors[@]} > 0 )); then
               echo
               echo '### Lookup errors'
-              printf -- '- `%s`\n' "${lookup_errors[@]}"
+              printf -- '- \\x60%s\\x60\\n' "${lookup_errors[@]}"
             fi
           } >>"${GITHUB_STEP_SUMMARY}"
 
