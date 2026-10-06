@@ -1,0 +1,165 @@
+# Re-runs a dependent repository's cross-repository merge gate after this repository merges a PR.
+# Each target names the dependent repository, its open pull request, and optionally its gate workflow.
+name: Notify cross-repository dependents
+
+on:
+  workflow_call:
+    inputs:
+      targets:
+        description: >-
+          JSON array of dependent pull requests. Each item must contain
+          "repository" ("owner/name") and "pull_request" (positive integer);
+          "workflow" and "ref" are optional.
+        required: true
+        type: string
+    secrets:
+      dispatch-token:
+        description: >-
+          Token with Actions write and pull-request read access to every target
+          repository so the gate workflow can be dispatched.
+        required: true
+
+permissions: {}
+
+jobs:
+  notify:
+    if: github.event_name == 'pull_request' && github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch target gate workflows
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets['dispatch-token'] }}
+          TARGETS: ${{ inputs.targets }}
+        run: |
+          set -euo pipefail
+
+          targets_file="${RUNNER_TEMP}/cross-repo-targets.json"
+          python - "${targets_file}" <<'PY'
+          import json
+          import os
+          import re
+          import sys
+          from pathlib import Path
+          from typing import Any
+
+          REPOSITORY = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
+          WORKFLOW = re.compile(r"^[A-Za-z0-9_.-]+\.ya?ml$")
+
+
+          def fail(message: str) -> None:
+              """Stop with an Actions annotation that explains invalid input."""
+              print(f"::error::{message}")
+              raise SystemExit(2)
+
+
+          def validate(raw: str) -> list[dict[str, Any]]:
+              """Validate and normalize target repository dispatches."""
+              try:
+                  targets = json.loads(raw)
+              except json.JSONDecodeError as exc:
+                  fail(f"targets is not valid JSON: {exc.msg}")
+
+              if not isinstance(targets, list) or not targets:
+                  fail("targets must be a non-empty JSON array")
+
+              normalized: list[dict[str, Any]] = []
+              for index, target in enumerate(targets):
+                  if not isinstance(target, dict):
+                      fail(f"targets[{index}] must be an object")
+
+                  repository = target.get("repository")
+                  pull_request = target.get("pull_request")
+                  workflow = target.get("workflow", "cross-repo-gate.yml")
+                  ref = target.get("ref")
+
+                  if not isinstance(repository, str) or not REPOSITORY.fullmatch(repository):
+                      fail(f"targets[{index}].repository must use the owner/name form")
+                  if (
+                      isinstance(pull_request, bool)
+                      or not isinstance(pull_request, int)
+                      or pull_request <= 0
+                  ):
+                      fail(f"targets[{index}].pull_request must be a positive integer")
+                  if not isinstance(workflow, str) or not WORKFLOW.fullmatch(workflow):
+                      fail(f"targets[{index}].workflow must be a workflow YAML filename")
+                  if ref is not None and (not isinstance(ref, str) or not ref.strip()):
+                      fail(f"targets[{index}].ref must be a non-empty string when set")
+
+                  normalized.append(
+                      {
+                          "repository": repository,
+                          "pull_request": pull_request,
+                          "workflow": workflow,
+                          "ref": ref,
+                      }
+                  )
+              return normalized
+
+
+          output = Path(sys.argv[1])
+          output.write_text(
+              json.dumps(validate(os.environ["TARGETS"]), separators=(",", ":")),
+              encoding="utf-8",
+          )
+          PY
+
+          failures=0
+          dispatched=0
+          skipped=0
+
+          while IFS= read -r target; do
+            repository="$(jq -r '.repository' <<<"${target}")"
+            pull_request="$(jq -r '.pull_request' <<<"${target}")"
+            workflow="$(jq -r '.workflow' <<<"${target}")"
+            ref="$(jq -r '.ref // empty' <<<"${target}")"
+
+            if ! pull="$(
+              gh api                 --header 'X-GitHub-Api-Version: 2022-11-28'                 "repos/${repository}/pulls/${pull_request}"
+            )"; then
+              echo "::error::Could not read ${repository}#${pull_request}"
+              ((failures+=1))
+              continue
+            fi
+
+            if [[ "$(jq -r '.state' <<<"${pull}")" != 'open' ]]; then
+              echo "::notice::Skipping ${repository}#${pull_request}; it is not open"
+              ((skipped+=1))
+              continue
+            fi
+
+            head_sha="$(jq -r '.head.sha' <<<"${pull}")"
+            if [[ -z "${ref}" ]]; then
+              if ! ref="$(
+                gh api                   --header 'X-GitHub-Api-Version: 2022-11-28'                   "repos/${repository}"                   --jq '.default_branch'
+              )"; then
+                echo "::error::Could not determine the default branch for ${repository}"
+                ((failures+=1))
+                continue
+              fi
+            fi
+
+            payload="$(
+              jq -cn                 --arg ref "${ref}"                 --arg head_sha "${head_sha}"                 '{ref: $ref, inputs: {"head-sha": $head_sha}}'
+            )"
+
+            if gh api               --method POST               --header 'X-GitHub-Api-Version: 2022-11-28'               "repos/${repository}/actions/workflows/${workflow}/dispatches"               --input - <<<"${payload}"; then
+              echo "::notice::Re-check requested for ${repository}#${pull_request}"
+              ((dispatched+=1))
+            else
+              echo "::error::Could not dispatch ${workflow} for ${repository}#${pull_request}"
+              ((failures+=1))
+            fi
+          done < <(jq -c '.[]' "${targets_file}")
+
+          {
+            echo '## Cross-repository dependent notification'
+            echo
+            echo "- Dispatched: ${dispatched}"
+            echo "- Skipped: ${skipped}"
+            echo "- Failed: ${failures}"
+          } >>"${GITHUB_STEP_SUMMARY}"
+
+          if (( failures > 0 )); then
+            exit 1
+          fi
