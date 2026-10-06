@@ -26,7 +26,7 @@ on:
         type: string
         default: '["--no-manual"]'
       error-on:
-        description: rcmdcheck error threshold: error, warning, or note
+        description: "rcmdcheck error threshold: error, warning, or note"
         required: false
         type: string
         default: error
