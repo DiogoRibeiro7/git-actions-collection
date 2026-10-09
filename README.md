@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/project-logo.png" alt="git-actions-collection project logo" width="160" height="160">
+</p>
+
 # GitHub Actions Collection
 
 [![Release](https://img.shields.io/github/v/release/DiogoRibeiro7/git-actions-collection)](https://github.com/DiogoRibeiro7/git-actions-collection/releases)
